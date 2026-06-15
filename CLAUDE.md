@@ -113,6 +113,18 @@ llm-job-support/
 4. **VLM/RAG/공공데이터 질문은 전용 subagent 사용** — `.claude/agents/` 참고.
 5. **모르는 라이브러리는 그냥 물어봐도 됨**. Claude가 설치 명령까지 알려준다.
 
+## 장기 기억 (memory MCP)
+
+세션이 바뀌어도 진행상황·결정사항을 이어가기 위해 **`memory` MCP 서버**를 쓴다.
+(`.claude/mcp/memory_server.py`, stdlib만, SQLite `.claude/memory.db` — 자동 로드 안 되므로 평소 토큰 0.)
+
+- **세션 시작 / 맥락이 필요할 때**: 먼저 `memory_search`로 관련 기억을 꺼내본다
+  (예: "지난번 포트홀 데모 어디까지 했지").
+- **중요한 사실·결정·진행상황이 생기면**: `memory_save(content, tags)`로 바로 저장한다.
+  한 건 = 한 사실, 태그는 공백 구분(예: `prototype api-test 진행상황`).
+- 도구: `memory_save` / `memory_search` / `memory_recent` / `memory_delete`.
+- DB는 커밋 금지(`.gitignore` 처리됨). 팀 공유가 필요한 합의사항은 이 CLAUDE.md나 `docs/`에 적는다.
+
 ## 무엇을 하지 말 것
 
 - 처음부터 거대한 모놀리식 백엔드 설계 X. 기능 1개부터.

@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Claude Code 도구 가이드 · gstack · loop · goal · skills · MCP</title>
+<style>
+  :root{
+    --ink:#1d2433; --muted:#5b6678; --line:#e3e8f0;
+    --brand:#2f6df0; --brand-2:#7c3aed; --teal:#0ea5a4;
+    --bg-code:#0f172a; --bg-soft:#f6f8fc; --warn:#b45309;
+  }
+  *{box-sizing:border-box;}
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{
+    margin:0; color:var(--ink);
+    font-family:"Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+    font-size:11pt; line-height:1.7;
+  }
+  @page{ size:A4; margin:18mm 16mm 16mm; }
+  code,kbd,.mono{ font-family:"Consolas","D2Coding",monospace; }
+
+  /* ---------- 표지 ---------- */
+  .cover{
+    height:261mm; display:flex; flex-direction:column; justify-content:center;
+    padding:0 8mm; page-break-after:always;
+    background:linear-gradient(135deg,#1e3a8a 0%,#2f6df0 45%,#7c3aed 100%);
+    color:#fff;
+  }
+  .cover .eyebrow{ letter-spacing:.25em; font-size:10pt; opacity:.85; text-transform:uppercase; }
+  .cover h1{ font-size:38pt; line-height:1.15; margin:.2em 0 .1em; font-weight:800; }
+  .cover .sub{ font-size:14.5pt; opacity:.92; margin-top:.4em; max-width:152mm; }
+  .cover .meta{ margin-top:auto; padding-top:14mm; font-size:10.5pt; opacity:.9; }
+  .cover .chips{ margin-top:10mm; display:flex; gap:8px; flex-wrap:wrap; }
+  .cover .chip{ background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35);
+    padding:5px 12px; border-radius:999px; font-size:10pt; }
+
+  /* ---------- 섹션 ---------- */
+  h2{ font-size:18.5pt; margin:0 0 .2em; padding-top:2mm; }
+  h2 .n{ color:var(--brand); font-weight:800; margin-right:.35em; }
+  .section{ page-break-before:always; }
+  .lead{ color:var(--muted); margin:0 0 12px; font-size:11pt; }
+  h3{ font-size:13pt; margin:18px 0 6px; }
+  p{ margin:8px 0; }
+  ul{ margin:6px 0 6px; padding-left:20px; }
+  li{ margin:4px 0; }
+  .hr{ height:1px; background:var(--line); border:0; margin:14px 0; }
+
+  /* ---------- 카드 ---------- */
+  .card{ background:var(--bg-soft); border:1px solid var(--line); border-radius:12px;
+    padding:14px 16px; margin:12px 0; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .tag{ display:inline-block; font-size:9pt; font-weight:700; padding:2px 9px; border-radius:999px;
+    color:#fff; margin-bottom:6px; }
+  .tag.g{ background:var(--teal); } .tag.b{ background:var(--brand); } .tag.p{ background:var(--brand-2); }
+  .why{ border-left:4px solid var(--brand); background:#eef4ff; padding:10px 14px; border-radius:8px; margin:10px 0; }
+
+  /* ---------- 코드 ---------- */
+  pre{ background:var(--bg-code); color:#e6edf3; border-radius:10px; padding:12px 14px;
+    font-size:9.5pt; line-height:1.55; white-space:pre-wrap; word-break:break-all; }
+  pre .c{ color:#7d8aa3; } pre .k{ color:#7ee787; } pre .s{ color:#a5d6ff; }
+  p code,li code,td code{ background:#eef1f7; color:#b3306b; padding:1px 6px; border-radius:5px; font-size:9.5pt; }
+
+  /* ---------- 표 ---------- */
+  table{ width:100%; border-collapse:collapse; margin:10px 0; font-size:10pt; }
+  th,td{ border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  th{ background:#eef2f9; font-weight:700; }
+  .ok{ color:#15803d; font-weight:700; } .no{ color:#b91c1c; font-weight:700; }
+
+  .callout{ border:1px solid #f6d488; background:#fff7ed; border-radius:12px; padding:14px 16px; margin:14px 0; }
+  .callout .tag{ background:var(--warn); }
+  .num{ display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--brand); color:#fff;
+    font-size:10pt; font-weight:700; align-items:center; justify-content:center; margin-right:8px; }
+  .foot{ color:var(--muted); font-size:9pt; margin-top:18px; text-align:center; }
+</style>
+</head>
+<body>
+
+<!-- ===================== 표지 ===================== -->
+<section class="cover">
+  <div class="eyebrow">지엔소프트 × 유클리드소프트 · 멀티모달 AI 일경험</div>
+  <h1>Claude Code<br>도구 가이드</h1>
+  <div class="sub">AI가 만든 웹앱을 스스로 테스트(gstack)하고, 작업을 반복(loop)하며, 목표를 정하고(goal), 자주 쓰는 작업을 묶고(skills), 외부 도구·기억을 연결하는(MCP) — 우리 워크스페이스의 핵심 도구 5종.</div>
+  <div class="chips">
+    <span class="chip">gstack — 헤드리스 브라우저 QA</span>
+    <span class="chip">loop — 반복 실행</span>
+    <span class="chip">goal — 세션 목표</span>
+    <span class="chip">skills — 슬래시 스킬</span>
+    <span class="chip">MCP — 외부 도구·기억 연결</span>
+  </div>
+  <div class="meta">llm-job-support 워크스페이스 · 2026-06-15 작성</div>
+</section>
+
+<!-- ===================== 1. 개요 ===================== -->
+<section class="section">
+  <h2><span class="n">01</span>이 문서는</h2>
+  <p class="lead">다섯 도구를 "처음 듣는 사람"도 바로 감 잡도록, 개념 → 왜 필요한가 → 실제 명령 → 우리 프로젝트 적용 순으로 정리했습니다.</p>
+  <div class="grid3">
+    <div class="card">
+      <span class="tag b">gstack</span>
+      <p><b>AI가 브라우저를 운전</b>해 우리가 만든 화면을 클릭·입력·확인까지 대신 검증하는 QA 도구.</p>
+    </div>
+    <div class="card">
+      <span class="tag p">loop</span>
+      <p><b>같은 작업을 일정 간격으로 반복</b> 실행. 배포 감시·주기 점검 같은 반복 작업을 자동화.</p>
+    </div>
+    <div class="card">
+      <span class="tag g">goal</span>
+      <p><b>작업이 향할 목표·방향을 미리 못 박기.</b> AI가 긴 작업 내내 그 목표 기준으로 판단·종료.</p>
+    </div>
+    <div class="card">
+      <span class="tag b">skills</span>
+      <p><b>자주 하는 작업 절차를 슬래시 명령 하나로.</b> <code>/team-init</code>, <code>/prototype-scaffold</code> 처럼 한 줄로 호출.</p>
+    </div>
+    <div class="card">
+      <span class="tag p">MCP</span>
+      <p><b>외부 도구·데이터·장기기억을 표준 방식으로 연결.</b> 우리는 세션 간 기억용 <code>memory</code> 서버를 쓴다.</p>
+    </div>
+  </div>
+  <div class="why">
+    <b>한 줄 요약 —</b> gstack은 <b>"만든 걸 검증"</b>, loop는 <b>"그 검증을 반복"</b>, goal은 <b>"무엇을 향해·언제까지"</b>,
+    skills는 <b>"반복 작업을 한 줄로"</b>, MCP는 <b>"AI에 외부 능력·기억을 끼우기"</b>입니다.
+  </div>
+</section>
+
+<!-- ===================== 2. gstack ===================== -->
+<section class="section">
+  <h2><span class="n">02</span>gstack — AI가 운전하는 헤드리스 브라우저</h2>
+  <p class="lead">화면 없는(headless) 크로미움을 띄워두고, 명령 한 줄씩으로 페이지를 조작·검사합니다. 첫 호출 때 자동 시작(~3초), 이후 명령은 ~0.1~0.2초.</p>
+
+  <h3>무엇을 하나</h3>
+  <ul>
+    <li><b>페이지 이동·읽기</b> — 주소로 이동하고 본문 텍스트·콘솔 오류·네트워크 요청을 확인</li>
+    <li><b>요소 조작</b> — 버튼 클릭, 입력칸 채우기, 파일 업로드, 드롭다운 선택</li>
+    <li><b>상태 검증</b> — "특정 요소가 보이는가 / 활성화됐는가 / 텍스트가 맞는가" 단언(assert)</li>
+    <li><b>증거 남기기</b> — 스크린샷, 주석(annotated) 스크린샷, 변경 전후 diff</li>
+    <li><b>반응형 점검</b> — 모바일/태블릿/데스크톱 화면을 한 번에 캡처</li>
+  </ul>
+
+  <div class="why"><b>왜 필요한가 —</b> 우리는 Gradio·웹 데모를 빠르게 찍어냅니다. 만들 때마다 "버튼이 눌리나? 이미지가 뜨나? 콘솔 에러는 없나?"를 손으로 확인하면 느립니다. gstack은 그 클릭·확인을 AI가 대신하고 스크린샷으로 증거까지 남깁니다.</div>
+
+  <h3>핵심 사용 흐름 — 스냅샷 → 조작 → diff</h3>
+  <pre><span class="c"># 1) 페이지 열기</span>
+<span class="k">$B goto</span> <span class="s">http://127.0.0.1:7860</span>
+
+<span class="c"># 2) 조작 가능한 요소 목록 보기 (@e1, @e2 ... 참조 번호가 붙음)</span>
+<span class="k">$B snapshot -i</span>
+
+<span class="c"># 3) 참조 번호로 입력·클릭</span>
+<span class="k">$B fill</span> @e3 <span class="s">"안녕? 한 문장으로 자기소개 해줘."</span>
+<span class="k">$B click</span> @e5
+
+<span class="c"># 4) 무엇이 바뀌었는지 확인하고 증거 남기기</span>
+<span class="k">$B snapshot -D</span>            <span class="c"># 직전 대비 변경점(diff)</span>
+<span class="k">$B is visible</span> <span class="s">".message"</span>   <span class="c"># 응답이 떴는지 단언</span>
+<span class="k">$B console</span>                  <span class="c"># JS 에러 없는지</span>
+<span class="k">$B screenshot</span> <span class="s">/tmp/after.png</span></pre>
+
+  <table>
+    <tr><th>자주 쓰는 명령</th><th>설명</th></tr>
+    <tr><td><code>goto &lt;url&gt;</code></td><td>페이지 이동</td></tr>
+    <tr><td><code>snapshot -i</code></td><td>클릭·입력 가능한 요소를 번호(@e)와 함께 표시</td></tr>
+    <tr><td><code>click / fill / upload / select</code></td><td>요소 조작</td></tr>
+    <tr><td><code>snapshot -D</code></td><td>직전 상태 대비 변경점 diff</td></tr>
+    <tr><td><code>is visible/enabled/checked &lt;sel&gt;</code></td><td>상태 단언(테스트 통과 판정)</td></tr>
+    <tr><td><code>screenshot / responsive</code></td><td>스크린샷 · 반응형 3종 캡처</td></tr>
+    <tr><td><code>console / network</code></td><td>JS 오류 · 실패한 요청 확인</td></tr>
+  </table>
+</section>
+
+<!-- ===================== 3. loop ===================== -->
+<section class="section">
+  <h2><span class="n">03</span>loop — 작업을 주기적으로 반복</h2>
+  <p class="lead">프롬프트나 슬래시 명령을 일정 간격으로 다시 실행시킵니다. 한 번 시키고 잊는 게 아니라, "계속 지켜보거나 반복해야 하는 일"에 씁니다.</p>
+
+  <h3>무엇을 하나</h3>
+  <ul>
+    <li><b>주기 실행</b> — "5분마다 배포 상태 확인" 같은 고정 간격 반복</li>
+    <li><b>self-paced(자율 페이스)</b> — 간격을 안 주면 AI가 스스로 "언제 다시 돌릴지" 판단해 반복</li>
+    <li><b>상태 폴링</b> — CI/배포/외부 작업이 끝났는지 반복 확인</li>
+  </ul>
+
+  <h3>사용법</h3>
+  <pre><span class="c"># 5분마다 QA 점검 반복</span>
+<span class="k">/loop</span> 5m /qa
+
+<span class="c"># 간격 생략 → AI가 알아서 페이스 조절 (self-paced)</span>
+<span class="k">/loop</span> 배포가 끝났는지 확인하고 끝나면 알려줘</pre>
+
+  <div class="card">
+    <span class="tag p">loop의 "끝(종료조건)"</span>
+    <p>loop는 "언제 멈출지(종료조건)"가 명확할수록 좋습니다. 그 종료조건이 바로 다음 장의 <b>goal</b>입니다.
+    gstack의 <code>is visible</code> 같은 단언이 그대로 loop의 합격·종료 판정이 됩니다.</p>
+  </div>
+</section>
+
+<!-- ===================== 4. goal ===================== -->
+<section class="section">
+  <h2><span class="n">04</span>goal — 작업이 향할 목표 정하기</h2>
+  <p class="lead">Claude Code에서 <b>한 작업/세션 전체가 향하는 목표·방향을 미리 정해두는</b> 기능입니다. 목표를 처음에 명확히 한 번 주면, AI가 긴 작업 내내 그 목표를 기준으로 판단하고, 곁가지로 새도 목표로 되돌아옵니다.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <span class="tag g">두 가지 "goal"이 있어요</span>
+      <ul>
+        <li><b>Claude Code <code>/goal</code></b> — 작업 <b>전체의 방향</b>. "이 세션은 무엇을 이루려는가."</li>
+        <li><b>loop의 goal</b> — 반복의 <b>종료조건</b>. "이 반복을 언제 멈출까."</li>
+      </ul>
+      <p class="lead">둘 다 "정해진 목표를 향해 일하게" 만드는 장치이고, 범위만 다릅니다.</p>
+    </div>
+    <div class="card">
+      <span class="tag b">왜 효과적인가</span>
+      <p>길고 자율적인 작업일수록, 목표를 <b>처음에 한 번에·구체적으로</b> 주면 AI가 더 정확하고 효율적으로 끝까지 갑니다.
+      중간에 되묻거나 엉뚱한 길로 새는 일이 줄어듭니다.</p>
+    </div>
+  </div>
+
+  <h3>사용법</h3>
+  <pre><span class="c"># 세션 목표를 한 줄로 못 박기</span>
+<span class="k">/goal</span> 포트홀 데모를 완성한다: 이미지 업로드 시 손상 영역을 표시하고
+      신뢰도(%)를 출력하면 완료. Gradio 한 파일로, MOCK 먼저.</pre>
+
+  <div class="why">
+    <b>좋은 목표 vs 나쁜 목표 —</b>
+    <span class="ok">좋음:</span> "배포 URL이 200을 반환하고 첫 화면에 로그인 버튼이 보이면 완료" (판정 가능).
+    <span class="no">나쁨:</span> "잘 되게 해줘" (합격 기준이 없어 끝을 모름).
+  </div>
+  <p class="lead">핵심은 <b>결과물과 합격 기준을 구체적으로</b> 적는 것. 그러면 goal이 그대로 "완료 판정"이 되고, loop·gstack의 단언과 맞물립니다.</p>
+</section>
+
+<!-- ===================== 5. skills ===================== -->
+<section class="section">
+  <h2><span class="n">05</span>skills — 반복 작업을 슬래시 명령 하나로</h2>
+  <p class="lead"><b>스킬(skill)</b>은 "자주 하는 작업 절차"를 미리 정의해 둔 묶음입니다. <code>/이름</code> 한 줄로 호출하면 AI가 그 절차대로 일합니다. 매번 길게 설명할 필요 없이, "표준 작업"을 버튼처럼 누르는 셈입니다.</p>
+
+  <div class="why"><b>왜 필요한가 —</b> 5팀이 똑같은 일(팀 세팅, 프로토타입 뼈대, 기획서 양식)을 제각각 하면 결과가 들쭉날쭉합니다. 스킬은 그 절차를 <b>한 번 정의해 모두가 같은 방식</b>으로 쓰게 만들어, 산출물 품질을 일정하게 맞춥니다.</p></div>
+
+  <h3>우리 프로젝트 전용 스킬</h3>
+  <table>
+    <tr><th>스킬</th><th>무엇을 하나</th><th>언제</th></tr>
+    <tr><td><code>/team-init &lt;팀명&gt;</code></td><td><code>teams/&lt;팀명&gt;/</code> 아래 표준 구조(팀 CLAUDE.md·기획 노트·프로토타입 폴더·README) 생성</td><td>새 팀 시작할 때</td></tr>
+    <tr><td><code>/prototype-scaffold</code></td><td><code>prototypes/&lt;feature&gt;/</code> 에 Gradio/FastAPI 단일 파일 데모 스캐폴드 생성(시연 시나리오 한 줄 + MOCK 함수부터)</td><td>새 기능 데모 시작할 때</td></tr>
+    <tr><td><code>/planning-report</code></td><td>지엔소프트 제출 양식 기반 한국어 기획 보고서/기능 정의서/발표자료 초안을 <code>docs/</code> 에 생성</td><td>기획 문서 쓸 때</td></tr>
+  </table>
+
+  <h3>그 외 자주 쓰는 내장·확장 스킬</h3>
+  <ul>
+    <li><b>점검·디버그</b> — <code>/qa</code> 동작 점검 · <code>/investigate</code> 버그 추적 · <code>/run</code> 앱 실행·확인</li>
+    <li><b>코드·리뷰</b> — <code>/code-review</code> 변경 리뷰 · <code>/security-review</code> 보안 점검 · <code>/simplify</code> 정리</li>
+    <li><b>문서·맥락</b> — <code>/make-pdf</code> 페이지→PDF · <code>deep-research</code> 다출처 리서치</li>
+  </ul>
+
+  <div class="card">
+    <span class="tag g">skill vs subagent vs MCP — 헷갈리지 않기</span>
+    <ul>
+      <li><b>skill</b> = "정해진 작업 절차"를 슬래시로 호출 (무엇을 어떤 순서로 할지).</li>
+      <li><b>subagent</b> = 특정 역할의 전문 AI에게 위임(예: <code>vlm-researcher</code>, <code>rag-architect</code>). 누가 할지.</li>
+      <li><b>MCP</b> = AI가 쓸 수 있는 외부 도구·데이터 연결(다음 장). 무엇으로 할지.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== 6. MCP ===================== -->
+<section class="section">
+  <h2><span class="n">06</span>MCP — 외부 도구·데이터·기억 연결하기</h2>
+  <p class="lead"><b>MCP(Model Context Protocol)</b>는 Claude Code가 외부 도구·데이터에 <b>표준 방식으로 연결</b>되는 규약입니다. "MCP 서버" 하나가 곧 "도구 묶음 하나"이고, 연결하면 AI가 그 도구들을 직접 호출할 수 있습니다.</p>
+
+  <div class="why"><b>왜 필요한가 —</b> 기본 AI는 "이 대화 안의 정보"만 압니다. MCP를 붙이면 파일시스템·DB·웹·외부 API, 그리고 <b>세션을 넘는 장기 기억</b>까지 AI의 손이 닿습니다. 우리는 그중 <b>기억(memory)</b>을 먼저 도입했습니다.</p></div>
+
+  <h3>지금 쓰는 서버 — <code>memory</code> (장기 기억)</h3>
+  <p>세션이 바뀌어도 결정사항·진행상황을 이어가기 위한 서버입니다. SQLite에 저장되고, <b>자동 로드되지 않아 평소 토큰 소모 0</b> — 필요할 때만 검색해서 꺼냅니다.</p>
+  <table>
+    <tr><th>도구</th><th>설명</th></tr>
+    <tr><td><code>memory_save(content, tags)</code></td><td>한 건의 사실/결정을 저장. 태그는 공백 구분.</td></tr>
+    <tr><td><code>memory_search(query)</code></td><td>키워드로 기억 검색(여러 단어는 AND).</td></tr>
+    <tr><td><code>memory_recent(limit)</code></td><td>최근 저장한 기억을 시간 역순으로.</td></tr>
+    <tr><td><code>memory_delete(id)</code></td><td>잘못된 기억 삭제.</td></tr>
+  </table>
+  <pre><span class="c"># 구현: .claude/mcp/memory_server.py (Python stdlib만, 외부 패키지 0)</span>
+<span class="c"># 저장소: .claude/memory.db (SQLite, 커밋 금지)</span>
+<span class="c"># 사용 예 — 세션 시작 시 맥락 복원</span>
+<span class="k">memory_search</span>(<span class="s">"포트홀 데모 진행상황"</span>)
+<span class="c"># 중요한 결정이 생기면 즉시 저장 (한 건 = 한 사실)</span>
+<span class="k">memory_save</span>(<span class="s">"api-test 데모는 Gradio 단일파일로 확정"</span>, tags=<span class="s">"prototype 결정"</span>)</pre>
+
+  <h3>MCP 추가하는 법 (요약)</h3>
+  <p>프로젝트 루트 <code>.mcp.json</code> 의 <code>mcpServers</code> 에 항목을 추가하고 <code>/mcp</code> 로 연결을 확인합니다. 시크릿은 코드/JSON에 하드코딩하지 말고 <code>.env</code> 로 주입합니다.</p>
+  <pre><span class="k">{</span>
+  <span class="s">"mcpServers"</span>: {
+    <span class="s">"memory"</span>: { <span class="s">"command"</span>: <span class="s">"python.exe"</span>, <span class="s">"args"</span>: [<span class="s">".claude/mcp/memory_server.py"</span>] }
+  }
+<span class="k">}</span></pre>
+
+  <div class="callout">
+    <span class="tag">유지 규칙</span>
+    <p>도입한 MCP 서버 목록·용도는 <code>docs/mcp-servers.md</code> 에 정리합니다. <b>새 MCP를 붙일 때마다 그 문서에 항목을 추가</b>하세요(현재 후보: filesystem · fetch · sqlite · 벡터DB · github 등).</p>
+  </div>
+</section>
+
+<!-- ===================== 7. 함께 쓰기 ===================== -->
+<section class="section">
+  <h2><span class="n">07</span>다 엮기 — 우리 프로젝트 적용</h2>
+  <p class="lead"><code>prototypes/api-test</code> Gradio 데모를 예로, 다섯 도구를 한 흐름으로 묶으면 이렇게 됩니다.</p>
+
+  <div class="card">
+    <span class="tag b">① skill — 뼈대부터</span>
+    <pre><span class="k">/prototype-scaffold</span>  <span class="c"># prototypes/api-test 뼈대 + MOCK 함수 생성</span></pre>
+  </div>
+  <div class="card">
+    <span class="tag g">② goal — 목표를 먼저</span>
+    <pre><span class="k">/goal</span> api-test 앱이 떠 있고, 메시지를 보내면 Claude 응답이
+      화면에 표시되면 "정상"으로 본다.</pre>
+  </div>
+  <div class="card">
+    <span class="tag b">③ gstack — 목표를 검증</span>
+    <pre><span class="k">$B goto</span> <span class="s">http://127.0.0.1:7860</span>
+<span class="k">$B is visible</span> <span class="s">"textarea"</span>        <span class="c"># 입력창 존재 = 1차 합격</span>
+<span class="k">$B snapshot -i</span>
+<span class="k">$B fill</span> @e3 <span class="s">"연결 테스트"</span>
+<span class="k">$B click</span> @e5
+<span class="k">$B is visible</span> <span class="s">".message"</span>       <span class="c"># 응답 표시 = goal 도달</span>
+<span class="k">$B screenshot</span> <span class="s">docs/qa-evidence.png</span></pre>
+  </div>
+  <div class="card">
+    <span class="tag p">④ loop — 검증을 반복</span>
+    <pre><span class="k">/loop</span> 10m /qa   <span class="c"># 10분마다 위 점검 자동 반복, goal 도달 시 보고 후 종료</span></pre>
+  </div>
+  <div class="card">
+    <span class="tag p">⑤ MCP — 진행상황을 기억</span>
+    <pre><span class="k">memory_save</span>(<span class="s">"api-test QA 통과, 응답 정상 표시 확인"</span>, tags=<span class="s">"api-test qa 진행상황"</span>)</pre>
+  </div>
+  <div class="why"><b>흐름 —</b> skill(뼈대) → goal(목표) → gstack(검증) → loop(반복) → MCP(기억). 목표가 곧 합격·종료 기준이라 도구들이 자연스럽게 맞물리고, 진행상황은 세션이 바뀌어도 이어집니다.</div>
+</section>
+
+<!-- ===================== 8. 확장 기능 ===================== -->
+<section class="section">
+  <h2><span class="n">08</span>확장 기능 — 더 멀리 가기</h2>
+  <p class="lead">gstack은 단일 명령뿐 아니라 <b>워크플로 슬래시 스킬 묶음</b>을 제공합니다. 상황에 맞게 골라 쓰세요. (대부분 gstack 브라우저 실행이 필요 → 09~10장 차단 해제 후 사용)</p>
+
+  <table>
+    <tr><th>분류</th><th>스킬</th><th>언제</th></tr>
+    <tr><td>점검·디버그</td><td><code>/qa</code> <code>/qa-only</code> <code>/investigate</code> <code>/health</code></td><td>"이거 동작해?", 버그 추적, 코드 건강도</td></tr>
+    <tr><td>코드·리뷰</td><td><code>/review</code> <code>/codex</code> <code>/cso</code></td><td>변경 리뷰, 2차 의견, 보안 점검</td></tr>
+    <tr><td>설계·기획</td><td><code>/office-hours</code> <code>/plan-eng-review</code> <code>/design-consultation</code> <code>/design-review</code></td><td>아이디어 검토, 구조/디자인 리뷰</td></tr>
+    <tr><td>배포·운영</td><td><code>/ship</code> <code>/land-and-deploy</code> <code>/canary</code></td><td>배포, 머지+배포, 배포 후 모니터링</td></tr>
+    <tr><td>문서·맥락</td><td><code>/make-pdf</code> <code>/context-save</code> <code>/context-restore</code> <code>/retro</code> <code>/learn</code></td><td>페이지→PDF, 진행상황 저장·복원, 회고</td></tr>
+  </table>
+
+  <h3>고급 사용 패턴</h3>
+  <ul>
+    <li><b>chain</b> — 여러 명령을 JSON 한 방에 실행해 긴 흐름을 빠르게 (로그인→입력→캡처)</li>
+    <li><b>responsive</b> — 모바일/태블릿/데스크톱 3종 화면을 한 번에 캡처해 반응형 점검</li>
+    <li><b>cookie-import-browser</b> — 실제 브라우저 쿠키를 가져와 로그인 필요한 페이지까지 테스트</li>
+    <li><b>loop + /qa + goal</b> — 목표를 정하고, 주기적으로 자동 회귀 점검(regression)하는 루프 구성</li>
+    <li><b>/make-pdf</b> — 완성한 데모 화면이나 결과를 그대로 PDF 산출물로 (이 가이드는 브라우저 차단 중이라 Edge 방식으로 생성)</li>
+  </ul>
+  <div class="card">
+    <span class="tag b">조합 예</span>
+    <p><code>/goal</code> 로 "데모 합격 기준"을 정하고 → <code>/loop</code> 로 <code>/qa</code> 를 주기 실행 → 통과하면 <code>/ship</code> 으로 배포 → <code>/canary</code> 로 배포 후 점검. 기획부터 운영까지 한 줄씩으로 이어집니다.</p>
+  </div>
+</section>
+
+<!-- ===================== 9. 환경 상태 ===================== -->
+<section class="section">
+  <h2><span class="n">09</span>현재 환경 구축 상태</h2>
+  <p class="lead">이 PC(Windows 11) 기준으로 지금 무엇이 준비됐고 무엇이 막혀 있는지 정리.</p>
+  <table>
+    <tr><th>항목</th><th>상태</th><th>비고</th></tr>
+    <tr><td>goal / loop / skills</td><td class="ok">바로 사용 가능</td><td>Claude Code 내장. 설치 불필요. <code>/goal</code>, <code>/loop</code>, <code>/team-init</code> 등으로 호출.</td></tr>
+    <tr><td>MCP <code>memory</code> 서버</td><td class="ok">연결됨</td><td><code>.mcp.json</code> 등록, <code>/mcp</code> 로 확인. stdlib만 써서 추가 설치 불필요.</td></tr>
+    <tr><td>gstack 설치 / 빌드</td><td class="ok">완료</td><td><code>~/.claude/skills/gstack</code>, browse 바이너리 빌드됨, <code>bun 1.3.13</code> 설치됨.</td></tr>
+    <tr><td>gstack 브라우저 실행</td><td class="no">차단됨</td><td>Windows <b>Smart App Control</b> 이 서명 안 된 <code>browse.exe</code> 실행을 막음. 아래 10 참고.</td></tr>
+    <tr><td>이 PDF 생성</td><td class="ok">완료</td><td>서명된 <b>Microsoft Edge</b> 헤드리스 인쇄로 생성(차단 영향 없음).</td></tr>
+  </table>
+  <div class="why"><b>요점 —</b> goal·loop·skills·MCP(memory)는 지금 당장 쓸 수 있습니다. gstack과 그 확장 스킬은 "마지막 한 칸"인 OS 보안 정책만 풀면 바로 동작합니다.</div>
+</section>
+
+<!-- ===================== 10. 차단 해제 ===================== -->
+<section class="section">
+  <h2><span class="n">10</span>gstack 실행 차단 해제 (선택)</h2>
+  <p class="lead">gstack의 브라우저는 외부에서 빌드된 서명 없는 실행파일이라, Windows 11의 <b>Smart App Control</b> 이 기본적으로 막습니다. 보안 기능이므로 <b>의미를 이해하고</b> 진행하세요.</p>
+
+  <div class="callout">
+    <span class="tag">주의</span>
+    <p>Smart App Control은 한 번 <b>끄면</b>, 다시 켜려면 보통 <b>Windows 재설정(초기화)</b> 이 필요합니다(되돌리기 어려움). 회사/공용 PC라면 관리자와 상의하세요.</p>
+  </div>
+
+  <h3>해제 절차</h3>
+  <p><span class="num">1</span><b>Windows 보안</b> 열기 (시작 → "Windows 보안" 검색)</p>
+  <p><span class="num">2</span><b>앱 및 브라우저 컨트롤</b> → <b>스마트 앱 컨트롤(Smart App Control)</b> 클릭</p>
+  <p><span class="num">3</span>설정을 <b>끔(Off)</b> 으로 변경</p>
+  <p><span class="num">4</span>터미널에서 동작 확인:</p>
+  <pre><span class="k">&amp;</span> <span class="s">"$env:USERPROFILE\.claude\skills\gstack\browse\dist\browse.exe"</span> status</pre>
+  <p>정상이면 서버 상태가 출력됩니다. 이후 <code>/qa</code> 등 gstack 스킬과 확장 기능을 바로 쓸 수 있습니다.</p>
+
+  <div class="card">
+    <span class="tag g">끄고 싶지 않다면</span>
+    <p>gstack 브라우저 없이도 프로젝트는 진행됩니다. goal·loop·skills·MCP는 영향 없고, 화면 확인이 필요하면 당분간 <b>직접 브라우저로</b> 데모를 열어 보면 됩니다. 자동 QA·확장 스킬은 차단 해제 후 도입해도 늦지 않습니다.</p>
+  </div>
+</section>
+
+<!-- ===================== 11. 치트시트 ===================== -->
+<section class="section">
+  <h2><span class="n">11</span>빠른 시작 치트시트</h2>
+  <div class="grid3">
+    <div class="card">
+      <span class="tag g">goal</span>
+      <pre><span class="k">/goal</span> 완료 기준을
+      구체적으로 한 줄</pre>
+    </div>
+    <div class="card">
+      <span class="tag p">loop</span>
+      <pre><span class="k">/loop</span> 5m /qa
+<span class="k">/loop</span> 끝나면 알려줘</pre>
+    </div>
+    <div class="card">
+      <span class="tag b">gstack</span>
+      <pre><span class="k">$B goto</span> <span class="s">URL</span>
+<span class="k">$B snapshot -i</span>
+<span class="k">$B click</span> @e3</pre>
+    </div>
+    <div class="card">
+      <span class="tag b">skills (우리 전용)</span>
+      <pre><span class="k">/team-init</span> 팀명
+<span class="k">/prototype-scaffold</span>
+<span class="k">/planning-report</span></pre>
+    </div>
+    <div class="card">
+      <span class="tag p">MCP memory</span>
+      <pre><span class="k">memory_search</span>(<span class="s">"키워드"</span>)
+<span class="k">memory_save</span>(<span class="s">"사실"</span>,
+  tags=<span class="s">"태그"</span>)</pre>
+    </div>
+    <div class="card">
+      <span class="tag g">확장 슬래시 스킬</span>
+      <pre><span class="k">/qa</span> 점검  <span class="k">/review</span> 리뷰
+<span class="k">/ship</span> 배포  <span class="k">/make-pdf</span></pre>
+    </div>
+  </div>
+  <div class="card">
+    <span class="tag g">한 줄 흐름</span>
+    <p><code>/prototype-scaffold</code>(뼈대) → <code>/goal</code>(목표) → <code>$B</code> gstack(검증) → <code>/loop /qa</code>(반복) → <code>memory_save</code>(기억). 막히면 <code>memory_search</code> 로 지난 맥락부터 꺼내기.</p>
+  </div>
+  <hr class="hr">
+  <p class="foot">llm-job-support · Claude Code 도구 가이드 (gstack · loop · goal · skills · MCP) · 2026-06-15</p>
+</section>
+
+</body>
+</html>

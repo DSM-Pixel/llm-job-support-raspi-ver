@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "mcpServers": {
+    "memory": {
+      "command": "C:\\Users\\sehyeon\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+      "args": [
+        "C:\\projects\\ABC\\llm-job-support\\.claude\\mcp\\memory_server.py"
+      ]
+    }
+  }
+}
