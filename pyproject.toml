@@ -36,6 +36,12 @@ vision = [
     # "transformers>=4.45.0",
     # "ultralytics>=8.3.0",
 ]
+seg = [
+    # 정밀 마스크(MobileSAM via ultralytics). CPU에서도 동작.
+    # 설치: uv pip install -e ".[seg]"  또는  pip install ultralytics opencv-python
+    "ultralytics>=8.3.0",
+    "opencv-python>=4.10.0",
+]
 
 [tool.uv]
 package = false
