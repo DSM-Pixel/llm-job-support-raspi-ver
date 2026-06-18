@@ -63,6 +63,15 @@ gradio_cached_examples/
 flagged/
 .streamlit/secrets.toml
 
+# --- 프로토타입 로컬 산출물(커밋 금지) ---
+_saved/
+_gradio_run.*
+_gradio.log
+_demo*.png
+
+# --- OMC 작업 상태(커밋 금지) ---
+.omc/
+
 # --- Editor / OS ---
 .idea/
 .vscode/
