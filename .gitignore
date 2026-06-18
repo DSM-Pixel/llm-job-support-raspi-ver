@@ -68,6 +68,8 @@ _saved/
 _gradio_run.*
 _gradio.log
 _demo*.png
+_qqwewq*.png
+_run_*.py
 
 # --- OMC 작업 상태(커밋 금지) ---
 .omc/

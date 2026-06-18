@@ -33,6 +33,7 @@ import backend_client
 import dataset
 import segmenter
 import stats
+import yolo_detector
 from labeling import (
     LabelRecord,
     from_annotator,
@@ -347,15 +348,21 @@ def _detect_with_retry(image, target: str, max_retries: int = 2):
     return []  # 도달하지 않음.
 
 
-def detect(image, target: str, min_conf: int = 0):
-    """[모드2] 찾을 대상(쉼표로 다중 클래스)을 탐지하고 confidence로 거른 뒤 그린다."""
+def detect(image, target: str, min_conf: int = 0, engine: str = "Gemini"):
+    """[모드2] 찾을 대상(쉼표로 다중 클래스)을 탐지하고 confidence로 거른 뒤 그린다.
+
+    engine: "Gemini"(VLM) 또는 "YOLO-World"(오픈보캐블 전용 탐지기, 박스 정확↑).
+    """
     if image is None:
         raise gr.Error("이미지를 먼저 업로드해주세요.")
     if not parse_targets(target):
         raise gr.Error("찾을 대상을 입력해주세요. 예: 포트홀  또는  포트홀, 균열")
 
     try:
-        labels = _detect_labels(image, target)
+        if engine == "YOLO-World":
+            labels = yolo_detector.detect(image, parse_targets(target))
+        else:
+            labels = _detect_labels(image, target)
     except gr.Error:
         raise
     except Exception as e:
@@ -363,7 +370,7 @@ def detect(image, target: str, min_conf: int = 0):
         msg = str(e)
         if "RESOURCE_EXHAUSTED" in msg or "429" in msg:
             raise gr.Error("무료 사용 한도 초과 — 약 10~30초 뒤 다시 시도하세요.") from e
-        raise gr.Error(f"API 오류: {msg}") from e
+        raise gr.Error(f"{engine} 탐지 오류: {msg}") from e
 
     found = len(labels)
     labels = filter_by_confidence(labels, min_conf)
@@ -772,6 +779,11 @@ with gr.Blocks(title="이미지 이해·라벨링 데모") as demo:
                         value="포트홀",
                         placeholder="예: 포트홀  또는  포트홀, 균열, 맨홀",
                     )
+                    engine_in = gr.Radio(
+                        choices=["Gemini", "YOLO-World"],
+                        value="Gemini",
+                        label="탐지 엔진 (YOLO-World=학습없이 박스 정확↑, 한국어 자동 영어변환)",
+                    )
                     conf_in = gr.Slider(
                         minimum=0, maximum=100, value=0, step=5,
                         label="신뢰도 필터 (이 % 미만 박스 제외, 0=끄기)",
@@ -828,7 +840,7 @@ with gr.Blocks(title="이미지 이해·라벨링 데모") as demo:
 
             det_btn.click(
                 detect,
-                inputs=[det_image_in, target_in, conf_in],
+                inputs=[det_image_in, target_in, conf_in, engine_in],
                 outputs=[det_image_out, det_summary, det_state, det_table],
             )
             apply_btn.click(
