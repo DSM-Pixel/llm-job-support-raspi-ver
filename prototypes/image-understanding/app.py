@@ -29,6 +29,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 import backend_client
 import segmenter
+import stats
 from labeling import (
     LabelRecord,
     from_coco,
@@ -652,6 +653,37 @@ def batch_process(
     return rows, zip_path, summary
 
 
+def build_dashboard():
+    """저장된 라벨(_saved/) 전체를 집계해 요약·차트·이미지별 표를 만든다."""
+    import pandas as pd
+
+    records = stats.load_saved_records(backend_client._SAVE_ROOT)
+    agg = stats.aggregate(records)
+
+    if agg["n_images"] == 0:
+        empty_c = pd.DataFrame({"클래스": [], "개수": []})
+        empty_h = pd.DataFrame({"신뢰도 구간": stats.CONF_BINS, "개수": [0] * len(stats.CONF_BINS)})
+        return "저장된 라벨이 없습니다. 먼저 '백엔드에 저장' 또는 배치로 저장하세요.", empty_c, empty_h, []
+
+    md = (
+        f"**이미지 {agg['n_images']}장 · 라벨 {agg['n_labels']}개 · "
+        f"클래스 {agg['n_classes']}종 · 정밀 마스크 {agg['mask_labels']}개**\n\n"
+        f"- 이미지당 평균 박스: **{agg['avg_boxes']}개**\n"
+        f"- 신뢰도 기록된 라벨: {agg['n_conf']}개"
+    )
+
+    cc = agg["class_counts"]
+    class_df = pd.DataFrame(
+        {"클래스": list(cc.keys()), "개수": list(cc.values())}
+    ).sort_values("개수", ascending=False)
+
+    ch = agg["conf_hist"]
+    conf_df = pd.DataFrame({"신뢰도 구간": list(ch.keys()), "개수": list(ch.values())})
+
+    table = [[d["image"], d["boxes"]] for d in agg["boxes_per_image"]]
+    return md, class_df, conf_df, table
+
+
 with gr.Blocks(title="이미지 이해·라벨링 데모") as demo:
     gr.Markdown(
         f"# 🖼️ 이미지 이해·라벨링 데모\n"
@@ -821,6 +853,31 @@ with gr.Blocks(title="이미지 이해·라벨링 데모") as demo:
                 batch_process,
                 inputs=[batch_files, batch_target, batch_save, batch_mask, batch_delay, batch_conf],
                 outputs=[batch_table, batch_zip, batch_summary],
+            )
+
+        with gr.Tab("📊 통계 대시보드"):
+            gr.Markdown(
+                "지금까지 **백엔드에 저장(`_saved/`)** 된 라벨 전체를 집계합니다. "
+                "라벨링 작업 현황·데이터 품질을 한눈에 볼 수 있어요."
+            )
+            dash_btn = gr.Button("📊 통계 새로고침", variant="primary")
+            dash_summary = gr.Markdown()
+            with gr.Row():
+                dash_class = gr.BarPlot(
+                    x="클래스", y="개수", title="클래스별 라벨 수", color="클래스",
+                )
+                dash_conf = gr.BarPlot(
+                    x="신뢰도 구간", y="개수", title="신뢰도 분포",
+                )
+            dash_table = gr.Dataframe(
+                headers=["이미지", "박스수"],
+                datatype=["str", "number"],
+                label="이미지별 박스 수",
+                interactive=False,
+            )
+            dash_btn.click(
+                build_dashboard,
+                outputs=[dash_summary, dash_class, dash_conf, dash_table],
             )
 
 if __name__ == "__main__":
