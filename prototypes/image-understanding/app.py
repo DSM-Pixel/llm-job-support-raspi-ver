@@ -31,6 +31,9 @@ import backend_client
 import segmenter
 from labeling import (
     LabelRecord,
+    from_coco,
+    from_record_dict,
+    from_yolo,
     record_has_masks,
     to_coco,
     to_coco_json,
@@ -461,6 +464,50 @@ def refine_masks(record: LabelRecord | None, image):
     return annotated, summary, new_record, labels_to_rows(new_labels)
 
 
+def load_labels(file, image, target: str):
+    """[불러오기] 저장된 라벨 파일을 읽어 표/이미지에 복원한다(이어서 작업).
+
+    지원: 우리 meta.json(완전 복원) · COCO json · YOLO txt.
+    YOLO는 클래스 이름이 없으므로 '찾을 대상'(쉼표 목록)을 id 순서로 사용한다.
+    그리기에는 업로드된 이미지가 필요하다.
+    """
+    if image is None:
+        raise gr.Error("라벨을 그릴 이미지를 먼저 업로드해주세요.")
+    path = file if isinstance(file, str) else getattr(file, "name", None)
+    if not path or not os.path.exists(path):
+        raise gr.Error("라벨 파일을 올려주세요 (.json COCO/meta 또는 .txt YOLO).")
+
+    with open(path, encoding="utf-8") as f:
+        raw = f.read()
+
+    try:
+        if path.lower().endswith(".json"):
+            data = json.loads(raw)
+            if isinstance(data, dict) and "labels" in data:  # 우리 meta.json
+                labels = from_record_dict(data).labels
+            elif isinstance(data, dict) and "annotations" in data:  # COCO
+                labels = from_coco(data).labels
+            else:
+                raise gr.Error("알 수 없는 JSON 형식입니다 (meta.json 또는 COCO).")
+        else:  # YOLO txt
+            labels = from_yolo(raw, parse_targets(target))
+    except gr.Error:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise gr.Error(f"라벨 파일을 읽지 못했습니다: {e}") from e
+
+    annotated, draw_summary = _draw_boxes(image, labels)
+    w, h = image.convert("RGB").size
+    record = LabelRecord(
+        image_filename=getattr(image, "filename", None) or os.path.basename(path),
+        image_width=w,
+        image_height=h,
+        labels=labels,
+    )
+    summary = f"📂 라벨 {len(labels)}개 불러옴.\n\n{draw_summary}"
+    return annotated, summary, record, labels_to_rows(labels)
+
+
 def export_labels(record: LabelRecord | None, fmt: str):
     """현재 라벨 레코드를 선택한 형식의 파일로 만들어 다운로드 경로를 돌려준다."""
     if not record or not record.labels:
@@ -674,6 +721,19 @@ with gr.Blocks(title="이미지 이해·라벨링 데모") as demo:
                 apply_btn = gr.Button("✏️ 수정 반영 (다시 그리기)")
                 refine_btn = gr.Button("🎯 정밀 마스크 (SAM)", variant="secondary")
 
+            gr.Markdown(
+                "### 📂 라벨 불러오기 (이어서 작업)\n"
+                "이전에 저장한 `meta.json`/COCO `.json`/YOLO `.txt`를 올리면 표·이미지에 복원됩니다. "
+                "(이미지를 먼저 업로드한 뒤 불러오세요. YOLO는 위 '찾을 대상' 순서를 클래스로 사용)"
+            )
+            with gr.Row():
+                load_file = gr.File(
+                    file_count="single",
+                    file_types=[".json", ".txt"],
+                    label="라벨 파일",
+                )
+                load_btn = gr.Button("📂 불러오기")
+
             gr.Markdown("### 💾 라벨 내보내기 / 저장")
             with gr.Row():
                 fmt_in = gr.Radio(
@@ -699,6 +759,11 @@ with gr.Blocks(title="이미지 이해·라벨링 데모") as demo:
             refine_btn.click(
                 refine_masks,
                 inputs=[det_state, det_image_in],
+                outputs=[det_image_out, det_summary, det_state, det_table],
+            )
+            load_btn.click(
+                load_labels,
+                inputs=[load_file, det_image_in, target_in],
                 outputs=[det_image_out, det_summary, det_state, det_table],
             )
             export_btn.click(

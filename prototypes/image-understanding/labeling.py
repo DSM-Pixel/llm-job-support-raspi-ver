@@ -158,3 +158,88 @@ def yolo_classes_txt(record: LabelRecord, class_map: dict[str, int] | None = Non
 def to_coco_json(record: LabelRecord) -> str:
     """COCO dict을 보기 좋은 JSON 문자열로."""
     return json.dumps(to_coco(record), ensure_ascii=False, indent=2)
+
+
+# ────────────────────────────────────────────────────────────────────
+# 불러오기(이어서 작업) — 저장된 라벨을 다시 LabelRecord/labels 로 복원.
+# 지원: 우리 meta.json(완전 복원) · COCO json · YOLO txt.
+# 좌표는 항상 0~1000 정규화로 통일하므로 원본 해상도와 무관하게 재사용 가능.
+# ────────────────────────────────────────────────────────────────────
+
+
+def from_record_dict(d: dict) -> LabelRecord:
+    """우리 포맷(meta.json = LabelRecord.to_dict) → LabelRecord. 완전 복원."""
+    return LabelRecord(
+        image_filename=d.get("image_filename") or "image.png",
+        image_width=int(d.get("image_width") or 0),
+        image_height=int(d.get("image_height") or 0),
+        labels=list(d.get("labels") or []),
+    )
+
+
+def from_coco(coco: dict) -> LabelRecord:
+    """COCO json(단일 이미지) → LabelRecord. bbox·segmentation·score 복원."""
+    img = (coco.get("images") or [{}])[0]
+    w = int(img.get("width") or 0)
+    h = int(img.get("height") or 0)
+    cats = {c["id"]: c["name"] for c in coco.get("categories", [])}
+
+    labels = []
+    for ann in coco.get("annotations", []):
+        bbox = ann.get("bbox")
+        if not bbox or len(bbox) != 4 or not w or not h:
+            continue
+        x, y, bw, bh = bbox
+        box = [
+            round(y / h * NORM),  # ymin
+            round(x / w * NORM),  # xmin
+            round((y + bh) / h * NORM),  # ymax
+            round((x + bw) / w * NORM),  # xmax
+        ]
+        lb = {"class_name": cats.get(ann.get("category_id"), f"class_{ann.get('category_id')}"),
+              "box_2d": box}
+        seg = ann.get("segmentation")
+        if isinstance(seg, list) and seg and isinstance(seg[0], list):
+            flat = seg[0]
+            poly = [
+                [round(flat[i] / w * NORM, 1), round(flat[i + 1] / h * NORM, 1)]
+                for i in range(0, len(flat) - 1, 2)
+            ]
+            if len(poly) >= 3:
+                lb["polygon"] = poly
+        sc = ann.get("score")
+        if isinstance(sc, (int, float)):
+            lb["confidence"] = max(0, min(100, int(round(sc * 100 if sc <= 1 else sc))))
+        labels.append(lb)
+    return LabelRecord(img.get("file_name") or "image.png", w, h, labels)
+
+
+def from_yolo(text: str, class_names: list[str] | None = None) -> list[dict]:
+    """YOLO txt(박스 또는 세그) → labels. 좌표 0~1 정규화이므로 크기 정보 불필요."""
+    names = class_names or []
+    labels = []
+    for line in (text or "").splitlines():
+        parts = line.split()
+        if len(parts) < 5:
+            continue
+        try:
+            cid = int(float(parts[0]))
+            nums = [float(v) for v in parts[1:]]
+        except ValueError:
+            continue
+        name = names[cid] if 0 <= cid < len(names) else f"class_{cid}"
+        if len(nums) == 4:
+            cx, cy, bw, bh = nums
+            box = [
+                round((cy - bh / 2) * NORM), round((cx - bw / 2) * NORM),
+                round((cy + bh / 2) * NORM), round((cx + bw / 2) * NORM),
+            ]
+            labels.append({"class_name": name, "box_2d": box})
+        elif len(nums) >= 6 and len(nums) % 2 == 0:
+            poly = [[round(nums[i] * NORM, 1), round(nums[i + 1] * NORM, 1)]
+                    for i in range(0, len(nums), 2)]
+            xs = [p[0] for p in poly]
+            ys = [p[1] for p in poly]
+            box = [round(min(ys)), round(min(xs)), round(max(ys)), round(max(xs))]
+            labels.append({"class_name": name, "box_2d": box, "polygon": poly})
+    return labels
