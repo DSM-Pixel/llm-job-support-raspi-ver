@@ -10,17 +10,34 @@ document.addEventListener("DOMContentLoaded", () => {
   const analyzeButton = document.querySelector(".label-panel .primary");
   const resultList = document.querySelector(".finding-list");
   const confidence = document.querySelector(".result-card .status");
+  const customInput = document.querySelector(".label-panel textarea");
 
-  analyzeButton?.addEventListener("click", () => {
+  analyzeButton?.addEventListener("click", async () => {
+    const preset =
+      document.querySelector(".radio-list .active")?.textContent.trim() ||
+      "도로 파손/포트홀 찾기";
+    const customPrompt = customInput?.value.trim() || "";
+
     const done = ABC.setBusy(analyzeButton, "분석 중");
-    window.setTimeout(() => {
-      resultList.innerHTML = `
-        <li><span class="badge red">상</span>포트홀 — 좌측 하단. 지름 약 35cm, 깊이 추정 6cm. 즉시 보수 대상.</li>
-        <li><span class="badge orange">중</span>균열 — 중앙 차선 부근. 표면 실링 및 현장 확인 권장.</li>
-        <li><span class="badge orange">중</span>노면 마모 — 우측 하단. 7일 이내 후속 점검 필요.</li>`;
-      confidence.textContent = `신뢰도 ${(0.89 + Math.random() * 0.07).toFixed(2)}`;
-      done();
+    try {
+      const result = await ABC.api("/api/labeling/detect", {
+        preset,
+        custom_prompt: customPrompt,
+      });
+      resultList.innerHTML = result.labels
+        .map((label) => {
+          const text = label.class_name
+            ? `<b>${ABC.escapeHtml(label.class_name)}</b> — ${ABC.escapeHtml(label.note)}`
+            : ABC.escapeHtml(label.note);
+          return `<li><span class="badge ${label.tone}">${ABC.escapeHtml(label.grade)}</span>${text}</li>`;
+        })
+        .join("");
+      confidence.textContent = `신뢰도 ${result.confidence.toFixed(2)}`;
       ABC.toast("이미지 분석이 완료되었습니다");
-    }, 600);
+    } catch {
+      /* api()가 toast 표시 */
+    } finally {
+      done();
+    }
   });
 });

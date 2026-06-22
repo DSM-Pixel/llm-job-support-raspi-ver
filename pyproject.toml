@@ -26,6 +26,11 @@ demo = [
     "gradio_image_annotation>=0.5.0",  # 마우스 박스 그리기(수동 라벨링)
     "streamlit>=1.40.0",
 ]
+web = [
+    # 통합 프론트엔드(web/)를 서빙하고 /api/* 를 제공하는 FastAPI 서버.
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+]
 rag = [
     "chromadb>=0.5.0",
     "rank-bm25>=0.2.2",

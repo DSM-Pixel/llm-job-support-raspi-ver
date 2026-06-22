@@ -3,10 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .querySelectorAll(".select-list button, .chips .pill")
     .forEach((item) => {
       item.addEventListener("click", () =>
-        ABC.activateInGroup(
-          item,
-          item.tagName === "BUTTON" ? "button" : ".pill",
-        ),
+        ABC.activateInGroup(item, item.tagName === "BUTTON" ? "button" : ".pill"),
       );
     });
 
@@ -20,24 +17,37 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  const activeSources = () =>
+    [...document.querySelectorAll(".source-toggle")]
+      .filter((row) => !row.querySelector(".switch")?.classList.contains("off"))
+      .map((row) => row.querySelector("span, b")?.textContent.trim())
+      .filter(Boolean);
+
   document
     .querySelector(".report-form .primary")
-    ?.addEventListener("click", (event) => {
+    ?.addEventListener("click", async (event) => {
+      const reportType =
+        document.querySelector(".select-list .active")?.textContent.trim() || "현황 분석";
+      const period =
+        document.querySelector(".chips .active")?.textContent.trim() || "최근 3년";
+
       const done = ABC.setBusy(event.currentTarget, "생성 중");
-      window.setTimeout(() => {
-        const type =
-          document.querySelector(".select-list .active")?.textContent.trim() ||
-          "현황 분석";
-        const period =
-          document.querySelector(".chips .active")?.textContent.trim() ||
-          "최근 3년";
-        document.querySelector(".report-page header h2").textContent =
-          `도로 파손 ${type.replace(/[▥▤▢]/g, "").trim()} 보고서`;
-        document.querySelector(".report-page header span").textContent =
-          `생성일 2026.6.22 · 소스 3개 · ${period}`;
-        done();
+      try {
+        const result = await ABC.api("/api/report", {
+          report_type: reportType,
+          period,
+          sources: activeSources(),
+        });
+        document.querySelector(".report-page header h2").textContent = result.title;
+        document.querySelector(".report-page header span").textContent = result.subtitle;
+        const summary = document.querySelector(".report-page section p");
+        if (summary) summary.textContent = result.summary;
         ABC.toast("보고서 미리보기가 갱신되었습니다");
-      }, 550);
+      } catch {
+        /* api()가 toast 표시 */
+      } finally {
+        done();
+      }
     });
 
   const getReportText = () => {
@@ -55,21 +65,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.querySelector(".pdf-report")?.addEventListener("click", () => {
-    window.print();
-  });
+  document.querySelector(".pdf-report")?.addEventListener("click", () => window.print());
 
   document.querySelector(".share-report")?.addEventListener("click", async () => {
     const title = document.querySelector(".report-page header h2")?.textContent.trim() || "보고서";
     const text = getReportText();
-
     try {
       if (navigator.share) {
         await navigator.share({ title, text });
         ABC.toast("공유를 완료했습니다");
         return;
       }
-
       await navigator.clipboard.writeText(text);
       ABC.toast("공유 기능이 없어 보고서 내용을 복사했습니다");
     } catch {

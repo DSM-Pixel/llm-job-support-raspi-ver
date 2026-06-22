@@ -34,6 +34,28 @@ const ABC = (() => {
     target.classList.add("active");
   };
 
+  // 백엔드 API 호출 헬퍼. GET: api(path) / POST: api(path, bodyObject).
+  const api = async (path, body) => {
+    const options = body
+      ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+      : { method: "GET" };
+    try {
+      const response = await fetch(path, options);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      toast("서버 연결에 실패했습니다");
+      throw error;
+    }
+  };
+
+  const escapeHtml = (value) => String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
   document.addEventListener("click", (event) => {
     const button = event.target.closest("button");
     if (!button || button.dataset.noToast === "true") return;
@@ -45,5 +67,5 @@ const ABC = (() => {
     toast(`${button.textContent.trim()} 완료`);
   });
 
-  return { toast, setBusy, activateInGroup };
+  return { toast, setBusy, activateInGroup, api, escapeHtml };
 })();
