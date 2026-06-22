@@ -1,0 +1,11 @@
+# Example YOLO dataset config for pothole and road-damage detection.
+# Update `path` to your local dataset root before training.
+path: /absolute/path/to/dataset
+train: images/train
+val: images/val
+
+names:
+  0: pothole
+  1: crack
+  2: road_damage
+

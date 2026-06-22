@@ -135,61 +135,54 @@ with sync_playwright() as p:
     page.wait_for_function("() => document.querySelector('.indexed').innerText.includes('초기화')")
     check("rag: 색인 초기화", "초기화" in page.inner_text(".indexed"), page.inner_text(".indexed"))
 
-    # 4) Labeling ─ 분석 + 이미지 교체
+    # 4) Labeling ─ 설명 분석 + 모달(그리기/AI탐지/중복방지/저장→미리보기 유지)
     page.goto(f"{BASE}/pages/labeling.html")
     page.click(".label-panel .primary")
     page.wait_for_selector(".finding-list li")
     findings = page.query_selector_all(".finding-list li")
-    check("labeling: 분석 결과 렌더", len(findings) >= 1, f"{len(findings)}건")
+    check("labeling: 설명 분석 렌더", len(findings) >= 1, f"{len(findings)}건")
 
-    page.set_input_files(
-        ".image-input",
-        files=[
-            {"name": "my_road.png", "mimeType": "image/png", "buffer": make_png()},
-        ],
-    )
-    page.wait_for_selector(".road-preview.has-image .preview-img")
-    img_hidden = page.get_attribute(".preview-img", "hidden")
-    name_shown = page.inner_text(".sample-name")
-    check(
-        "labeling: 이미지 교체 표시",
-        img_hidden is None and name_shown == "my_road.png",
-        f"name={name_shown}",
-    )
-
-    # 라벨링 모달 열기
+    # 모달 열기(이미지 없음 → AI 자동탐지는 프리셋 MOCK)
     page.click(".open-label-modal")
     page.wait_for_selector("#label-modal:not([hidden])")
     page.wait_for_function(
         "() => { const b=document.querySelector('.canvas-boxes'); return b && b.getBoundingClientRect().width > 50; }"
     )
     check("labeling: 모달 열림", page.is_visible(".label-modal"))
+    check("labeling: 신뢰도 필터 제거됨", page.query_selector(".modal-conf") is None)
 
-    # 모달에서 드래그로 박스 그리기
+    # AI 자동 탐지 → 박스 추가
+    page.click(".modal-detect")
+    page.wait_for_function("() => document.querySelectorAll('.box-list li').length >= 1")
+    n1 = len(page.query_selector_all(".box-list li"))
+    # 같은 이미지로 다시 탐지 → 중복 추가 안 됨
+    page.click(".modal-detect")
+    page.wait_for_timeout(400)
+    n2 = len(page.query_selector_all(".box-list li"))
+    check("labeling: AI 자동 탐지", n1 >= 1, f"{n1}개")
+    check("labeling: 중복 박스 방지", n2 == n1, f"{n1}→{n2}")
+
+    # 드래그로 박스 그리기(+1)
     layer = page.locator(".canvas-boxes").bounding_box()
     page.mouse.move(layer["x"] + 20, layer["y"] + 20)
     page.mouse.down()
     page.mouse.move(layer["x"] + 120, layer["y"] + 90, steps=6)
     page.mouse.up()
-    page.wait_for_selector(".canvas-boxes .draw-box")
+    page.wait_for_function(
+        "(n) => document.querySelectorAll('.box-list li').length === n + 1", arg=n2
+    )
+    drawn_total = len(page.query_selector_all(".box-list li"))
+
+    # 개별 삭제(-1)
+    page.click(".box-list li:first-child .del")
+    page.wait_for_function(
+        "(n) => document.querySelectorAll('.box-list li').length === n - 1", arg=drawn_total
+    )
     check(
-        "labeling: 모달 박스 그리기",
-        page.inner_text(".box-total") == "1",
-        page.inner_text(".box-total"),
+        "labeling: 박스 개별 삭제", len(page.query_selector_all(".box-list li")) == drawn_total - 1
     )
 
-    # AI 자동 탐지 → 박스 추가
-    page.click(".modal-detect")
-    page.wait_for_function("() => document.querySelectorAll('.box-list li').length >= 4")
-    after_detect = len(page.query_selector_all(".box-list li"))
-    check("labeling: AI 자동 탐지", after_detect == 4, f"{after_detect}개")
-
-    # 개별 삭제
-    page.click(".box-list li:first-child .del")
-    page.wait_for_function("() => document.querySelectorAll('.box-list li').length === 3")
-    check("labeling: 박스 개별 삭제", len(page.query_selector_all(".box-list li")) == 3)
-
-    # COCO 내보내기 (다운로드)
+    # COCO 내보내기
     with page.expect_download() as di:
         page.click(".modal-export-coco")
     check(
@@ -198,11 +191,38 @@ with sync_playwright() as p:
         di.value.suggested_filename,
     )
 
-    # 라벨 저장
+    # 저장 → 미리보기 유지
+    saved_count = len(page.query_selector_all(".box-list li"))
     page.click(".modal-save")
     page.wait_for_selector(".toast.show")
     check("labeling: 라벨 저장", "저장" in page.inner_text(".toast"), page.inner_text(".toast"))
     page.click(".label-modal .modal-close")
+    page.wait_for_selector(".preview-boxes .pbox")
+    pbox = len(page.query_selector_all(".preview-boxes .pbox"))
+    check("labeling: 저장 후 미리보기에 박스 유지", pbox == saved_count, f"{pbox}/{saved_count}")
+
+    # 재열기 → 저장된 박스 복원
+    page.click(".open-label-modal")
+    page.wait_for_selector("#label-modal:not([hidden])")
+    page.wait_for_function(
+        "(n) => document.querySelectorAll('.box-list li').length === n", arg=saved_count
+    )
+    check(
+        "labeling: 재열기 시 박스 복원", len(page.query_selector_all(".box-list li")) == saved_count
+    )
+    page.click(".label-modal .modal-close")
+
+    # 이미지 교체(인라인)
+    page.set_input_files(
+        ".image-input",
+        files=[{"name": "my_road.png", "mimeType": "image/png", "buffer": make_png()}],
+    )
+    page.wait_for_selector(".road-preview.has-image .preview-img")
+    check(
+        "labeling: 이미지 교체 표시",
+        page.inner_text(".sample-name") == "my_road.png",
+        page.inner_text(".sample-name"),
+    )
 
     # 설정(⚙) 모달
     page.click(".gear")

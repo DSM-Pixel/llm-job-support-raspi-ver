@@ -31,6 +31,7 @@
             <img class="preview-img" alt="분석 대상 이미지" hidden />
             <div class="road"></div>
             <span class="lane"></span>
+            <div class="preview-boxes"></div>
           </div>
           <p class="sample">샘플: <span class="sample-name">road_2026Q1_0142.jpg</span> <a href="#" class="replace-image">교체</a></p>
           <input type="file" class="image-input" accept="image/*" hidden />
@@ -75,20 +76,17 @@
           <label class="field">새 박스 클래스명
             <input class="modal-class" value="포트홀" />
           </label>
-          <label class="field">신뢰도 필터 <span class="conf-val">0%</span>
-            <input type="range" class="modal-conf" min="0" max="100" step="5" value="0" />
-          </label>
           <div class="modal-actions">
             <button class="btn primary modal-detect" type="button">✣ AI 자동 탐지</button>
             <button class="btn modal-clear" type="button">전체 지우기</button>
           </div>
           <h4>박스 목록 <span class="box-total">0</span>개</h4>
           <ul class="box-list"></ul>
-          <p class="modal-hint">이미지 위를 <b>드래그</b>해 박스를 그립니다. 목록의 ✕로 개별 삭제, 클래스명은 바로 수정할 수 있어요.</p>
+          <p class="modal-hint">이미지 위를 <b>드래그</b>해 박스를 그립니다. 목록의 ✕로 개별 삭제, 클래스명은 바로 수정. <b>저장</b>하면 박스가 미리보기에 유지됩니다.</p>
           <div class="modal-export">
-            <button class="btn modal-export-coco" type="button">COCO 내보내기</button>
-            <button class="btn modal-export-yolo" type="button">YOLO 내보내기</button>
-            <button class="btn primary modal-save" type="button">라벨 저장</button>
+            <button class="btn modal-export-coco" type="button" title="COCO JSON 형식으로 라벨 파일 내려받기">COCO 내보내기</button>
+            <button class="btn modal-export-yolo" type="button" title="YOLO txt 형식으로 라벨 파일 내려받기">YOLO 내보내기</button>
+            <button class="btn primary modal-save" type="button" title="현재 박스를 라벨 데이터셋으로 저장하고 미리보기에 반영">라벨 데이터셋에 저장</button>
           </div>
         </aside>
       </div>

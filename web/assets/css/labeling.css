@@ -58,6 +58,43 @@
   object-fit: cover;
 }
 
+/* 저장된 박스를 미리보기 위에 표시(닫아도 유지) */
+.preview-boxes {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.preview-boxes .pbox {
+  position: absolute;
+  border: 2px solid var(--cyan);
+  background: rgba(16, 212, 210, 0.14);
+}
+
+.preview-boxes .pbox.red {
+  border-color: var(--red);
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.preview-boxes .pbox.orange {
+  border-color: var(--orange);
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.preview-boxes .pbox span {
+  position: absolute;
+  top: -15px;
+  left: -2px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(7, 11, 20, 0.8);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 /* 실제 이미지가 올라오면 CSS 가짜 도로 placeholder는 숨긴다. */
 .road-preview.has-image .road,
 .road-preview.has-image .lane {

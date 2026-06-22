@@ -7,10 +7,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const fileInput = document.querySelector(".image-input");
   const previewImg = document.querySelector(".preview-img");
   const preview = document.querySelector(".road-preview");
+  const previewBoxesEl = document.querySelector(".preview-boxes");
   const sampleName = document.querySelector(".sample-name");
 
   let imageName = sampleName?.textContent.trim() || "image.png";
-  let imageURL = ""; // 업로드된 이미지의 object URL (없으면 빈 문자열)
+  let imageURL = ""; // 업로드 이미지 object URL
+  let imageFile = null; // 업로드 원본 File (실제 YOLO 탐지에 사용)
+
+  // 저장된 박스(모달을 닫아도 유지 → 미리보기에 표시).
+  let savedBoxes = [];
 
   // ════════════════════════════════════════════════════════════════
   //  라벨링 모달 — 큰 이미지 위에서 박스 그리기/편집/삭제
@@ -21,13 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const boxesEl = modal.querySelector(".canvas-boxes");
   const listEl = modal.querySelector(".box-list");
   const classInput = modal.querySelector(".modal-class");
-  const confSlider = modal.querySelector(".modal-conf");
-  const confVal = modal.querySelector(".conf-val");
   const totalEl = modal.querySelector(".box-total");
   const nameEl = modal.querySelector(".modal-imgname");
 
   let boxes = []; // {x,y,w,h (%, 0~100), label, confidence|null}
   let selected = -1;
+
+  const clone = (arr) => arr.map((b) => ({ ...b }));
 
   const setImage = () => {
     if (imageURL) {
@@ -40,37 +45,57 @@ document.addEventListener("DOMContentLoaded", () => {
     nameEl.textContent = imageName;
   };
 
-  // confidence 필터를 통과하는지 (값 없으면 통과)
-  const passesConf = (box) => {
-    const min = Number(confSlider.value) || 0;
-    return box.confidence == null || box.confidence >= min;
-  };
-
   const render = () => {
-    const visible = boxes.filter(passesConf);
-    boxesEl.innerHTML = visible
-      .map((b) => {
-        const i = boxes.indexOf(b);
+    boxesEl.innerHTML = boxes
+      .map((b, i) => {
         return `<div class="draw-box${i === selected ? " selected" : ""}" data-i="${i}" style="left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%"><span class="tag">${ABC.escapeHtml(b.label)}${b.confidence != null ? ` ${b.confidence}%` : ""}</span></div>`;
       })
       .join("");
-    listEl.innerHTML = visible
-      .map((b) => {
-        const i = boxes.indexOf(b);
+    listEl.innerHTML = boxes
+      .map((b, i) => {
         return `<li class="${i === selected ? "selected" : ""}" data-i="${i}"><input value="${ABC.escapeHtml(b.label)}" /><span class="conf">${b.confidence != null ? `${b.confidence}%` : "—"}</span><button class="del" type="button" aria-label="삭제">✕</button></li>`;
       })
       .join("");
-    totalEl.textContent = String(visible.length);
+    totalEl.textContent = String(boxes.length);
   };
 
-  // 박스 좌표(%) 계산용 — 포인터를 stage 기준 퍼센트로.
+  // 같은(거의 동일한) 박스인지 — 라벨 동일 + 좌표 2% 이내.
+  const sameBox = (a, b) =>
+    a.label === b.label &&
+    Math.abs(a.x - b.x) < 2 &&
+    Math.abs(a.y - b.y) < 2 &&
+    Math.abs(a.w - b.w) < 2 &&
+    Math.abs(a.h - b.h) < 2;
+
+  // 중복이면 추가하지 않음. 추가됐으면 true.
+  const addBox = (box) => {
+    if (boxes.some((e) => sameBox(e, box))) return false;
+    boxes.push(box);
+    return true;
+  };
+
+  // 미리보기(작은 썸네일) 위 박스 오버레이 — 저장된 박스를 보여준다.
+  const renderPreviewBoxes = () => {
+    if (!previewBoxesEl) return;
+    previewBoxesEl.innerHTML = savedBoxes
+      .map(
+        (b) =>
+          `<div class="pbox ${b.tone || ""}" style="left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%"><span>${ABC.escapeHtml(b.label)}</span></div>`,
+      )
+      .join("");
+  };
+
+  const persist = () => {
+    savedBoxes = clone(boxes);
+    renderPreviewBoxes();
+  };
+
+  // 포인터를 stage 기준 퍼센트로.
   const pct = (event) => {
     const r = boxesEl.getBoundingClientRect();
     return {
       x: (Math.min(Math.max(event.clientX - r.left, 0), r.width) / r.width) * 100,
       y: (Math.min(Math.max(event.clientY - r.top, 0), r.height) / r.height) * 100,
-      w: r.width,
-      h: r.height,
     };
   };
 
@@ -78,7 +103,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let temp = null;
 
   stage.addEventListener("pointerdown", (event) => {
-    // 기존 박스를 누르면 선택, 빈 영역이면 새로 그리기.
     const hit = event.target.closest(".draw-box");
     if (hit) {
       selected = Number(hit.dataset.i);
@@ -111,8 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
     temp.remove();
     temp = null;
     start = null;
-    // 너무 작은 박스(오클릭)는 무시 — stage 기준 약 1% 미만.
-    if (w < 1.2 || h < 1.2) return;
+    if (w < 1.2 || h < 1.2) return; // 오클릭 무시
     const label = (classInput.value || "object").trim() || "object";
     boxes.push({ x: +x.toFixed(2), y: +y.toFixed(2), w: +w.toFixed(2), h: +h.toFixed(2), label, confidence: null });
     selected = boxes.length - 1;
@@ -120,7 +143,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ABC.toast(`‘${label}’ 박스 추가`);
   });
 
-  // 목록: 클래스명 수정 / 삭제 / 선택
   listEl.addEventListener("input", (event) => {
     if (event.target.tagName !== "INPUT") return;
     const i = Number(event.target.closest("li").dataset.i);
@@ -144,11 +166,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  confSlider.addEventListener("input", () => {
-    confVal.textContent = `${confSlider.value}%`;
-    render();
-  });
-
   modal.querySelector(".modal-clear").addEventListener("click", () => {
     boxes = [];
     selected = -1;
@@ -156,31 +173,54 @@ document.addEventListener("DOMContentLoaded", () => {
     ABC.toast("박스를 모두 지웠습니다");
   });
 
-  // AI 자동 탐지 → box_2d(0~1000)를 퍼센트로 변환해 추가
+  // AI 자동 탐지 — 업로드 이미지가 있으면 실제 YOLO(best.pt), 없으면 프리셋 MOCK.
+  // 같은 박스는 중복 추가하지 않는다.
   modal.querySelector(".modal-detect").addEventListener("click", async (event) => {
     const done = ABC.setBusy(event.currentTarget, "탐지 중");
     try {
-      const result = await ABC.api("/api/labeling/detect", {
-        preset: "도로 파손/포트홀 찾기",
-        image_name: imageName,
-      });
-      result.labels
+      let result;
+      if (imageFile) {
+        const fd = new FormData();
+        fd.append("image", imageFile);
+        const res = await fetch("/api/labeling/detect-image", { method: "POST", body: fd });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        result = await res.json();
+      } else {
+        result = await ABC.api("/api/labeling/detect", {
+          preset: "도로 파손/포트홀 찾기",
+          image_name: imageName,
+        });
+      }
+
+      let added = 0;
+      let dup = 0;
+      (result.labels || [])
         .filter((l) => Array.isArray(l.box_2d) && l.box_2d.length === 4)
         .forEach((l) => {
           const [ymin, xmin, ymax, xmax] = l.box_2d;
-          boxes.push({
+          const box = {
             x: +(xmin / 10).toFixed(2),
             y: +(ymin / 10).toFixed(2),
             w: +((xmax - xmin) / 10).toFixed(2),
             h: +((ymax - ymin) / 10).toFixed(2),
             label: l.class_name || "object",
+            tone: l.tone || "",
             confidence: typeof l.confidence === "number" ? l.confidence : null,
-          });
+          };
+          if (addBox(box)) added += 1;
+          else dup += 1;
         });
       render();
-      ABC.toast("AI 탐지 결과를 추가했습니다");
+      const engine = result.backend === "YOLO" ? "YOLO" : "MOCK";
+      ABC.toast(
+        added
+          ? `${engine} 탐지: ${added}건 추가${dup ? `, 중복 ${dup}건 제외` : ""}`
+          : dup
+            ? "이미 추가된 박스입니다(중복 제외)"
+            : "탐지된 객체가 없습니다",
+      );
     } catch {
-      /* handled */
+      ABC.toast("탐지에 실패했습니다");
     } finally {
       done();
     }
@@ -191,7 +231,6 @@ document.addEventListener("DOMContentLoaded", () => {
     w: canvasImg.naturalWidth || 1000,
     h: canvasImg.naturalHeight || 1000,
   });
-
   const download = (filename, text, type = "text/plain") => {
     const blob = new Blob([text], { type: `${type};charset=utf-8` });
     const url = URL.createObjectURL(blob);
@@ -201,9 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
     a.click();
     URL.revokeObjectURL(url);
   };
-
-  const baseName = () => (imageName.replace(/\.[^.]+$/, "") || "labels");
-
+  const baseName = () => imageName.replace(/\.[^.]+$/, "") || "labels";
   const classMap = () => {
     const names = [...new Set(boxes.map((b) => b.label))].sort();
     return Object.fromEntries(names.map((n, i) => [n, i]));
@@ -220,14 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const py = (b.y / 100) * h;
         const bw = (b.w / 100) * w;
         const bh = (b.h / 100) * h;
-        return {
-          id: i + 1,
-          image_id: 1,
-          category_id: cmap[b.label],
-          bbox: [+px.toFixed(2), +py.toFixed(2), +bw.toFixed(2), +bh.toFixed(2)],
-          area: +(bw * bh).toFixed(2),
-          iscrowd: 0,
-        };
+        return { id: i + 1, image_id: 1, category_id: cmap[b.label], bbox: [+px.toFixed(2), +py.toFixed(2), +bw.toFixed(2), +bh.toFixed(2)], area: +(bw * bh).toFixed(2), iscrowd: 0 };
       }),
       categories: Object.entries(cmap).map(([name, id]) => ({ id, name })),
     };
@@ -247,33 +277,36 @@ document.addEventListener("DOMContentLoaded", () => {
     ABC.toast("YOLO txt를 내려받았습니다");
   });
 
-  modal.querySelector(".modal-save").addEventListener("click", async (event) => {
-    const done = ABC.setBusy(event.currentTarget, "저장 중");
+  // 라벨 데이터셋에 저장 — 박스를 영속(미리보기 유지) + 백엔드 저장.
+  const saveLabels = async (button) => {
+    persist(); // 미리보기에 박스 반영(닫아도 유지)
+    const done = ABC.setBusy(button, "저장 중");
     try {
       const result = await ABC.api("/api/labeling/save", {
         image_name: imageName,
         label_count: boxes.length,
       });
-      ABC.toast(result.message);
+      ABC.toast(`${result.message} — 미리보기에 반영됨`);
     } catch {
-      /* handled */
+      /* api()가 toast */
     } finally {
       done();
     }
-  });
+  };
+  modal.querySelector(".modal-save").addEventListener("click", (e) => saveLabels(e.currentTarget));
 
   // ── 모달 열기/닫기 ──────────────────────────────────────────────
   const openModal = () => {
-    // 설정(⚙)의 기본 클래스명·신뢰도 임계값을 반영.
     const s = ABC.getSettings();
     if (s.defaultClass) classInput.value = s.defaultClass;
-    confSlider.value = s.minConf || 0;
-    confVal.textContent = `${confSlider.value}%`;
+    boxes = clone(savedBoxes); // 저장된 박스를 이어서 편집
+    selected = -1;
     setImage();
     render();
     modal.hidden = false;
   };
   const closeModal = () => {
+    persist(); // 닫을 때 현재 박스를 유지(미리보기 반영)
     modal.hidden = true;
   };
 
@@ -294,7 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ── 이미지 업로드/교체 (인라인 미리보기 + 모달 공용) ────────────
+  // ── 이미지 업로드/교체 ──────────────────────────────────────────
   document.querySelector(".replace-image")?.addEventListener("click", (event) => {
     event.preventDefault();
     fileInput?.click();
@@ -304,12 +337,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const file = fileInput.files[0];
     if (!file) return;
     if (imageURL) URL.revokeObjectURL(imageURL);
+    imageFile = file;
     imageURL = URL.createObjectURL(file);
     previewImg.src = imageURL;
     previewImg.hidden = false;
     preview?.classList.add("has-image");
     imageName = file.name;
     if (sampleName) sampleName.textContent = file.name;
+    // 새 이미지면 기존 박스는 무효 → 비운다.
+    savedBoxes = [];
+    renderPreviewBoxes();
     ABC.toast("이미지를 교체했습니다");
   });
 
@@ -318,14 +355,10 @@ document.addEventListener("DOMContentLoaded", () => {
     label.addEventListener("click", () => ABC.activateInGroup(label, "label"));
   });
 
-  let labelCount = resultList ? resultList.querySelectorAll("li").length : 0;
-
   analyzeButton?.addEventListener("click", async () => {
     const preset =
-      document.querySelector(".radio-list .active")?.textContent.trim() ||
-      "도로 파손/포트홀 찾기";
+      document.querySelector(".radio-list .active")?.textContent.trim() || "도로 파손/포트홀 찾기";
     const customPrompt = customInput?.value.trim() || "";
-
     const done = ABC.setBusy(analyzeButton, "분석 중");
     try {
       const result = await ABC.api("/api/labeling/detect", {
@@ -341,7 +374,6 @@ document.addEventListener("DOMContentLoaded", () => {
           return `<li><span class="badge ${label.tone}">${ABC.escapeHtml(label.grade)}</span>${text}</li>`;
         })
         .join("");
-      labelCount = result.labels.length;
       confidence.textContent = `신뢰도 ${result.confidence.toFixed(2)}`;
       ABC.toast("이미지 분석이 완료되었습니다");
     } catch {
@@ -351,26 +383,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ── 결과 액션: "박스로 찾기"(모달) / "라벨로 저장" ──────────────
+  // ── 결과 액션: "박스로 찾기"(모달) / "라벨로 저장"(데이터셋 저장) ─
   document.querySelectorAll(".result-card .answer-actions button").forEach((button) => {
     const label = button.textContent.trim();
     if (label.includes("박스")) {
       button.addEventListener("click", openModal);
     } else if (label.includes("저장")) {
-      button.addEventListener("click", async () => {
-        const count = boxes.length || labelCount;
-        const done = ABC.setBusy(button, "저장 중");
-        try {
-          const result = await ABC.api("/api/labeling/save", {
-            image_name: imageName,
-            label_count: count,
-          });
-          ABC.toast(result.message);
-        } catch {
-          /* handled */
-        } finally {
-          done();
+      button.title = "그린/탐지한 박스를 라벨 데이터셋으로 저장";
+      button.addEventListener("click", (e) => {
+        if (!savedBoxes.length) {
+          ABC.toast("먼저 ‘크게 열어 라벨링’에서 박스를 추가하세요");
+          return;
         }
+        boxes = clone(savedBoxes);
+        saveLabels(e.currentTarget);
       });
     }
   });

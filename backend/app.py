@@ -14,11 +14,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import services
+from . import services, yolo_service
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
@@ -106,6 +106,19 @@ def rag_reset() -> dict:
 @app.post("/api/labeling/detect")
 def labeling_detect(body: DetectIn) -> dict:
     return services.labeling_detect(body.preset, body.custom_prompt, body.min_conf, body.image_name)
+
+
+@app.post("/api/labeling/detect-image")
+async def labeling_detect_image(image: UploadFile = File(...)) -> dict:
+    """업로드 이미지에서 실제 YOLO(best.pt)로 박스 탐지. 모델 없으면 MOCK."""
+    data = await image.read()
+    return yolo_service.detect_boxes(data)
+
+
+@app.get("/api/labeling/model")
+def labeling_model() -> dict:
+    """탐지 모델 사용 가능 여부."""
+    return {"yolo_available": yolo_service.model_available()}
 
 
 @app.post("/api/labeling/save")

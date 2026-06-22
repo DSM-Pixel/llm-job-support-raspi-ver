@@ -31,6 +31,7 @@ web = [
     # 통합 프론트엔드(web/)를 서빙하고 /api/* 를 제공하는 FastAPI 서버.
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
+    "python-multipart>=0.0.9",  # 이미지 업로드(UploadFile)
     "google-genai>=0.3.0",  # RAG 답변 생성(GEMINI_API_KEY 있을 때, 없으면 MOCK 폴백)
 ]
 rag = [
@@ -39,10 +40,11 @@ rag = [
     "sentence-transformers>=3.0.0",
 ]
 vision = [
-    # 무거우므로 필요할 때만 설치.
-    # "torch>=2.4.0",
-    # "transformers>=4.45.0",
-    # "ultralytics>=8.3.0",
+    # 실제 YOLO 도로파손 탐지(backend/storage/models/best.pt). CPU에서도 동작.
+    # 설치: uv pip install -e ".[vision]"  (없으면 라벨링 AI 탐지는 MOCK 폴백)
+    "ultralytics>=8.3.0",
+    "opencv-python>=4.10.0",
+    "torch>=2.4.0",
 ]
 seg = [
     # 정밀 마스크(MobileSAM via ultralytics). CPU에서도 동작.
