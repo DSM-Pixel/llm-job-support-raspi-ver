@@ -29,11 +29,11 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const result = await ABC.api("/api/rag/search", { query });
       answer.innerHTML = result.answer;
-      confidence.textContent = `연관도 ${result.confidence}%`;
+      confidence.textContent = result.found ? `연관도 ${result.confidence}%` : "근거 없음";
       if (methodTag) methodTag.textContent = result.method;
       if (meta) meta.textContent = `top-K ${result.top_k} · ${result.chunks} chunks · ${result.elapsed}`;
       renderSources(result.sources);
-      ABC.toast(result.matched ? "검색 결과가 갱신되었습니다" : "관련 근거가 약합니다 — 상위 문서를 표시합니다");
+      ABC.toast(result.found ? "검색 결과가 갱신되었습니다" : "참고 문서에 관련 정보가 없습니다");
     } catch {
       /* api()가 이미 toast 표시 */
     } finally {

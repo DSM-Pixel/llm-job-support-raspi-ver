@@ -304,8 +304,9 @@ def _generate_answer(query: str, hits: list[dict]) -> tuple[str, str]:
 
             client = genai.Client(api_key=key)
             prompt = (
-                "너는 도로 유지보수 지식 도우미다. 아래 '근거'만 사용해 질문에 한국어로 "
-                "2~3문장으로 간결히 답하라. 근거에 없으면 모른다고 말하라.\n\n"
+                "너는 도로 유지보수 지식 도우미다. 아래 '근거'에 적힌 내용만으로 한국어로 "
+                "2~3문장으로 간결히 답하라. 근거에 질문의 답이 없으면 추측하지 말고 "
+                "반드시 '참고 문서에 해당 정보가 없습니다.' 라고만 답하라.\n\n"
                 f"질문: {query}\n\n근거:\n{context}"
             )
             resp = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
@@ -328,28 +329,57 @@ def _generate_answer(query: str, hits: list[dict]) -> tuple[str, str]:
     )
 
 
+# 이 연관도 미만이면 "관련 근거 없음"으로 처리(억지 유사 답변 방지).
+_MIN_RELEVANCE = 40
+
+
 def rag_search(query: str, top_k: int = 4) -> dict:
-    """질의-연관도 기반 검색 + 근거 기반 답변(Gemini/폴백)."""
+    """질의-연관도 기반 검색 + 근거 기반 답변(Gemini/폴백).
+
+    연관도가 임계값(_MIN_RELEVANCE) 미만이면 비슷한 문서로 답을 만들어내지 않고
+    '참고 문서에 관련 정보가 없다'고 명확히 응답한다.
+    """
     q = (query or "").strip()
     corpus = _SAMPLE_DOCS + _user_docs
     scored = sorted(((_relevance(q, d), d) for d in corpus), key=lambda x: -x[0])
+    relevant = [(s, d) for s, d in scored if s >= _MIN_RELEVANCE]
 
-    matched = [(s, d) for s, d in scored if s > 0]
-    chosen = (matched or scored)[:top_k]
+    # 관련 근거 없음 → 억지 답변 대신 명확히 "없음".
+    if not relevant:
+        best = scored[0][0] if scored else 0
+        return {
+            "backend": BACKEND,
+            "query": q,
+            "found": False,
+            "answer": (
+                f"참고 문서에서 ‘{q}’에 대한 관련 정보를 찾지 못했습니다. "
+                "관련 문서를 색인에 추가하거나 질문을 바꿔 다시 시도해 주세요."
+            ),
+            "confidence": 0,
+            "method": "근거 없음",
+            "elapsed": "0.1s",
+            "top_k": 0,
+            "chunks": len(corpus),
+            "matched": 0,
+            "best": best,
+            "sources": [],
+        }
+
+    chosen = relevant[:top_k]
     sources = [{"source": d["source"], "text": d["text"], "score": s} for s, d in chosen]
-
     answer, backend = _generate_answer(q, sources)
-    confidence = round(sum(s["score"] for s in sources) / len(sources)) if sources else 0
+    confidence = round(sum(s["score"] for s in sources) / len(sources))
     return {
         "backend": backend,
         "query": q,
+        "found": True,
         "answer": answer,
         "confidence": confidence,  # 0~100 (질의 연관도 평균)
         "method": "하이브리드 RAG · Gemini" if backend == "GEMINI" else "키워드 검색(MOCK)",
         "elapsed": "0.4s",
         "top_k": len(sources),
         "chunks": len(corpus),
-        "matched": len(matched),
+        "matched": len(relevant),
         "sources": sources,
     }
 

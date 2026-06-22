@@ -85,6 +85,19 @@ with sync_playwright() as p:
     top_b = page.inner_text(".source-list .source:first-child b")
     check("rag: 질문별 근거 변화", top_b != top_a, f"A={top_a} / B={top_b}")
 
+    # 참고 문서에 없는 질문 → 억지 유사답변 대신 "근거 없음"
+    rag_query("우주 비행사의 우주선 연료 종류는?")
+    none_srcs = page.query_selector_all(".source-list .source")
+    none_ans = page.inner_text(".answer p")
+    none_conf = page.inner_text(".answer-head > .status")
+    check(
+        "rag: 무관 질문은 근거 없음",
+        len(none_srcs) == 0
+        and ("찾지 못" in none_ans or "없습니다" in none_ans)
+        and "근거 없음" in none_conf,
+        f"sources={len(none_srcs)} / {none_conf}",
+    )
+
     # 웹에서 찾아 넣기 → 결과 선택 → 색인 추가
     page.fill(".search-line input", "포트홀 보수 공법")
     page.click(".search-line button")
