@@ -8,113 +8,293 @@ document.addEventListener("DOMContentLoaded", () => {
   const previewImg = document.querySelector(".preview-img");
   const preview = document.querySelector(".road-preview");
   const sampleName = document.querySelector(".sample-name");
-  let imageName = sampleName?.textContent.trim() || "";
 
-  // ── 박스 그리기 모드 ─────────────────────────────────────────────
-  const boxLayer = document.querySelector(".box-layer");
-  const toolbar = document.querySelector(".draw-toolbar");
-  const classInput = document.querySelector(".box-class");
-  const boxCount = document.querySelector(".box-count");
-  const clearButton = document.querySelector(".clear-boxes");
-  const boxes = []; // {x, y, w, h, label} (퍼센트)
+  let imageName = sampleName?.textContent.trim() || "image.png";
+  let imageURL = ""; // 업로드된 이미지의 object URL (없으면 빈 문자열)
 
-  const isBoxTab = (button) => button.textContent.includes("박스");
+  // ════════════════════════════════════════════════════════════════
+  //  라벨링 모달 — 큰 이미지 위에서 박스 그리기/편집/삭제
+  // ════════════════════════════════════════════════════════════════
+  const modal = document.querySelector("#label-modal");
+  const stage = modal.querySelector(".canvas-stage");
+  const canvasImg = modal.querySelector(".canvas-img");
+  const boxesEl = modal.querySelector(".canvas-boxes");
+  const listEl = modal.querySelector(".box-list");
+  const classInput = modal.querySelector(".modal-class");
+  const confSlider = modal.querySelector(".modal-conf");
+  const confVal = modal.querySelector(".conf-val");
+  const totalEl = modal.querySelector(".box-total");
+  const nameEl = modal.querySelector(".modal-imgname");
 
-  const setMode = (boxMode) => {
-    preview?.classList.toggle("draw-mode", boxMode);
-    if (toolbar) toolbar.hidden = !boxMode;
+  let boxes = []; // {x,y,w,h (%, 0~100), label, confidence|null}
+  let selected = -1;
+
+  const setImage = () => {
+    if (imageURL) {
+      canvasImg.src = imageURL;
+      stage.classList.add("has-image");
+    } else {
+      canvasImg.removeAttribute("src");
+      stage.classList.remove("has-image");
+    }
+    nameEl.textContent = imageName;
   };
 
-  const updateCount = () => {
-    if (boxCount) boxCount.textContent = `박스 ${boxes.length}개`;
+  // confidence 필터를 통과하는지 (값 없으면 통과)
+  const passesConf = (box) => {
+    const min = Number(confSlider.value) || 0;
+    return box.confidence == null || box.confidence >= min;
   };
 
-  document.querySelectorAll(".mode-tabs button").forEach((button) => {
-    button.addEventListener("click", () => {
-      ABC.activateInGroup(button, "button");
-      setMode(isBoxTab(button));
-    });
-  });
+  const render = () => {
+    const visible = boxes.filter(passesConf);
+    boxesEl.innerHTML = visible
+      .map((b) => {
+        const i = boxes.indexOf(b);
+        return `<div class="draw-box${i === selected ? " selected" : ""}" data-i="${i}" style="left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%"><span class="tag">${ABC.escapeHtml(b.label)}${b.confidence != null ? ` ${b.confidence}%` : ""}</span></div>`;
+      })
+      .join("");
+    listEl.innerHTML = visible
+      .map((b) => {
+        const i = boxes.indexOf(b);
+        return `<li class="${i === selected ? "selected" : ""}" data-i="${i}"><input value="${ABC.escapeHtml(b.label)}" /><span class="conf">${b.confidence != null ? `${b.confidence}%` : "—"}</span><button class="del" type="button" aria-label="삭제">✕</button></li>`;
+      })
+      .join("");
+    totalEl.textContent = String(visible.length);
+  };
 
-  // 드래그로 박스 그리기
+  // 박스 좌표(%) 계산용 — 포인터를 stage 기준 퍼센트로.
+  const pct = (event) => {
+    const r = boxesEl.getBoundingClientRect();
+    return {
+      x: (Math.min(Math.max(event.clientX - r.left, 0), r.width) / r.width) * 100,
+      y: (Math.min(Math.max(event.clientY - r.top, 0), r.height) / r.height) * 100,
+      w: r.width,
+      h: r.height,
+    };
+  };
+
   let start = null;
-  let tempBox = null;
+  let temp = null;
 
-  const relPos = (event) => {
-    const rect = boxLayer.getBoundingClientRect();
-    const x = Math.min(Math.max(event.clientX - rect.left, 0), rect.width);
-    const y = Math.min(Math.max(event.clientY - rect.top, 0), rect.height);
-    return { x, y, w: rect.width, h: rect.height };
-  };
-
-  boxLayer?.addEventListener("pointerdown", (event) => {
-    if (!preview.classList.contains("draw-mode")) return;
-    start = relPos(event);
-    boxLayer.setPointerCapture(event.pointerId);
-    tempBox = document.createElement("div");
-    tempBox.className = "draw-box";
-    boxLayer.appendChild(tempBox);
-  });
-
-  boxLayer?.addEventListener("pointermove", (event) => {
-    if (!start || !tempBox) return;
-    const p = relPos(event);
-    const left = Math.min(start.x, p.x);
-    const top = Math.min(start.y, p.y);
-    const w = Math.abs(p.x - start.x);
-    const h = Math.abs(p.y - start.y);
-    Object.assign(tempBox.style, {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${w}px`,
-      height: `${h}px`,
-    });
-  });
-
-  const finishBox = (event) => {
-    if (!start || !tempBox) return;
-    const p = relPos(event);
-    const left = Math.min(start.x, p.x);
-    const top = Math.min(start.y, p.y);
-    const w = Math.abs(p.x - start.x);
-    const h = Math.abs(p.y - start.y);
-    start = null;
-
-    // 너무 작은 박스는 취소(클릭 오작동 방지).
-    if (w < 8 || h < 8) {
-      tempBox.remove();
-      tempBox = null;
+  stage.addEventListener("pointerdown", (event) => {
+    // 기존 박스를 누르면 선택, 빈 영역이면 새로 그리기.
+    const hit = event.target.closest(".draw-box");
+    if (hit) {
+      selected = Number(hit.dataset.i);
+      render();
       return;
     }
+    start = pct(event);
+    stage.setPointerCapture(event.pointerId);
+    temp = document.createElement("div");
+    temp.className = "draw-box";
+    boxesEl.appendChild(temp);
+  });
 
-    const label = (classInput?.value || "object").trim() || "object";
-    const tag = document.createElement("span");
-    tag.className = "tag";
-    tag.textContent = label;
-    tempBox.appendChild(tag);
+  stage.addEventListener("pointermove", (event) => {
+    if (!start || !temp) return;
+    const p = pct(event);
+    temp.style.left = `${Math.min(start.x, p.x)}%`;
+    temp.style.top = `${Math.min(start.y, p.y)}%`;
+    temp.style.width = `${Math.abs(p.x - start.x)}%`;
+    temp.style.height = `${Math.abs(p.y - start.y)}%`;
+  });
 
-    boxes.push({
-      x: +((left / p.w) * 100).toFixed(1),
-      y: +((top / p.h) * 100).toFixed(1),
-      w: +((w / p.w) * 100).toFixed(1),
-      h: +((h / p.h) * 100).toFixed(1),
-      label,
-    });
-    tempBox = null;
-    updateCount();
-    ABC.toast(`‘${label}’ 박스를 추가했습니다`);
-  };
+  stage.addEventListener("pointerup", (event) => {
+    if (!start || !temp) return;
+    const p = pct(event);
+    const x = Math.min(start.x, p.x);
+    const y = Math.min(start.y, p.y);
+    const w = Math.abs(p.x - start.x);
+    const h = Math.abs(p.y - start.y);
+    temp.remove();
+    temp = null;
+    start = null;
+    // 너무 작은 박스(오클릭)는 무시 — stage 기준 약 1% 미만.
+    if (w < 1.2 || h < 1.2) return;
+    const label = (classInput.value || "object").trim() || "object";
+    boxes.push({ x: +x.toFixed(2), y: +y.toFixed(2), w: +w.toFixed(2), h: +h.toFixed(2), label, confidence: null });
+    selected = boxes.length - 1;
+    render();
+    ABC.toast(`‘${label}’ 박스 추가`);
+  });
 
-  boxLayer?.addEventListener("pointerup", finishBox);
+  // 목록: 클래스명 수정 / 삭제 / 선택
+  listEl.addEventListener("input", (event) => {
+    if (event.target.tagName !== "INPUT") return;
+    const i = Number(event.target.closest("li").dataset.i);
+    boxes[i].label = event.target.value;
+    const tag = boxesEl.querySelector(`.draw-box[data-i="${i}"] .tag`);
+    if (tag) tag.textContent = event.target.value + (boxes[i].confidence != null ? ` ${boxes[i].confidence}%` : "");
+  });
 
-  clearButton?.addEventListener("click", () => {
-    boxes.length = 0;
-    boxLayer.querySelectorAll(".draw-box").forEach((box) => box.remove());
-    updateCount();
+  listEl.addEventListener("click", (event) => {
+    const li = event.target.closest("li");
+    if (!li) return;
+    const i = Number(li.dataset.i);
+    if (event.target.classList.contains("del")) {
+      boxes.splice(i, 1);
+      if (selected === i) selected = -1;
+      render();
+      ABC.toast("박스를 삭제했습니다");
+    } else {
+      selected = i;
+      render();
+    }
+  });
+
+  confSlider.addEventListener("input", () => {
+    confVal.textContent = `${confSlider.value}%`;
+    render();
+  });
+
+  modal.querySelector(".modal-clear").addEventListener("click", () => {
+    boxes = [];
+    selected = -1;
+    render();
     ABC.toast("박스를 모두 지웠습니다");
   });
 
-  // ── 이미지 업로드/교체 ──────────────────────────────────────────
+  // AI 자동 탐지 → box_2d(0~1000)를 퍼센트로 변환해 추가
+  modal.querySelector(".modal-detect").addEventListener("click", async (event) => {
+    const done = ABC.setBusy(event.currentTarget, "탐지 중");
+    try {
+      const result = await ABC.api("/api/labeling/detect", {
+        preset: "도로 파손/포트홀 찾기",
+        image_name: imageName,
+      });
+      result.labels
+        .filter((l) => Array.isArray(l.box_2d) && l.box_2d.length === 4)
+        .forEach((l) => {
+          const [ymin, xmin, ymax, xmax] = l.box_2d;
+          boxes.push({
+            x: +(xmin / 10).toFixed(2),
+            y: +(ymin / 10).toFixed(2),
+            w: +((xmax - xmin) / 10).toFixed(2),
+            h: +((ymax - ymin) / 10).toFixed(2),
+            label: l.class_name || "object",
+            confidence: typeof l.confidence === "number" ? l.confidence : null,
+          });
+        });
+      render();
+      ABC.toast("AI 탐지 결과를 추가했습니다");
+    } catch {
+      /* handled */
+    } finally {
+      done();
+    }
+  });
+
+  // ── 내보내기 (프로토타입 labeling.py 와 동일 규약) ─────────────
+  const imgSize = () => ({
+    w: canvasImg.naturalWidth || 1000,
+    h: canvasImg.naturalHeight || 1000,
+  });
+
+  const download = (filename, text, type = "text/plain") => {
+    const blob = new Blob([text], { type: `${type};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const baseName = () => (imageName.replace(/\.[^.]+$/, "") || "labels");
+
+  const classMap = () => {
+    const names = [...new Set(boxes.map((b) => b.label))].sort();
+    return Object.fromEntries(names.map((n, i) => [n, i]));
+  };
+
+  modal.querySelector(".modal-export-coco").addEventListener("click", () => {
+    if (!boxes.length) return ABC.toast("내보낼 박스가 없습니다");
+    const { w, h } = imgSize();
+    const cmap = classMap();
+    const coco = {
+      images: [{ id: 1, file_name: imageName, width: w, height: h }],
+      annotations: boxes.map((b, i) => {
+        const px = (b.x / 100) * w;
+        const py = (b.y / 100) * h;
+        const bw = (b.w / 100) * w;
+        const bh = (b.h / 100) * h;
+        return {
+          id: i + 1,
+          image_id: 1,
+          category_id: cmap[b.label],
+          bbox: [+px.toFixed(2), +py.toFixed(2), +bw.toFixed(2), +bh.toFixed(2)],
+          area: +(bw * bh).toFixed(2),
+          iscrowd: 0,
+        };
+      }),
+      categories: Object.entries(cmap).map(([name, id]) => ({ id, name })),
+    };
+    download(`${baseName()}.coco.json`, JSON.stringify(coco, null, 2), "application/json");
+    ABC.toast("COCO JSON을 내려받았습니다");
+  });
+
+  modal.querySelector(".modal-export-yolo").addEventListener("click", () => {
+    if (!boxes.length) return ABC.toast("내보낼 박스가 없습니다");
+    const cmap = classMap();
+    const lines = boxes.map((b) => {
+      const cx = (b.x + b.w / 2) / 100;
+      const cy = (b.y + b.h / 2) / 100;
+      return `${cmap[b.label]} ${cx.toFixed(6)} ${cy.toFixed(6)} ${(b.w / 100).toFixed(6)} ${(b.h / 100).toFixed(6)}`;
+    });
+    download(`${baseName()}.txt`, lines.join("\n"));
+    ABC.toast("YOLO txt를 내려받았습니다");
+  });
+
+  modal.querySelector(".modal-save").addEventListener("click", async (event) => {
+    const done = ABC.setBusy(event.currentTarget, "저장 중");
+    try {
+      const result = await ABC.api("/api/labeling/save", {
+        image_name: imageName,
+        label_count: boxes.length,
+      });
+      ABC.toast(result.message);
+    } catch {
+      /* handled */
+    } finally {
+      done();
+    }
+  });
+
+  // ── 모달 열기/닫기 ──────────────────────────────────────────────
+  const openModal = () => {
+    // 설정(⚙)의 기본 클래스명·신뢰도 임계값을 반영.
+    const s = ABC.getSettings();
+    if (s.defaultClass) classInput.value = s.defaultClass;
+    confSlider.value = s.minConf || 0;
+    confVal.textContent = `${confSlider.value}%`;
+    setImage();
+    render();
+    modal.hidden = false;
+  };
+  const closeModal = () => {
+    modal.hidden = true;
+  };
+
+  document.querySelector(".open-label-modal")?.addEventListener("click", openModal);
+  modal.querySelector(".modal-close").addEventListener("click", closeModal);
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.hidden) closeModal();
+  });
+
+  // ── 모드 탭 ─────────────────────────────────────────────────────
+  document.querySelectorAll(".mode-tabs button").forEach((button) => {
+    button.addEventListener("click", () => {
+      ABC.activateInGroup(button, "button");
+      if (button.textContent.includes("박스")) openModal();
+    });
+  });
+
+  // ── 이미지 업로드/교체 (인라인 미리보기 + 모달 공용) ────────────
   document.querySelector(".replace-image")?.addEventListener("click", (event) => {
     event.preventDefault();
     fileInput?.click();
@@ -123,8 +303,9 @@ document.addEventListener("DOMContentLoaded", () => {
   fileInput?.addEventListener("change", () => {
     const file = fileInput.files[0];
     if (!file) return;
-    if (previewImg.src) URL.revokeObjectURL(previewImg.src);
-    previewImg.src = URL.createObjectURL(file);
+    if (imageURL) URL.revokeObjectURL(imageURL);
+    imageURL = URL.createObjectURL(file);
+    previewImg.src = imageURL;
     previewImg.hidden = false;
     preview?.classList.add("has-image");
     imageName = file.name;
@@ -170,20 +351,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ── 결과 액션: "박스로 찾기" / "라벨로 저장" ─────────────────────
+  // ── 결과 액션: "박스로 찾기"(모달) / "라벨로 저장" ──────────────
   document.querySelectorAll(".result-card .answer-actions button").forEach((button) => {
     const label = button.textContent.trim();
     if (label.includes("박스")) {
-      button.addEventListener("click", () => {
-        const boxTab = [...document.querySelectorAll(".mode-tabs button")].find(isBoxTab);
-        if (boxTab) ABC.activateInGroup(boxTab, "button");
-        setMode(true);
-        preview?.scrollIntoView({ behavior: "smooth", block: "center" });
-        ABC.toast("박스 그리기 모드 — 이미지 위를 드래그하세요");
-      });
+      button.addEventListener("click", openModal);
     } else if (label.includes("저장")) {
       button.addEventListener("click", async () => {
-        // 그린 박스가 있으면 그 개수를, 없으면 분석 결과 개수를 저장.
         const count = boxes.length || labelCount;
         const done = ABC.setBusy(button, "저장 중");
         try {

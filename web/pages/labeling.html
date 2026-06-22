@@ -31,15 +31,10 @@
             <img class="preview-img" alt="분석 대상 이미지" hidden />
             <div class="road"></div>
             <span class="lane"></span>
-            <div class="box-layer"></div>
           </div>
           <p class="sample">샘플: <span class="sample-name">road_2026Q1_0142.jpg</span> <a href="#" class="replace-image">교체</a></p>
           <input type="file" class="image-input" accept="image/*" hidden />
-          <div class="draw-toolbar" hidden>
-            <input class="box-class" value="포트홀" placeholder="클래스명" />
-            <button class="btn flat clear-boxes" type="button">박스 지우기</button>
-            <span class="box-count">박스 0개</span>
-          </div>
+          <button class="btn flat wide open-label-modal" type="button">⛶ 크게 열어 라벨링</button>
           <h3>분석 시나리오 (프리셋)</h3>
           <div class="radio-list"><label class="active"><span></span>도로 파손/포트홀 찾기</label><label><span></span>이미지 전체 설명</label><label><span></span>객체 목록 뽑기</label><label><span></span>이상 상황 탐지</label></div>
           <h3>직접 질문 <small>(선택 · 입력 시 프리셋 대체)</small></h3>
@@ -60,6 +55,46 @@
       </section>
     </main>
   </div>
+
+  <!-- 라벨링 모달: 큰 이미지 위에서 박스 그리기/편집/삭제 -->
+  <div class="modal-overlay" id="label-modal" hidden>
+    <div class="modal label-modal" role="dialog" aria-modal="true" aria-label="라벨 편집">
+      <header class="modal-head">
+        <h3>라벨 편집 — <span class="modal-imgname">road_2026Q1_0142.jpg</span></h3>
+        <button class="modal-close" type="button" aria-label="닫기">✕</button>
+      </header>
+      <div class="modal-body">
+        <div class="canvas-wrap">
+          <div class="canvas-stage">
+            <img class="canvas-img" alt="라벨 대상 이미지" />
+            <div class="canvas-fallback">이미지를 업로드하면 여기에 표시됩니다 (없어도 그리기 가능)</div>
+            <div class="canvas-boxes"></div>
+          </div>
+        </div>
+        <aside class="label-side">
+          <label class="field">새 박스 클래스명
+            <input class="modal-class" value="포트홀" />
+          </label>
+          <label class="field">신뢰도 필터 <span class="conf-val">0%</span>
+            <input type="range" class="modal-conf" min="0" max="100" step="5" value="0" />
+          </label>
+          <div class="modal-actions">
+            <button class="btn primary modal-detect" type="button">✣ AI 자동 탐지</button>
+            <button class="btn modal-clear" type="button">전체 지우기</button>
+          </div>
+          <h4>박스 목록 <span class="box-total">0</span>개</h4>
+          <ul class="box-list"></ul>
+          <p class="modal-hint">이미지 위를 <b>드래그</b>해 박스를 그립니다. 목록의 ✕로 개별 삭제, 클래스명은 바로 수정할 수 있어요.</p>
+          <div class="modal-export">
+            <button class="btn modal-export-coco" type="button">COCO 내보내기</button>
+            <button class="btn modal-export-yolo" type="button">YOLO 내보내기</button>
+            <button class="btn primary modal-save" type="button">라벨 저장</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
   <script src="../assets/js/common.js"></script>
   <script src="../assets/js/labeling.js"></script>
 </body>

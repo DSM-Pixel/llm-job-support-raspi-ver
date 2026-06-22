@@ -111,34 +111,62 @@ with sync_playwright() as p:
         f"name={name_shown}",
     )
 
-    page.click(".result-card .answer-actions button:has-text('박스')")
-    box_active = page.eval_on_selector(
-        ".mode-tabs",
-        "el => [...el.querySelectorAll('button')].some(b => b.textContent.includes('박스') && b.classList.contains('active'))",
+    # 라벨링 모달 열기
+    page.click(".open-label-modal")
+    page.wait_for_selector("#label-modal:not([hidden])")
+    page.wait_for_function(
+        "() => { const b=document.querySelector('.canvas-boxes'); return b && b.getBoundingClientRect().width > 50; }"
     )
-    toolbar_visible = page.is_visible(".draw-toolbar")
-    draw_mode = page.eval_on_selector(".road-preview", "el => el.classList.contains('draw-mode')")
-    check("labeling: 박스 모드 전환", box_active and toolbar_visible and draw_mode)
+    check("labeling: 모달 열림", page.is_visible(".label-modal"))
 
-    # 실제 드래그로 박스 그리기
-    layer = page.locator(".box-layer").bounding_box()
-    page.mouse.move(layer["x"] + 30, layer["y"] + 30)
+    # 모달에서 드래그로 박스 그리기
+    layer = page.locator(".canvas-boxes").bounding_box()
+    page.mouse.move(layer["x"] + 20, layer["y"] + 20)
     page.mouse.down()
-    page.mouse.move(layer["x"] + 140, layer["y"] + 110, steps=6)
+    page.mouse.move(layer["x"] + 120, layer["y"] + 90, steps=6)
     page.mouse.up()
-    page.wait_for_selector(".box-layer .draw-box")
-    drawn = page.query_selector_all(".box-layer .draw-box")
-    count_text = page.inner_text(".box-count")
-    check("labeling: 박스 그리기 동작", len(drawn) == 1 and "1개" in count_text, count_text)
+    page.wait_for_selector(".canvas-boxes .draw-box")
+    check(
+        "labeling: 모달 박스 그리기",
+        page.inner_text(".box-total") == "1",
+        page.inner_text(".box-total"),
+    )
 
-    page.click(".clear-boxes")
-    page.wait_for_function("() => document.querySelectorAll('.box-layer .draw-box').length === 0")
-    check("labeling: 박스 지우기", len(page.query_selector_all(".box-layer .draw-box")) == 0)
+    # AI 자동 탐지 → 박스 추가
+    page.click(".modal-detect")
+    page.wait_for_function("() => document.querySelectorAll('.box-list li').length >= 4")
+    after_detect = len(page.query_selector_all(".box-list li"))
+    check("labeling: AI 자동 탐지", after_detect == 4, f"{after_detect}개")
 
-    page.click(".result-card .answer-actions button:has-text('저장')")
+    # 개별 삭제
+    page.click(".box-list li:first-child .del")
+    page.wait_for_function("() => document.querySelectorAll('.box-list li').length === 3")
+    check("labeling: 박스 개별 삭제", len(page.query_selector_all(".box-list li")) == 3)
+
+    # COCO 내보내기 (다운로드)
+    with page.expect_download() as di:
+        page.click(".modal-export-coco")
+    check(
+        "labeling: COCO 내보내기",
+        di.value.suggested_filename.endswith(".coco.json"),
+        di.value.suggested_filename,
+    )
+
+    # 라벨 저장
+    page.click(".modal-save")
     page.wait_for_selector(".toast.show")
-    toast_text = page.inner_text(".toast")
-    check("labeling: 라벨 저장 동작", "저장" in toast_text, toast_text)
+    check("labeling: 라벨 저장", "저장" in page.inner_text(".toast"), page.inner_text(".toast"))
+    page.click(".label-modal .modal-close")
+
+    # 설정(⚙) 모달
+    page.click(".gear")
+    page.wait_for_selector("#settings-modal:not([hidden])")
+    check("settings: 모달 열림", page.is_visible("#settings-modal"))
+    page.fill("#settings-modal [name=defaultClass]", "균열")
+    page.click(".modal-save-settings")
+    page.wait_for_selector("#settings-modal", state="hidden")
+    saved = page.evaluate("() => JSON.parse(localStorage.getItem('gnsoft.settings')).defaultClass")
+    check("settings: 저장/영속", saved == "균열", f"defaultClass={saved}")
 
     # 5) Report ─ 보고서 생성
     page.goto(f"{BASE}/pages/report.html")

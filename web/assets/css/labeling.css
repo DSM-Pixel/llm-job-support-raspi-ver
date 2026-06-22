@@ -64,29 +64,89 @@
   display: none;
 }
 
-/* ── 박스 그리기 모드 ─────────────────────────────────────────── */
-.road-preview.draw-mode {
-  height: 300px;
-  cursor: crosshair;
+.btn.wide {
+  display: flex;
+  width: 100%;
+  margin-top: 10px;
 }
 
-.box-layer {
+/* ── 라벨링 모달 (큰 이미지 + 박스 그리기/편집) ───────────────── */
+.label-modal .modal-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 0;
+  min-height: 0;
+}
+
+.canvas-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: #0c111c;
+  overflow: auto;
+}
+
+/* stage는 이미지에 딱 맞게 줄어들어, 박스 좌표(%)가 이미지에 정확히 정렬된다. */
+.canvas-stage {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.canvas-img {
+  display: block;
+  max-width: 100%;
+  max-height: 72vh;
+  width: auto;
+  height: auto;
+  border-radius: 6px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.canvas-img:not([src]),
+.canvas-img[src=""] {
+  display: none;
+}
+
+.canvas-fallback {
+  display: grid;
+  place-items: center;
+  width: 460px;
+  max-width: 70vw;
+  height: 300px;
+  color: #8a97ad;
+  font-weight: 700;
+  background: #141b28;
+  border: 1px dashed #2a3852;
+  border-radius: 8px;
+  line-height: 1.5;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.canvas-stage.has-image .canvas-fallback {
+  display: none;
+}
+
+.canvas-boxes {
   position: absolute;
   inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.road-preview.draw-mode .box-layer {
-  pointer-events: auto;
 }
 
 .draw-box {
   position: absolute;
-  z-index: 3;
   border: 2px solid var(--blue);
   background: rgba(37, 99, 255, 0.16);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.draw-box.selected {
+  border-color: var(--cyan);
+  background: rgba(16, 212, 210, 0.2);
 }
 
 .draw-box .tag {
@@ -100,34 +160,109 @@
   font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
+  line-height: 1.5;
 }
 
-.draw-toolbar {
+.label-side {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 10px 0 16px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-left: 1px solid var(--line);
+  overflow: auto;
 }
 
-.draw-toolbar .box-class {
-  flex: 1;
-  min-width: 0;
-  height: 32px;
+.label-side .field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #475569;
+}
+
+.label-side .field input[type="text"],
+.label-side .modal-class {
+  height: 34px;
   padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: 7px;
   outline: none;
+  font-weight: 600;
 }
 
-.draw-toolbar .clear-boxes {
-  min-height: 32px;
+.modal-actions,
+.modal-export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.draw-toolbar .box-count {
+.modal-export {
+  margin-top: auto;
+}
+
+.label-side h4 {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.box-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  max-height: 34vh;
+  overflow: auto;
+}
+
+.box-list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-soft, #eef2f6);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.box-list li.selected {
+  border-color: var(--blue);
+  background: #f3f7ff;
+}
+
+.box-list input {
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  outline: none;
+  font-weight: 700;
+}
+
+.box-list .conf {
+  font-size: 11px;
   color: var(--muted);
-  font-size: 12px;
   font-weight: 800;
-  white-space: nowrap;
+}
+
+.box-list .del {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: #fdeaea;
+  color: var(--red);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.modal-hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
 }
 
 .btn.flat {

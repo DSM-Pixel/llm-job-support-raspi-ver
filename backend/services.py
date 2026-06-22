@@ -264,6 +264,7 @@ def rag_index(sources: list[str] | None = None, use_samples: bool = True) -> dic
 # 4. 이미지 분석·라벨링 (MOCK)
 #    실제 연동: prototypes/image-understanding detect()/analyze()
 # ────────────────────────────────────────────────────────────────────
+# box_2d 는 프로토타입과 동일한 Gemini 규약 [ymin, xmin, ymax, xmax] (0~1000 정규화).
 _PRESET_FINDINGS = {
     "도로 파손/포트홀 찾기": [
         {
@@ -271,18 +272,24 @@ _PRESET_FINDINGS = {
             "tone": "red",
             "class_name": "포트홀",
             "note": "좌측 하단. 지름 약 35cm, 깊이 추정 6cm. 즉시 보수 대상.",
+            "box_2d": [610, 80, 880, 360],
+            "confidence": 94,
         },
         {
             "grade": "중",
             "tone": "orange",
             "class_name": "포트홀",
             "note": "중앙. 지름 약 18cm. 차량 손상 우려, 7일 이내 보수.",
+            "box_2d": [520, 430, 660, 600],
+            "confidence": 81,
         },
         {
             "grade": "중",
             "tone": "orange",
             "class_name": "선형 균열",
             "note": "우측 상단으로 진행. 표면 실링 권장.",
+            "box_2d": [180, 640, 360, 920],
+            "confidence": 73,
         },
     ],
     "이미지 전체 설명": [
@@ -291,12 +298,35 @@ _PRESET_FINDINGS = {
             "tone": "gray",
             "class_name": "장면",
             "note": "2차선 아스팔트 도로. 노면 일부 손상과 차선 마모가 관찰됩니다.",
+            "box_2d": [40, 40, 960, 960],
+            "confidence": 88,
         },
     ],
     "객체 목록 뽑기": [
-        {"grade": "객체", "tone": "gray", "class_name": "차량", "note": "원거리 1대"},
-        {"grade": "객체", "tone": "gray", "class_name": "차선", "note": "중앙 점선 1"},
-        {"grade": "객체", "tone": "gray", "class_name": "포트홀", "note": "2개소"},
+        {
+            "grade": "객체",
+            "tone": "gray",
+            "class_name": "차량",
+            "note": "원거리 1대",
+            "box_2d": [300, 420, 460, 560],
+            "confidence": 90,
+        },
+        {
+            "grade": "객체",
+            "tone": "gray",
+            "class_name": "차선",
+            "note": "중앙 점선 1",
+            "box_2d": [500, 470, 880, 530],
+            "confidence": 86,
+        },
+        {
+            "grade": "객체",
+            "tone": "gray",
+            "class_name": "포트홀",
+            "note": "2개소",
+            "box_2d": [640, 120, 820, 330],
+            "confidence": 79,
+        },
     ],
     "이상 상황 탐지": [
         {
@@ -304,6 +334,8 @@ _PRESET_FINDINGS = {
             "tone": "orange",
             "class_name": "노면 침하",
             "note": "우측 하단 의심 영역. 추가 촬영 권장.",
+            "box_2d": [620, 640, 900, 900],
+            "confidence": 68,
         },
     ],
 }
