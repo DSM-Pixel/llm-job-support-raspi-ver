@@ -31,9 +31,15 @@
             <img class="preview-img" alt="분석 대상 이미지" hidden />
             <div class="road"></div>
             <span class="lane"></span>
+            <div class="box-layer"></div>
           </div>
           <p class="sample">샘플: <span class="sample-name">road_2026Q1_0142.jpg</span> <a href="#" class="replace-image">교체</a></p>
           <input type="file" class="image-input" accept="image/*" hidden />
+          <div class="draw-toolbar" hidden>
+            <input class="box-class" value="포트홀" placeholder="클래스명" />
+            <button class="btn flat clear-boxes" type="button">박스 지우기</button>
+            <span class="box-count">박스 0개</span>
+          </div>
           <h3>분석 시나리오 (프리셋)</h3>
           <div class="radio-list"><label class="active"><span></span>도로 파손/포트홀 찾기</label><label><span></span>이미지 전체 설명</label><label><span></span>객체 목록 뽑기</label><label><span></span>이상 상황 탐지</label></div>
           <h3>직접 질문 <small>(선택 · 입력 시 프리셋 대체)</small></h3>

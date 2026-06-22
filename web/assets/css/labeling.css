@@ -64,6 +64,78 @@
   display: none;
 }
 
+/* ── 박스 그리기 모드 ─────────────────────────────────────────── */
+.road-preview.draw-mode {
+  height: 300px;
+  cursor: crosshair;
+}
+
+.box-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.road-preview.draw-mode .box-layer {
+  pointer-events: auto;
+}
+
+.draw-box {
+  position: absolute;
+  z-index: 3;
+  border: 2px solid var(--blue);
+  background: rgba(37, 99, 255, 0.16);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.draw-box .tag {
+  position: absolute;
+  top: -19px;
+  left: -2px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.draw-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 16px;
+}
+
+.draw-toolbar .box-class {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  outline: none;
+}
+
+.draw-toolbar .clear-boxes {
+  min-height: 32px;
+}
+
+.draw-toolbar .box-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.btn.flat {
+  border-color: transparent;
+  background: #eef1f6;
+  color: #475569;
+}
+
 .road {
   position: absolute;
   left: 54px;

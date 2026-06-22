@@ -116,7 +116,24 @@ with sync_playwright() as p:
         ".mode-tabs",
         "el => [...el.querySelectorAll('button')].some(b => b.textContent.includes('박스') && b.classList.contains('active'))",
     )
-    check("labeling: 박스 모드 전환", box_active)
+    toolbar_visible = page.is_visible(".draw-toolbar")
+    draw_mode = page.eval_on_selector(".road-preview", "el => el.classList.contains('draw-mode')")
+    check("labeling: 박스 모드 전환", box_active and toolbar_visible and draw_mode)
+
+    # 실제 드래그로 박스 그리기
+    layer = page.locator(".box-layer").bounding_box()
+    page.mouse.move(layer["x"] + 30, layer["y"] + 30)
+    page.mouse.down()
+    page.mouse.move(layer["x"] + 140, layer["y"] + 110, steps=6)
+    page.mouse.up()
+    page.wait_for_selector(".box-layer .draw-box")
+    drawn = page.query_selector_all(".box-layer .draw-box")
+    count_text = page.inner_text(".box-count")
+    check("labeling: 박스 그리기 동작", len(drawn) == 1 and "1개" in count_text, count_text)
+
+    page.click(".clear-boxes")
+    page.wait_for_function("() => document.querySelectorAll('.box-layer .draw-box').length === 0")
+    check("labeling: 박스 지우기", len(page.query_selector_all(".box-layer .draw-box")) == 0)
 
     page.click(".result-card .answer-actions button:has-text('저장')")
     page.wait_for_selector(".toast.show")
