@@ -1,16 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
-  document
-    .querySelectorAll(".select-list button, .chips .pill")
-    .forEach((item) => {
-      item.addEventListener("click", () =>
-        ABC.activateInGroup(item, item.tagName === "BUTTON" ? "button" : ".pill"),
-      );
-    });
+  const esc = ABC.escapeHtml;
+  const reportPage = document.querySelector(".report-page");
+
+  document.querySelectorAll(".select-list button, .chips .pill").forEach((item) => {
+    item.addEventListener("click", () =>
+      ABC.activateInGroup(item, item.tagName === "BUTTON" ? "button" : ".pill"),
+    );
+  });
 
   document.querySelectorAll(".source-toggle .switch").forEach((switchEl) => {
     const row = switchEl.closest(".source-toggle");
     row?.classList.toggle("is-off", switchEl.classList.contains("off"));
-
     switchEl.addEventListener("click", () => {
       switchEl.classList.toggle("off");
       row?.classList.toggle("is-off", switchEl.classList.contains("off"));
@@ -23,38 +23,66 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((row) => row.querySelector("span, b")?.textContent.trim())
       .filter(Boolean);
 
-  document
-    .querySelector(".report-form .primary")
-    ?.addEventListener("click", async (event) => {
-      const reportType =
-        document.querySelector(".select-list .active")?.textContent.trim() || "현황 분석";
-      const period =
-        document.querySelector(".chips .active")?.textContent.trim() || "최근 3년";
+  // 구조화 응답 → 편집 가능한 제출 보고서 문서로 렌더.
+  const renderReport = (r) => {
+    const sections = (r.sections || [])
+      .map(
+        (s) =>
+          `<section><h3 contenteditable="true">${esc(s.heading)}</h3><p contenteditable="true">${esc(s.body)}</p></section>`,
+      )
+      .join("");
 
-      const done = ABC.setBusy(event.currentTarget, "생성 중");
-      try {
-        const result = await ABC.api("/api/report", {
-          report_type: reportType,
-          period,
-          sources: activeSources(),
-        });
-        document.querySelector(".report-page header h2").textContent = result.title;
-        document.querySelector(".report-page header span").textContent = result.subtitle;
-        const summary = document.querySelector(".report-page section p");
-        if (summary) summary.textContent = result.summary;
-        ABC.toast("보고서 미리보기가 갱신되었습니다");
-      } catch {
-        /* api()가 toast 표시 */
-      } finally {
-        done();
-      }
-    });
+    let table = "";
+    if (r.table) {
+      const head = r.table.columns.map((c) => `<th>${esc(c)}</th>`).join("");
+      const body = r.table.rows
+        .map((row) => `<tr>${row.map((c) => `<td contenteditable="true">${esc(c)}</td>`).join("")}</tr>`)
+        .join("");
+      table = `<section><h3 contenteditable="true">${esc(r.table.caption)}</h3><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></section>`;
+    }
 
-  const getReportText = () => {
-    const title = document.querySelector(".report-page header h2")?.textContent.trim() || "도로 파손 현황 분석 보고서";
-    const summary = document.querySelector(".report-page section p")?.textContent.trim() || "";
-    return `${title}\n\n${summary}`;
+    const sources = (r.sources || [])
+      .map((s) => `<span class="pill">${esc(s)}</span>`)
+      .join("");
+
+    reportPage.innerHTML = `
+      <header>
+        <p>${esc(r.org)} · ${esc(r.report_type)}</p>
+        <h2 contenteditable="true">${esc(r.title)}</h2>
+        <span>${esc(r.subtitle)}</span>
+      </header>
+      ${sections}
+      ${table}
+      <footer><b>출처</b>${sources}</footer>`;
   };
+
+  const generate = async (button) => {
+    const reportType =
+      document.querySelector(".select-list .active")?.textContent.trim() || "현황 분석";
+    const period = document.querySelector(".chips .active")?.textContent.trim() || "최근 3년";
+    const done = button ? ABC.setBusy(button, "생성 중") : () => {};
+    try {
+      const result = await ABC.api("/api/report", {
+        report_type: reportType,
+        period,
+        sources: activeSources(),
+      });
+      renderReport(result);
+      if (button) ABC.toast("보고서를 생성했습니다 — 본문을 직접 수정할 수 있어요");
+    } catch {
+      /* api()가 toast */
+    } finally {
+      done();
+    }
+  };
+
+  document.querySelector(".report-form .primary")?.addEventListener("click", (e) => generate(e.currentTarget));
+
+  // 첫 진입 시 편집 가능한 문서로 한 번 렌더.
+  generate(null);
+
+  // 내보내기/공유는 (수정 반영된) 문서 전체 텍스트를 사용.
+  const getReportText = () => reportPage?.innerText.trim() || "보고서";
 
   document.querySelector(".copy-report")?.addEventListener("click", async () => {
     try {
@@ -68,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelector(".pdf-report")?.addEventListener("click", () => window.print());
 
   document.querySelector(".share-report")?.addEventListener("click", async () => {
-    const title = document.querySelector(".report-page header h2")?.textContent.trim() || "보고서";
+    const title = reportPage?.querySelector("h2")?.textContent.trim() || "보고서";
     const text = getReportText();
     try {
       if (navigator.share) {

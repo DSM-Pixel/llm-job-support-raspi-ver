@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -113,6 +113,19 @@ async def labeling_detect_image(image: UploadFile = File(...)) -> dict:
     """업로드 이미지에서 실제 YOLO(best.pt)로 박스 탐지. 모델 없으면 MOCK."""
     data = await image.read()
     return yolo_service.detect_boxes(data)
+
+
+@app.post("/api/labeling/analyze-image")
+async def labeling_analyze_image(
+    image: UploadFile = File(...),
+    preset: str = Form("도로 파손/포트홀 찾기"),
+    custom_prompt: str = Form(""),
+) -> dict:
+    """업로드 이미지를 실제 Gemini Vision으로 설명 분석. 키 없으면 MOCK."""
+    data = await image.read()
+    return services.analyze_image_vision(
+        data, preset, custom_prompt, image.content_type or "image/png"
+    )
 
 
 @app.get("/api/labeling/model")

@@ -525,24 +525,141 @@ def labeling_detect(
     }
 
 
+# 설명 분석(설명형) 프리셋별 프롬프트.
+_ANALYZE_PROMPTS = {
+    "도로 파손/포트홀 찾기": "이 도로 이미지에서 포트홀·균열 등 노면 파손을 찾아 위치와 심각도를 한국어로 항목별로 설명해줘.",
+    "이미지 전체 설명": "이 이미지를 한국어로 전반적으로 설명해줘.",
+    "객체 목록 뽑기": "이 이미지에 보이는 주요 객체들을 한국어로 목록으로 정리해줘.",
+    "이상 상황 탐지": "이 이미지에서 위험하거나 이상한 상황이 있는지 한국어로 찾아 설명해줘.",
+}
+
+
+def analyze_image_vision(
+    image_bytes: bytes,
+    preset: str = "도로 파손/포트홀 찾기",
+    custom_prompt: str = "",
+    mime: str = "image/png",
+) -> dict:
+    """업로드 이미지를 실제 Gemini Vision으로 설명 분석. 키/오류 시 프리셋 MOCK 폴백."""
+    prompt = custom_prompt.strip() or _ANALYZE_PROMPTS.get(
+        preset, _ANALYZE_PROMPTS["이미지 전체 설명"]
+    )
+    key = _gemini_key()
+    if key:
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=key)
+            part = types.Part.from_bytes(data=image_bytes, mime_type=mime or "image/png")
+            resp = client.models.generate_content(model="gemini-2.5-flash", contents=[part, prompt])
+            text = (resp.text or "").strip()
+            if text:
+                return {"backend": "GEMINI", "preset": preset, "description": text}
+        except Exception:
+            pass
+    # 폴백: 프리셋 고정 결과를 설명 문장으로.
+    findings = _PRESET_FINDINGS.get(preset, _PRESET_FINDINGS["도로 파손/포트홀 찾기"])
+    desc = "\n".join(f"{f['class_name']}: {f['note']}" for f in findings)
+    return {"backend": "MOCK", "preset": preset, "description": desc}
+
+
 # ────────────────────────────────────────────────────────────────────
 # 5. 보고서 생성 (MOCK)
 # ────────────────────────────────────────────────────────────────────
+def _report_table(period: str) -> dict:
+    """현황 분석용 권역 통계 표."""
+    return {
+        "columns": ["권역", "신고 건수", "비중", "예산 집행률"],
+        "rows": [
+            ["수도권", "15,745", "41%", "92.1%"],
+            ["충청권", "6,238", "16%", "88.4%"],
+            ["영남권", "9,104", "24%", "85.0%"],
+            ["호남권", "7,315", "19%", "83.7%"],
+        ],
+        "caption": f"권역별 도로 파손 신고·예산 ({period})",
+    }
+
+
+# 보고서 유형별 섹션 템플릿(유형에 따라 구성·내용이 달라진다).
+def _report_sections(kind: str, period: str, sources: list[str]) -> list[dict]:
+    src_line = ", ".join(sources) if sources else "선택된 소스 없음"
+    if kind == "정책 브리핑":
+        return [
+            {
+                "heading": "1. 배경",
+                "body": f"{period} 도로 파손 신고가 지속 증가하여 보수 우선순위와 예산 배분에 대한 정책 판단이 필요하다. 본 브리핑은 {src_line} 를 근거로 한다.",
+            },
+            {
+                "heading": "2. 핵심 이슈",
+                "body": "심각(상) 등급 비중 상승, 지역별 예산 집행률 편차, 신고-보수 간 시차 확대가 핵심 이슈로 확인된다.",
+            },
+            {
+                "heading": "3. 정책 제언",
+                "body": "① 심각 등급 24시간 이내 긴급 보수 의무화 ② 집행률 저조 권역 예산 재배분 ③ Vision AI 자동 검수로 신고-보수 시차 단축.",
+            },
+            {
+                "heading": "4. 기대 효과",
+                "body": "사고 위험 감소, 예산 집행 효율화, 보수 대응 시간 단축이 기대된다.",
+            },
+        ]
+    if kind == "검수 요약":
+        return [
+            {
+                "heading": "1. 검수 개요",
+                "body": f"{period} 수집·라벨링된 데이터셋을 대상으로 품질 검수를 수행하였다. 대상 소스: {src_line}.",
+            },
+            {
+                "heading": "2. 데이터셋 품질",
+                "body": "총 라벨 12,840건 중 검수 완료 100%. 클래스 분포는 포트홀 > 균열 > 도로파손 순이다.",
+            },
+            {
+                "heading": "3. 라벨 정확도",
+                "body": "샘플 검증 결과 박스 IoU 0.87, 클래스 정확도 96.2%. 경계 모호 케이스가 일부 확인된다.",
+            },
+            {
+                "heading": "4. 보완 필요",
+                "body": "야간·우천 이미지 보강, 경계 모호 라벨 재검수, 소수 클래스(맨홀 등) 추가 수집을 권고한다.",
+            },
+        ]
+    # 기본: 현황 분석
+    return [
+        {
+            "heading": "1. 개요",
+            "body": f"{period} 전국 도로 파손(포트홀) 현황을 {src_line} 기준으로 분석하였다.",
+        },
+        {
+            "heading": "2. 주요 현황",
+            "body": "신고는 연평균 14.2% 증가, 2025년 누적 38,402건. 수도권 비중 41%로 가장 높다.",
+        },
+        {
+            "heading": "3. 분석",
+            "body": "Vision AI 검수 결과 심각(상) 등급 비율이 전 분기 대비 소폭 상승했고, 예산 집행률은 지역별 편차가 크다.",
+        },
+        {
+            "heading": "4. 권고",
+            "body": "심각 등급 24시간 이내 긴급 보수, 보통 등급 7일 이내 처리 기준 적용을 권고한다.",
+        },
+    ]
+
+
 def generate_report(
     report_type: str = "현황 분석", period: str = "최근 3년", sources: list[str] | None = None
 ) -> dict:
-    """선택 조건으로 보고서 미리보기를 생성. (MOCK)"""
-    clean = re.sub(r"[▥▤▢]", "", report_type).strip() or "현황 분석"
+    """선택한 유형·소스·기간에 맞춘 보고서 문서를 생성. (MOCK)"""
+    kind = re.sub(r"[▥▤▢]", "", report_type).strip() or "현황 분석"
+    srcs = [s for s in (sources or []) if s]
     return {
         "backend": BACKEND,
-        "title": f"도로 파손 {clean} 보고서",
-        "subtitle": f"생성일 2026.6.22 · 소스 {len(sources or []) or 3}개 · {period}",
-        "summary": (
-            "최근 도로 파손 신고는 증가 추세이며 수도권 비중이 가장 높습니다. "
-            "Vision AI 검수 결과 심각(상) 등급 비율은 전 분기 대비 소폭 상승했고, "
-            "보수 예산 집행률은 지역별 편차가 큽니다. 심각 등급은 24시간 이내 긴급 보수, "
-            "보통 등급은 7일 이내 처리 기준 적용을 권고합니다."
-        ),
+        "report_type": kind,
+        "org": "GNSOFT",
+        "date": "2026.6.22",
+        "period": period,
+        "title": f"도로 파손 {kind} 보고서",
+        "subtitle": f"생성일 2026.6.22 · 소스 {len(srcs) or 3}개 · {period}",
+        "sections": _report_sections(kind, period, srcs),
+        "table": _report_table(period) if kind == "현황 분석" else None,
+        "sources": srcs or ["도로 파손 신고 현황", "도로보수 예산 현황", "Vision AI 검수 리포트"],
     }
 
 

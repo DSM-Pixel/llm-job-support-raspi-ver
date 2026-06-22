@@ -259,15 +259,39 @@ with sync_playwright() as p:
     saved = page.evaluate("() => JSON.parse(localStorage.getItem('gnsoft.settings')).defaultClass")
     check("settings: 저장/영속", saved == "균열", f"defaultClass={saved}")
 
-    # 5) Report ─ 보고서 생성
+    # 5) Report ─ 유형별 내용 변화 + 편집 가능
     page.goto(f"{BASE}/pages/report.html")
-    page.click(".select-list button:nth-child(2)")  # 정책 브리핑
+    # 첫 진입 시 자동 렌더(현황 분석)
+    page.wait_for_selector(".report-page section [contenteditable='true']")
+    check(
+        "report: 편집 가능 문서 렌더",
+        page.query_selector(".report-page h2[contenteditable]") is not None,
+    )
+
+    # 정책 브리핑
+    page.click(".select-list button:nth-child(2)")
     page.click(".report-form .primary")
     page.wait_for_function(
         "() => document.querySelector('.report-page header h2').innerText.includes('정책 브리핑')"
     )
-    title = page.inner_text(".report-page header h2")
-    check("report: 제목 갱신", "정책 브리핑" in title, title)
+    brief_text = page.inner_text(".report-page")
+    secs = len(page.query_selector_all(".report-page section"))
+    check("report: 정책 브리핑 내용", "정책 제언" in brief_text and secs >= 4, f"sections={secs}")
+
+    # 검수 요약 → 내용이 달라짐
+    page.click(".select-list button:nth-child(3)")
+    page.click(".report-form .primary")
+    page.wait_for_function(
+        "() => document.querySelector('.report-page header h2').innerText.includes('검수 요약')"
+    )
+    audit_text = page.inner_text(".report-page")
+    check("report: 유형별 내용 변화", "라벨 정확도" in audit_text and "정책 제언" not in audit_text)
+
+    # 본문 직접 수정(편집 가능)
+    p = page.query_selector(".report-page section p")
+    p.click()
+    page.evaluate("(el)=>{el.textContent='수정된 본문 테스트';}", p)
+    check("report: 본문 편집 가능", "수정된 본문 테스트" in page.inner_text(".report-page"))
 
     # 6) Data ─ 목록 로드 + 검색 필터
     page.goto(f"{BASE}/pages/data.html")

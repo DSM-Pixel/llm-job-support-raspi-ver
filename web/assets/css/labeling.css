@@ -348,6 +348,13 @@
   color: #475569;
 }
 
+.result-hint {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .road {
   position: absolute;
   left: 54px;

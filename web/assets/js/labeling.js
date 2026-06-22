@@ -402,43 +402,46 @@ document.addEventListener("DOMContentLoaded", () => {
     const customPrompt = customInput?.value.trim() || "";
     const done = ABC.setBusy(analyzeButton, "분석 중");
     try {
-      const result = await ABC.api("/api/labeling/detect", {
-        preset,
-        custom_prompt: customPrompt,
-        image_name: imageName,
-      });
-      resultList.innerHTML = result.labels
-        .map((label) => {
-          const text = label.class_name
-            ? `<b>${ABC.escapeHtml(label.class_name)}</b> — ${ABC.escapeHtml(label.note)}`
-            : ABC.escapeHtml(label.note);
-          return `<li><span class="badge ${label.tone}">${ABC.escapeHtml(label.grade)}</span>${text}</li>`;
-        })
-        .join("");
-      confidence.textContent = `신뢰도 ${result.confidence.toFixed(2)}`;
-      ABC.toast("이미지 분석이 완료되었습니다");
+      if (imageFile) {
+        // 업로드 이미지가 있으면 실제 Gemini Vision으로 분석.
+        const fd = new FormData();
+        fd.append("image", imageFile);
+        fd.append("preset", preset);
+        fd.append("custom_prompt", customPrompt);
+        const res = await fetch("/api/labeling/analyze-image", { method: "POST", body: fd });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        resultList.innerHTML = (result.description || "")
+          .split(/\n+/)
+          .filter(Boolean)
+          .map((line) => `<li>${ABC.escapeHtml(line.replace(/^[-*•]\s*/, ""))}</li>`)
+          .join("");
+        confidence.textContent = result.backend === "GEMINI" ? "Gemini Vision" : "MOCK 분석";
+        confidence.className = `status ${result.backend === "GEMINI" ? "green" : "gray"}`;
+        ABC.toast(result.backend === "GEMINI" ? "이미지를 분석했습니다" : "분석 결과(MOCK)");
+      } else {
+        // 이미지 없으면 프리셋 기반 예시 결과(MOCK).
+        const result = await ABC.api("/api/labeling/detect", {
+          preset,
+          custom_prompt: customPrompt,
+          image_name: imageName,
+        });
+        resultList.innerHTML = result.labels
+          .map((label) => {
+            const text = label.class_name
+              ? `<b>${ABC.escapeHtml(label.class_name)}</b> — ${ABC.escapeHtml(label.note)}`
+              : ABC.escapeHtml(label.note);
+            return `<li><span class="badge ${label.tone}">${ABC.escapeHtml(label.grade)}</span>${text}</li>`;
+          })
+          .join("");
+        confidence.textContent = `예시(MOCK)`;
+        confidence.className = "status gray";
+        ABC.toast("이미지를 ‘교체’로 올리면 실제 분석합니다 (지금은 예시)");
+      }
     } catch {
-      /* api()가 toast 표시 */
+      ABC.toast("분석에 실패했습니다");
     } finally {
       done();
-    }
-  });
-
-  // ── 결과 액션: "박스로 찾기"(모달) / "라벨로 저장"(데이터셋 저장) ─
-  document.querySelectorAll(".result-card .answer-actions button").forEach((button) => {
-    const label = button.textContent.trim();
-    if (label.includes("박스")) {
-      button.addEventListener("click", openModal);
-    } else if (label.includes("저장")) {
-      button.title = "그린/탐지한 박스를 라벨 데이터셋으로 저장";
-      button.addEventListener("click", (e) => {
-        if (!savedBoxes.length) {
-          ABC.toast("먼저 ‘크게 열어 라벨링’에서 박스를 추가하세요");
-          return;
-        }
-        boxes = clone(savedBoxes);
-        saveLabels(e.currentTarget);
-      });
     }
   });
 });
