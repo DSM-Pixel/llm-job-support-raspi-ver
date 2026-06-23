@@ -94,6 +94,50 @@ document.addEventListener("DOMContentLoaded", () => {
     fileList?.prepend(item);
   };
 
+  // 참고중인 파일 클릭 → 문서 내용 열람(모달).
+  const docModal = document.createElement("div");
+  docModal.className = "modal-overlay";
+  docModal.hidden = true;
+  docModal.innerHTML =
+    '<div class="modal"><header class="modal-head"><h3 class="doc-title"></h3>' +
+    '<button class="modal-close" type="button" aria-label="닫기">✕</button></header>' +
+    '<div class="modal-body"><div class="doc-body"></div></div></div>';
+  document.body.appendChild(docModal);
+  const closeDoc = () => {
+    docModal.hidden = true;
+  };
+  docModal.querySelector(".modal-close").addEventListener("click", closeDoc);
+  docModal.addEventListener("click", (e) => {
+    if (e.target === docModal) closeDoc();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !docModal.hidden) closeDoc();
+  });
+
+  const openDoc = async (name) => {
+    try {
+      const r = await ABC.api(`/api/rag/doc?source=${encodeURIComponent(name)}`);
+      docModal.querySelector(".doc-title").textContent = name;
+      docModal.querySelector(".doc-body").innerHTML = r.found
+        ? r.chunks
+            .map(
+              (c, i) =>
+                `<p class="doc-chunk"><span class="doc-no">청크 ${i + 1}</span>${ABC.escapeHtml(c)}</p>`,
+            )
+            .join("")
+        : "<p class='doc-empty'>이 문서는 본문이 색인되지 않았습니다(이름만 등록).</p>";
+      docModal.hidden = false;
+    } catch {
+      /* api()가 toast 표시 */
+    }
+  };
+
+  fileList?.addEventListener("click", (e) => {
+    const li = e.target.closest("li");
+    const name = li?.querySelector("b")?.textContent.trim();
+    if (name) openDoc(name);
+  });
+
   // 웹에서 찾아 넣기 — 결과를 체크박스로 보여주고, 선택한 것만 색인에 추가.
   const webInput = document.querySelector(".search-line input");
   const webButton = document.querySelector(".search-line button");

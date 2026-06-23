@@ -135,6 +135,18 @@ with sync_playwright() as p:
     page.wait_for_function("() => document.querySelector('.indexed').innerText.includes('초기화')")
     check("rag: 색인 초기화", "초기화" in page.inner_text(".indexed"), page.inner_text(".indexed"))
 
+    # 참고중인 파일 클릭 → 문서 내용 열람
+    page.locator(".file-list li").filter(has_text="포트홀_보수_기준").first.click()
+    page.wait_for_selector(".modal-overlay:not([hidden]) .doc-chunk")
+    doc_title = page.inner_text(".doc-title")
+    doc_chunks = len(page.query_selector_all(".doc-chunk"))
+    check(
+        "rag: 참고 파일 열람",
+        "포트홀" in doc_title and doc_chunks >= 1,
+        f"{doc_title} / {doc_chunks}청크",
+    )
+    page.locator(".modal-overlay:not([hidden]) .modal-close").click()
+
     # 4) Labeling ─ 설명 분석 + 모달(그리기/AI탐지/중복방지/저장→미리보기 유지)
     page.goto(f"{BASE}/pages/labeling.html")
     page.click(".label-panel .primary")

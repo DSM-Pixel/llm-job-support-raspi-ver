@@ -766,6 +766,13 @@ def rag_web_search(keyword: str) -> dict:
     }
 
 
+def rag_get_doc(source: str) -> dict:
+    """참고중인 파일(소스명)의 본문 청크를 돌려준다 — 파일 열람용."""
+    name = (source or "").strip()
+    chunks = [d["text"] for d in (_SAMPLE_DOCS + _user_docs) if d["source"] == name]
+    return {"backend": BACKEND, "source": name, "found": bool(chunks), "chunks": chunks}
+
+
 def rag_reset() -> dict:
     """색인 초기화 — 사용자가 추가한 문서를 비우고 샘플만 남긴다."""
     _user_docs.clear()

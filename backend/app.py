@@ -103,6 +103,11 @@ def rag_reset() -> dict:
     return services.rag_reset()
 
 
+@app.get("/api/rag/doc")
+def rag_doc(source: str) -> dict:
+    return services.rag_get_doc(source)
+
+
 @app.post("/api/labeling/detect")
 def labeling_detect(body: DetectIn) -> dict:
     return services.labeling_detect(body.preset, body.custom_prompt, body.min_conf, body.image_name)

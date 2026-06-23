@@ -346,6 +346,47 @@
   font-weight: 900;
 }
 
+/* 참고중인 파일 — 클릭하면 내용 열람 */
+.file-list li {
+  cursor: pointer;
+}
+
+.file-list li:hover {
+  background: #f5f8ff;
+  border-radius: 7px;
+}
+
+.doc-body {
+  display: grid;
+  gap: 10px;
+}
+
+.doc-chunk {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.doc-no {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.doc-empty {
+  color: var(--muted);
+}
+
 /* 웹에서 찾아 넣기 — 선택형 결과 */
 .web-results {
   display: grid;
