@@ -10,6 +10,7 @@
 
 import io
 import sys
+from urllib.parse import quote
 
 from PIL import Image
 from playwright.sync_api import sync_playwright
@@ -62,13 +63,54 @@ with sync_playwright() as p:
     check("help: 사용법 모달 + 화살표 이동", slide1 != slide2, f"{slide1}→{slide2}")
     page.click("#help-modal .modal-close")
 
-    # 2) Query ─ 의도 라우팅 + 답변 렌더
+    # 2) Query ─ 질문 분류: 일반은 바로 답변, 데이터/이미지는 연계 안내
     page.goto(f"{BASE}/pages/query.html")
+    # 이미지 작업 질문(영역) → 이미지 분석·라벨링으로 연계
     page.fill(".input-wrap input", "포트홀 영역을 찾아줘")
     page.click(".input-wrap button")
     page.wait_for_selector(".message.assistant .message-actions a")
     href = page.get_attribute(".message.assistant:last-child .message-actions a", "href")
-    check("query: 답변 렌더 + 라벨링 링크", href == "labeling.html", f"href={href}")
+    check("query: 이미지 질문 → 라벨링 연계", href == "labeling.html", f"href={href}")
+
+    # 일반 지식 질문(뭐야?) → 라우팅 버튼 없이 바로 답변
+    page.fill(".input-wrap input", "포트홀이 뭐야?")
+    page.click(".input-wrap button")
+    page.wait_for_function(
+        "() => { const m=document.querySelectorAll('.message.assistant'); "
+        "const last=m[m.length-1]; return last && !last.querySelector('.typing') "
+        "&& last.querySelector('.message-body p'); }"
+    )
+    gen_actions = page.query_selector_all(".message.assistant:last-child .message-actions a")
+    check(
+        "query: 일반 질문은 바로 답변(연계 없음)",
+        len(gen_actions) == 0,
+        f"actions={len(gen_actions)}",
+    )
+
+    # 데이터 조회 질문(날짜·위치) → RAG 공공데이터 검색으로 연계 안내 + 버튼
+    page.fill(".input-wrap input", "2026.04.24 8시에 찍힌 포트홀 위치 알려줘")
+    page.click(".input-wrap button")
+    page.wait_for_function(
+        "() => { const a=document.querySelector('.message.assistant:last-child .message-actions a'); "
+        "return a && a.getAttribute('href').startsWith('rag.html?q='); }"
+    )
+    rag_href = page.get_attribute(".message.assistant:last-child .message-actions a", "href")
+    ans_txt = page.inner_text(".message.assistant:last-child .message-body")
+    check(
+        "query: 데이터 질문 → RAG 연계 안내",
+        rag_href.startswith("rag.html?q=") and "RAG 공공데이터 검색" in ans_txt,
+        rag_href[:40],
+    )
+
+    # 연계: RAG 페이지가 ?q= 질문을 색인 데이터에서 자동 검색(탐지로그 매칭)
+    page.goto(f"{BASE}/pages/rag.html?q=" + quote("2026.04.24 08시 포트홀 위치"))
+    page.wait_for_function(
+        "() => (document.querySelector('.source-list')?.innerText || '').includes('탐지로그')"
+    )
+    check(
+        "query→rag: ?q 자동 검색(탐지로그 매칭)",
+        "탐지로그" in page.inner_text(".source-list"),
+    )
 
     # 3) RAG ─ 질의 연관도 검색 + 질문별 답변 + 업로드/웹 문서
     page.goto(f"{BASE}/pages/rag.html")

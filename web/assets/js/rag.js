@@ -55,6 +55,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (event.key === "Enter") search();
   });
 
+  // 자연어 질의에서 ?q=로 연계돼 넘어오면 그 질문을 색인 데이터에서 바로 검색.
+  const incomingQ = new URLSearchParams(location.search).get("q");
+  if (incomingQ && askInput) {
+    askInput.value = incomingQ;
+    search();
+  }
+
   // '샘플 점검 문서 사용' 토글 → 즉시 샘플 포함/제외(참고 파일 목록 갱신).
   document.querySelector(".toggle-row .switch")?.addEventListener("click", async (event) => {
     const sw = event.currentTarget;
