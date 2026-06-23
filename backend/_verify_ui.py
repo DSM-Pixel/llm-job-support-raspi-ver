@@ -61,6 +61,24 @@ with sync_playwright() as p:
     page.click(".help-next")
     slide2 = page.inner_text(".help-title")
     check("help: 사용법 모달 + 화살표 이동", slide1 != slide2, f"{slide1}→{slide2}")
+    # 실제 화면 캡쳐 + '이 화면으로 이동' 버튼이 있는 가이드(이미지 로드 대기)
+    shot_src = page.get_attribute("#help-modal .help-shot img", "src")
+    page.wait_for_function(
+        "() => { const i=document.querySelector('#help-modal .help-shot img'); "
+        "return i && i.naturalWidth > 0; }",
+        timeout=10000,
+    )
+    shot_w = page.evaluate(
+        "() => { const i=document.querySelector('#help-modal .help-shot img'); return i?i.naturalWidth:0; }"
+    )
+    check(
+        "help: 가이드 화면 캡쳐 + 이동 버튼",
+        bool(shot_src)
+        and "guide/" in shot_src
+        and shot_w > 0
+        and page.query_selector("#help-modal .help-go") is not None,
+        f"{shot_src} w={shot_w}",
+    )
     page.click("#help-modal .modal-close")
 
     # 2) Query ─ 질문 분류: 일반은 바로 답변, 데이터/이미지는 연계 안내
@@ -78,7 +96,8 @@ with sync_playwright() as p:
     page.wait_for_function(
         "() => { const m=document.querySelectorAll('.message.assistant'); "
         "const last=m[m.length-1]; return last && !last.querySelector('.typing') "
-        "&& last.querySelector('.message-body p'); }"
+        "&& last.querySelector('.message-body p'); }",
+        timeout=70000,  # 일반 답변은 Gemini 웹검색을 거쳐 지연될 수 있음
     )
     gen_actions = page.query_selector_all(".message.assistant:last-child .message-actions a")
     check(
@@ -430,19 +449,21 @@ with sync_playwright() as p:
     page.evaluate("(el)=>{el.textContent='수정된 본문 테스트';}", p)
     check("report: 본문 편집 가능", "수정된 본문 테스트" in page.inner_text(".report-page"))
 
-    # 왼쪽 패널에서 사진 첨부 → 보고서 본문 '첨부 자료' 섹션으로 들어감
+    # 사진 첨부는 staged(생성 전엔 본문 미반영) → '보고서 생성' 시 본문에 들어감
     page.set_input_files(
         ".report-image-input",
         files=[{"name": "shot.png", "mimeType": "image/png", "buffer": make_png()}],
     )
+    page.wait_for_selector(".report-thumbs .report-thumb img")
+    staged_only = page.query_selector(".report-page .report-attachments") is None
+    page.click(".report-form .primary")
     page.wait_for_selector(".report-page .report-attachments img")
     check(
-        "report: 사진 첨부(본문 반영)",
-        page.query_selector(".report-thumbs .report-thumb img") is not None
-        and page.query_selector(".report-page .report-attachments img") is not None,
+        "report: 사진은 생성 시에만 반영(staged)",
+        staged_only and page.query_selector(".report-page .report-attachments img") is not None,
     )
 
-    # 내 작업 산출물(RAG 도출) 주입 → picker에 표시 → '추가' 시 본문에 삽입
+    # 내 작업 산출물(RAG 도출) 주입 → picker에서 '추가'(staged) → 생성 시 본문 삽입
     page.evaluate(
         "() => localStorage.setItem('gnsoft.artifacts', JSON.stringify([{ts:Date.now(),"
         "kind:'rag',title:'RAG 검색 결과',question:'2026.04.24 포트홀 위치',"
@@ -451,6 +472,8 @@ with sync_playwright() as p:
     page.reload()
     page.wait_for_selector(".artifact-list .artifact-item")
     page.click(".artifact-list .artifact-add")
+    page.wait_for_selector(".staged-note:not([hidden])")
+    page.click(".report-form .primary")
     page.wait_for_selector(".report-page .report-attachments .report-finding")
     check(
         "report: 내 작업 자료(RAG 도출) 삽입",
