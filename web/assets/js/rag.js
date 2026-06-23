@@ -34,6 +34,20 @@ document.addEventListener("DOMContentLoaded", () => {
       if (meta) meta.textContent = `top-K ${result.top_k} · ${result.chunks} chunks · ${result.elapsed}`;
       renderSources(result.sources);
       ABC.logActivity("RAG 검색", query);
+      // 근거를 찾았으면 보고서에 넣을 산출물로 저장(질문·근거파일·도출 결과).
+      if (result.found) {
+        const top = result.sources?.[0] || {};
+        ABC.saveArtifact({
+          kind: "rag",
+          title: "RAG 검색 결과",
+          question: query,
+          answer: String(result.answer || "")
+            .replace(/<[^>]+>/g, "")
+            .slice(0, 300),
+          source: top.source || "",
+          snippet: String(top.text || "").slice(0, 160),
+        });
+      }
       ABC.toast(result.found ? "검색 결과가 갱신되었습니다" : "참고 문서에 관련 정보가 없습니다");
     } catch {
       /* api()가 이미 toast 표시 */

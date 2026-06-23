@@ -78,6 +78,70 @@ const ABC = (() => {
     }
   };
 
+  // ── 작업 산출물(아티팩트) 저장 — 보고서에 넣을 '내 작업 결과' ──────
+  // 분석·라벨한 이미지(+라벨 결과)나 RAG로 도출한 결과(질문·근거파일·답)를
+  // 저장해 두면, 보고서 페이지에서 골라 본문에 삽입할 수 있다.
+  const ARTIFACT_KEY = "gnsoft.artifacts";
+
+  // 이미지를 캔버스로 축소한 JPEG data URL로 변환(localStorage 용량 절약).
+  const toThumb = (imgOrSrc, max = 560) =>
+    new Promise((resolve) => {
+      const draw = (el) => {
+        const w = el.naturalWidth || el.width;
+        const h = el.naturalHeight || el.height;
+        if (!w || !h) return resolve("");
+        const scale = Math.min(1, max / Math.max(w, h));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        try {
+          canvas.getContext("2d").drawImage(el, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.72));
+        } catch {
+          resolve(""); // CORS 등으로 캔버스 오염 시 생략
+        }
+      };
+      if (imgOrSrc instanceof HTMLImageElement && imgOrSrc.complete && imgOrSrc.naturalWidth) {
+        draw(imgOrSrc);
+      } else {
+        const el = new Image();
+        el.onload = () => draw(el);
+        el.onerror = () => resolve("");
+        el.src = imgOrSrc instanceof HTMLImageElement ? imgOrSrc.src : imgOrSrc;
+      }
+    });
+
+  const saveArtifact = (art) => {
+    const page = (location.pathname.split("/").pop() || "").replace(".html", "");
+    const entry = { ts: Date.now(), page, ...art };
+    try {
+      let list = JSON.parse(localStorage.getItem(ARTIFACT_KEY) || "[]");
+      list.push(entry);
+      list = list.slice(-24); // 최근 24개 유지
+      // 용량 초과 시 가장 오래된 이미지 아티팩트부터 제거하며 재시도.
+      for (let i = 0; i < 10; i++) {
+        try {
+          localStorage.setItem(ARTIFACT_KEY, JSON.stringify(list));
+          return;
+        } catch {
+          const idx = list.findIndex((a) => a.image);
+          list.splice(idx >= 0 ? idx : 0, 1);
+          if (!list.length) return;
+        }
+      }
+    } catch {
+      /* 무시 */
+    }
+  };
+
+  const getArtifacts = () => {
+    try {
+      return JSON.parse(localStorage.getItem(ARTIFACT_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  };
+
   const activateInGroup = (target, selector) => {
     const group = target.parentElement;
     if (!group) return;
@@ -502,5 +566,8 @@ const ABC = (() => {
     openAi,
     logActivity,
     getActivity,
+    toThumb,
+    saveArtifact,
+    getArtifacts,
   };
 })();

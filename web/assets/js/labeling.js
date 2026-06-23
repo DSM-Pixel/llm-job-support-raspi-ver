@@ -300,6 +300,19 @@ document.addEventListener("DOMContentLoaded", () => {
         label_count: boxes.length,
       });
       ABC.logActivity("라벨 저장", `${imageName} (${boxes.length}개)`);
+      // 보고서에 넣을 산출물로 저장(라벨한 이미지 + 라벨 결과).
+      if (previewImg?.src && boxes.length) {
+        const classes = [...new Set(boxes.map((b) => b.label))].filter(Boolean).join(", ");
+        const thumb = await ABC.toThumb(previewImg);
+        if (thumb) {
+          ABC.saveArtifact({
+            kind: "image",
+            title: `라벨링 · ${imageName}`,
+            image: thumb,
+            caption: `라벨 ${boxes.length}개${classes ? ` · ${classes}` : ""}`,
+          });
+        }
+      }
       ABC.toast(`${result.message} — 미리보기에 반영됨`);
     } catch {
       /* api()가 toast */
@@ -419,6 +432,24 @@ document.addEventListener("DOMContentLoaded", () => {
           .join("");
         confidence.textContent = result.backend === "GEMINI" ? "Gemini Vision" : "MOCK 분석";
         confidence.className = `status ${result.backend === "GEMINI" ? "green" : "gray"}`;
+        // 보고서에 넣을 산출물로 저장(분석한 이미지 + 분석 요약).
+        if (previewImg?.src) {
+          const summary = (result.description || "")
+            .split(/\n+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .join(" / ")
+            .slice(0, 160);
+          const thumb = await ABC.toThumb(previewImg);
+          if (thumb) {
+            ABC.saveArtifact({
+              kind: "image",
+              title: `이미지 분석 · ${preset}`,
+              image: thumb,
+              caption: summary || preset,
+            });
+          }
+        }
         ABC.toast(result.backend === "GEMINI" ? "이미지를 분석했습니다" : "분석 결과(MOCK)");
       } else {
         // 이미지 없으면 프리셋 기반 예시 결과(MOCK).
