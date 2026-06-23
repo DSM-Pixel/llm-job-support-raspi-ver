@@ -57,6 +57,7 @@ class ReportIn(BaseModel):
 class ReportWebIn(BaseModel):
     report_type: str = "현황 분석"
     period: str = "최근 3년"
+    sources: list[str] = []
     query: str = ""
 
 
@@ -158,7 +159,7 @@ def report(body: ReportIn) -> dict:
 @app.post("/api/report/web")
 def report_web(body: ReportWebIn) -> dict:
     """웹 검색(Gemini 그라운딩) 기반 보고서 생성."""
-    return services.generate_report_web(body.report_type, body.period, body.query)
+    return services.generate_report_web(body.report_type, body.period, body.sources, body.query)
 
 
 @app.get("/api/datasets")

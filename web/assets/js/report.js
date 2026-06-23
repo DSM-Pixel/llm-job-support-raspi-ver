@@ -60,19 +60,26 @@ document.addEventListener("DOMContentLoaded", () => {
       <footer><b>출처</b>${sources}</footer>`;
   };
 
-  const generate = async (button) => {
+  // web=true 면 인터넷 웹 검색(Gemini 그라운딩) 기반, false 면 빠른 예시.
+  const generate = async (button, web) => {
     const reportType =
       document.querySelector(".select-list .active")?.textContent.trim() || "현황 분석";
     const period = document.querySelector(".chips .active")?.textContent.trim() || "최근 3년";
-    const done = button ? ABC.setBusy(button, "생성 중") : () => {};
+    const done = button ? ABC.setBusy(button, web ? "웹 검색 중…" : "생성 중") : () => {};
     try {
-      const result = await ABC.api("/api/report", {
+      const result = await ABC.api(web ? "/api/report/web" : "/api/report", {
         report_type: reportType,
         period,
         sources: activeSources(),
       });
       renderReport(result);
-      if (button) ABC.toast("보고서를 생성했습니다 — 본문을 직접 수정할 수 있어요");
+      if (button) {
+        ABC.toast(
+          result.backend === "GEMINI_WEB"
+            ? "웹 검색으로 보고서를 생성했습니다 (출처 클릭 가능, 본문 수정 가능)"
+            : "보고서를 생성했습니다 (본문 수정 가능)",
+        );
+      }
     } catch {
       /* api()가 toast */
     } finally {
@@ -80,33 +87,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  document.querySelector(".report-form .primary")?.addEventListener("click", (e) => generate(e.currentTarget));
+  // "보고서 생성" 버튼 = 웹 검색 기반 생성.
+  document
+    .querySelector(".report-form .primary")
+    ?.addEventListener("click", (e) => generate(e.currentTarget, true));
 
-  // 웹 검색(Gemini 그라운딩)으로 실제 데이터 기반 보고서 생성.
-  const generateWeb = async (button) => {
-    const reportType =
-      document.querySelector(".select-list .active")?.textContent.trim() || "현황 분석";
-    const period = document.querySelector(".chips .active")?.textContent.trim() || "최근 3년";
-    const query = document.querySelector(".report-topic")?.value.trim() || "";
-    const done = ABC.setBusy(button, "웹 검색 중");
-    try {
-      const result = await ABC.api("/api/report/web", { report_type: reportType, period, query });
-      renderReport(result);
-      ABC.toast(
-        result.backend === "GEMINI_WEB"
-          ? "웹 검색으로 보고서를 생성했습니다 (출처 클릭 가능)"
-          : "웹 검색을 사용할 수 없어 예시로 생성했습니다",
-      );
-    } catch {
-      /* api()가 toast */
-    } finally {
-      done();
-    }
-  };
-  document.querySelector(".web-generate")?.addEventListener("click", (e) => generateWeb(e.currentTarget));
-
-  // 첫 진입 시 편집 가능한 문서로 한 번 렌더.
-  generate(null);
+  // 첫 진입은 빠른 예시로 렌더(웹 검색 지연 없이 화면을 먼저 보여줌).
+  generate(null, false);
 
   // 내보내기/공유는 (수정 반영된) 문서 전체 텍스트를 사용.
   const getReportText = () => reportPage?.innerText.trim() || "보고서";

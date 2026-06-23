@@ -701,11 +701,20 @@ def _grounding_sources(resp) -> list[dict]:
 
 
 def generate_report_web(
-    report_type: str = "현황 분석", period: str = "최근 3년", query: str = ""
+    report_type: str = "현황 분석",
+    period: str = "최근 3년",
+    sources: list[str] | None = None,
+    query: str = "",
 ) -> dict:
-    """Gemini Google 검색 그라운딩으로 실제 웹 데이터 기반 보고서 생성. 실패 시 MOCK 폴백."""
+    """Gemini Google 검색 그라운딩으로 실제 웹 데이터 기반 보고서 생성. 실패 시 MOCK 폴백.
+
+    검색 주제는 보고서 유형 + 선택한 데이터 소스에서 구성한다(별도 입력 불필요).
+    """
     kind = re.sub(r"[▥▤▢]", "", report_type).strip() or "현황 분석"
-    topic = (query or "").strip() or "도로 파손(포트홀) 현황"
+    srcs = [re.sub(r"[▱▣◇▤▢]", "", s).strip() for s in (sources or []) if s]
+    srcs = [s for s in srcs if s]
+    focus = ", ".join(srcs) if srcs else "신고 현황, 보수 예산, 검수 결과"
+    topic = (query or "").strip() or f"한국 도로 포트홀·파손 {kind} ({focus})"
     key = _gemini_key()
     if key:
         try:
@@ -736,8 +745,8 @@ def generate_report_web(
                     "date": "2026.6.23",
                     "period": period,
                     "query": topic,
-                    "title": f"{topic} {kind} 보고서",
-                    "subtitle": f"생성일 2026.6.23 · 웹 검색 기반 · {period}",
+                    "title": f"도로 파손 {kind} 보고서",
+                    "subtitle": f"생성일 2026.6.23 · 웹 검색 기반 · {period} · 소스 {len(srcs) or 3}개",
                     "sections": sections,
                     "table": None,
                     "sources": sources
