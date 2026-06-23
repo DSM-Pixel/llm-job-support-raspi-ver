@@ -445,6 +445,7 @@ const ABC = (() => {
     });
     panel.querySelector(".ai-panel-close").addEventListener("click", () => {
       panel.classList.remove("open");
+      document.body.classList.remove("ai-pushed"); // 본문 밀기 해제
       window.setTimeout(() => {
         panel.hidden = true;
       }, 200);
@@ -465,7 +466,10 @@ const ABC = (() => {
         );
     }
     panel.hidden = false;
-    requestAnimationFrame(() => panel.classList.add("open"));
+    requestAnimationFrame(() => {
+      panel.classList.add("open");
+      document.body.classList.add("ai-pushed"); // 본문을 왼쪽으로 밀어 나란히 표시
+    });
     panel.querySelector(".ai-chat-input input").focus();
   };
 

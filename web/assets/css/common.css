@@ -704,6 +704,18 @@ textarea {
   transform: translateX(0);
 }
 
+/* 패널이 열리면 본문(.app)을 패널 너비만큼 왼쪽으로 밀어 나란히 보이게 한다.
+   넓은 화면에서만 적용(좁은 화면에선 패널이 거의 전체폭이라 그대로 오버레이). */
+.app {
+  transition: margin-right 0.22s ease;
+}
+
+@media (min-width: 1100px) {
+  body.ai-pushed .app {
+    margin-right: 400px;
+  }
+}
+
 .ai-panel[hidden] {
   display: none;
 }
