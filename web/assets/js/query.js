@@ -45,19 +45,53 @@ document.addEventListener("DOMContentLoaded", () => {
     return message;
   };
 
-  // 서버 응답(paragraphs/steps/actions)을 답변 HTML로 조립.
+  // 답변 텍스트(여러 문단 + '- ' 불릿)를 HTML로.
+  const renderText = (text) => {
+    const lines = String(text || "")
+      .split(/\n+/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    let html = "";
+    let inList = false;
+    for (const ln of lines) {
+      if (/^[-*•]\s+/.test(ln)) {
+        if (!inList) {
+          html += "<ul>";
+          inList = true;
+        }
+        html += `<li>${ABC.escapeHtml(ln.replace(/^[-*•]\s+/, ""))}</li>`;
+      } else {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        html += `<p>${ABC.escapeHtml(ln)}</p>`;
+      }
+    }
+    if (inList) html += "</ul>";
+    return html || "<p></p>";
+  };
+
+  // 서버 응답(answer/sources/actions)을 답변 HTML로 조립.
   const renderAnswer = (data) => {
-    const parts = (data.paragraphs || []).map((p) => `<p>${p}</p>`);
-    if (data.steps && data.steps.length) {
-      parts.push(`<ol>${data.steps.map((s) => `<li>${s}</li>`).join("")}</ol>`);
+    let html = renderText(data.answer);
+    if (data.sources && data.sources.length) {
+      const links = data.sources
+        .map((s) =>
+          s && typeof s === "object"
+            ? `<a class="pill src-link" href="${s.url}" target="_blank" rel="noopener">${ABC.escapeHtml(s.title)}</a>`
+            : `<span class="pill">${ABC.escapeHtml(s)}</span>`,
+        )
+        .join("");
+      html += `<div class="msg-sources"><b>참고</b>${links}</div>`;
     }
     if (data.actions && data.actions.length) {
       const buttons = data.actions
         .map((a) => `<a class="btn${a.primary ? " primary" : ""}" href="${a.href}">${ABC.escapeHtml(a.label)}</a>`)
         .join("");
-      parts.push(`<div class="message-actions">${buttons}</div>`);
+      html += `<div class="message-actions">${buttons}</div>`;
     }
-    return parts.join("");
+    return html;
   };
 
   const submit = async () => {

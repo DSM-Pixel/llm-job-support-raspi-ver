@@ -87,11 +87,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const fileList = document.querySelector(".file-list");
 
+  const fileDelBtn = '<button class="file-del" type="button" title="삭제" aria-label="삭제">✕</button>';
+
   // 색인된 문서를 "참고중인 파일" 목록에 추가.
   const addToFileList = (name, sub) => {
     const item = document.createElement("li");
-    item.innerHTML = `<i>▤</i><b>${ABC.escapeHtml(name)}</b><small>${ABC.escapeHtml(sub)}</small>`;
+    item.innerHTML = `<i>▤</i><b>${ABC.escapeHtml(name)}</b><small>${ABC.escapeHtml(sub)}</small>${fileDelBtn}`;
     fileList?.prepend(item);
+  };
+
+  // 기존 정적 파일 항목에도 삭제 버튼 주입.
+  fileList?.querySelectorAll("li").forEach((li) => {
+    if (!li.querySelector(".file-del")) li.insertAdjacentHTML("beforeend", fileDelBtn);
+  });
+
+  const removeFile = async (li, name) => {
+    try {
+      const r = await ABC.api("/api/rag/remove", { source: name });
+      li.remove();
+      ABC.toast(r.message || `‘${name}’ 삭제됨`);
+    } catch {
+      /* api()가 toast */
+    }
   };
 
   // 참고중인 파일 클릭 → 문서 내용 열람(모달).
@@ -135,7 +152,12 @@ document.addEventListener("DOMContentLoaded", () => {
   fileList?.addEventListener("click", (e) => {
     const li = e.target.closest("li");
     const name = li?.querySelector("b")?.textContent.trim();
-    if (name) openDoc(name);
+    if (!name) return;
+    if (e.target.closest(".file-del")) {
+      removeFile(li, name); // 삭제 버튼 → 색인에서 제거
+      return;
+    }
+    openDoc(name); // 그 외 클릭 → 문서 열람
   });
 
   // 웹에서 찾아 넣기 — 결과를 체크박스로 보여주고, 선택한 것만 색인에 추가.

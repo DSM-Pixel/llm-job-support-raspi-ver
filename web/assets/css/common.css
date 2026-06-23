@@ -585,3 +585,49 @@ textarea {
   padding: 14px 18px;
   border-top: 1px solid var(--line);
 }
+
+/* 페이지 내 'AI에게 물어보기' (보고서/라벨링 공통) */
+.page-ask {
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.page-ask-row {
+  display: flex;
+  gap: 8px;
+}
+
+.page-ask-input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+}
+
+.page-ask-input:focus {
+  border-color: #8fb0ff;
+}
+
+.page-ask-answer {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f7f9fb;
+  border: 1px solid #eef2f6;
+  line-height: 1.75;
+}
+
+.page-ask-answer[hidden] {
+  display: none;
+}
+
+.page-ask-answer p {
+  margin: 0 0 6px;
+}
+
+.page-ask-answer p:last-child {
+  margin-bottom: 0;
+}

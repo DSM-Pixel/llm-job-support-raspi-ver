@@ -151,4 +151,33 @@ document.addEventListener("DOMContentLoaded", () => {
       ABC.toast("공유를 취소했거나 지원하지 않습니다");
     }
   });
+
+  // 이 보고서 내용만 참조해 AI에게 물어보기.
+  const askBtn = document.querySelector(".page-ask-btn");
+  const askInput = document.querySelector(".page-ask-input");
+  const askAnswer = document.querySelector(".page-ask-answer");
+  const askReport = async () => {
+    const question = askInput.value.trim();
+    if (!question) {
+      ABC.toast("질문을 입력해주세요");
+      return;
+    }
+    const done = ABC.setBusy(askBtn, "답변 중…");
+    try {
+      const r = await ABC.api("/api/ask/context", {
+        context: reportPage.innerText,
+        question,
+      });
+      askAnswer.innerHTML = renderBody(r.answer);
+      askAnswer.hidden = false;
+    } catch {
+      /* api()가 toast */
+    } finally {
+      done();
+    }
+  };
+  askBtn?.addEventListener("click", askReport);
+  askInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") askReport();
+  });
 });

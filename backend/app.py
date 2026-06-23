@@ -69,6 +69,15 @@ class WebSearchIn(BaseModel):
     keyword: str = ""
 
 
+class RagRemoveIn(BaseModel):
+    source: str = ""
+
+
+class AskContextIn(BaseModel):
+    context: str = ""
+    question: str = ""
+
+
 class SaveLabelsIn(BaseModel):
     image_name: str = ""
     label_count: int = 0
@@ -113,6 +122,24 @@ def rag_reset() -> dict:
 @app.get("/api/rag/doc")
 def rag_doc(source: str) -> dict:
     return services.rag_get_doc(source)
+
+
+@app.post("/api/rag/remove")
+def rag_remove(body: RagRemoveIn) -> dict:
+    return services.rag_remove_doc(body.source)
+
+
+@app.post("/api/ask/context")
+def ask_context(body: AskContextIn) -> dict:
+    """이 페이지의 글/문서 내용만 근거로 질의응답."""
+    return services.ask_about_text(body.context, body.question)
+
+
+@app.post("/api/ask/image")
+async def ask_image(image: UploadFile = File(...), question: str = Form("")) -> dict:
+    """이 페이지에 올린 이미지만 근거로 질의응답."""
+    data = await image.read()
+    return services.ask_about_image(data, question, image.content_type or "image/png")
 
 
 @app.post("/api/labeling/detect")

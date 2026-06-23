@@ -123,84 +123,36 @@ def dashboard_stats() -> dict:
 # 2. 자연어 질의 — 의도 라우팅 + 답변 (MOCK)
 #    실제 연동: rag_search + labeling_detect 를 의도에 맞게 호출/오케스트레이션.
 # ────────────────────────────────────────────────────────────────────
+def _query_route(text: str) -> tuple[str, list[dict]]:
+    """질문 의도 → (intent, 후속 작업 버튼)."""
+    if re.search(r"포트홀|이미지|라벨|영역|박스|사진", text):
+        return "image", [
+            {"label": "이미지 분석으로 이동", "href": "labeling.html", "primary": True},
+            {"label": "데이터셋 보기", "href": "data.html", "primary": False},
+        ]
+    if re.search(r"공공|데이터|통계|신고|현황|검색|문서|예산", text):
+        return "rag", [
+            {"label": "RAG 검색으로 이동", "href": "rag.html", "primary": True},
+            {"label": "보고서 생성", "href": "report.html", "primary": False},
+        ]
+    if re.search(r"보고서|요약|리포트", text):
+        return "report", [
+            {"label": "보고서 화면으로 이동", "href": "report.html", "primary": True},
+        ]
+    return "general", []
+
+
 def route_query(question: str) -> dict:
-    """질문 의도를 분류하고 답변 블록 + 후속 액션을 돌려준다. (MOCK)"""
+    """질문에 실제로 답한다(웹 검색 그라운딩) + 관련 작업 화면 버튼 제시."""
     text = re.sub(r"\s+", " ", (question or "").strip())
-
-    if re.search(r"포트홀|이미지|라벨|영역|박스", text):
-        return {
-            "backend": BACKEND,
-            "intent": "image",
-            "paragraphs": [
-                "이미지 분석 작업으로 연결할 수 있습니다. 현재 요청은 <b>포트홀 위치 탐지와 라벨링</b>에 가장 적합합니다."
-            ],
-            "steps": [
-                "도로 이미지에서 포트홀 후보 영역을 먼저 탐지합니다.",
-                "심각도는 크기, 깊이 추정, 차량 손상 가능성 기준으로 분류합니다.",
-                "결과는 COCO JSON 라벨 또는 보고서 문장으로 저장할 수 있습니다.",
-            ],
-            "actions": [
-                {"label": "이미지 분석으로 이동", "href": "labeling.html", "primary": True},
-                {"label": "데이터셋 보기", "href": "data.html", "primary": False},
-            ],
-        }
-
-    if re.search(r"공공|데이터|통계|신고|현황|검색", text):
-        return {
-            "backend": BACKEND,
-            "intent": "rag",
-            "paragraphs": [
-                "공공데이터 기반 질의로 판단됩니다. 도로 파손 신고 현황, 보수 예산, 점검 기준 문서를 함께 검색해 답변을 만들 수 있습니다.",
-                "<b>요약:</b> 최근 도로 파손 신고는 증가 추세이며, 수도권 비중이 가장 높고 보수 예산 집행률은 지역별 편차가 있습니다.",
-            ],
-            "steps": [],
-            "actions": [
-                {"label": "RAG 검색으로 이동", "href": "rag.html", "primary": True},
-                {"label": "보고서 생성", "href": "report.html", "primary": False},
-            ],
-        }
-
-    if re.search(r"보고서|요약|리포트|문서", text):
-        return {
-            "backend": BACKEND,
-            "intent": "report",
-            "paragraphs": [
-                "보고서 생성 요청으로 이해했습니다. 선택된 데이터 소스를 바탕으로 <b>요약, 통계 표, 출처</b>가 포함된 문서를 구성할 수 있습니다."
-            ],
-            "steps": [
-                "보고서 유형을 현황 분석으로 설정합니다.",
-                "기간은 최근 3년 기준이 적합합니다.",
-                "공공데이터와 Vision AI 검수 결과를 출처로 포함합니다.",
-            ],
-            "actions": [{"label": "보고서 화면으로 이동", "href": "report.html", "primary": True}],
-        }
-
-    if re.search(r"대응|절차|추천|심각|긴급", text):
-        return {
-            "backend": BACKEND,
-            "intent": "policy",
-            "paragraphs": ["심각도 기반 대응 절차를 추천합니다."],
-            "steps": [
-                "<b>상:</b> 지름 30cm 이상 또는 깊이 5cm 이상이면 24시간 이내 긴급 보수 대상으로 분류합니다.",
-                "<b>중:</b> 차량 손상 우려가 있으면 7일 이내 보수 계획에 포함합니다.",
-                "<b>하:</b> 정기 점검 주기에 포함하고 재촬영 데이터를 누적합니다.",
-            ],
-            "actions": [{"label": "근거 문서 확인", "href": "rag.html", "primary": True}],
-        }
-
+    intent, actions = _query_route(text)
+    answer, sources, backend = _web_answer(question)
     return {
-        "backend": BACKEND,
-        "intent": "general",
-        "paragraphs": [
-            "요청을 분석했습니다. 이 질문은 자연어 질의에서 처리한 뒤, 필요한 업무 화면으로 연결할 수 있습니다.",
-            "더 정확한 답변을 위해 <b>분석 대상, 기간, 데이터 종류</b> 중 하나를 포함해서 질문하면 좋습니다.",
-        ],
-        "steps": [
-            "예: 최근 3년 도로 파손 신고 현황을 요약해줘",
-            "예: 이 이미지에서 포트홀 위치를 찾아줘",
-            "예: 검색 결과를 보고서로 만들어줘",
-        ],
-        "actions": [],
+        "backend": backend,
+        "intent": intent,
+        "answer": answer,
+        "sources": sources,
+        "actions": actions,
     }
 
 
@@ -216,39 +168,74 @@ def route_query(question: str) -> dict:
 _SAMPLE_DOCS = [
     {
         "source": "포트홀_보수_기준.md",
-        "text": "심각(상) 등급은 발견 즉시 24시간 이내 긴급 보수, 보통(중)은 7일 이내, 경미(하)는 정기 보수 주기에 포함해 처리한다.",
+        "text": (
+            "포트홀은 심각도에 따라 상·중·하 3등급으로 분류한다. 심각(상) 등급은 발견 즉시 24시간 이내 긴급 보수를 "
+            "원칙으로 하며, 보통(중) 등급은 7일 이내, 경미(하) 등급은 정기 보수 주기에 포함해 처리한다. "
+            "긴급 보수가 지연되면 차량 손상·사고로 이어질 수 있어 우선순위를 높게 둔다."
+        ),
     },
     {
         "source": "포트홀_보수_기준.md",
-        "text": "심각(상) 포트홀 기준: 지름 30cm 이상 또는 깊이 5cm 이상이며 차량 손상 우려가 크다.",
+        "text": (
+            "심각(상) 포트홀의 판정 기준은 지름 30cm 이상 또는 깊이 5cm 이상이다. 이 경우 차량 타이어·휠 손상 "
+            "우려가 크므로 즉시 안전조치(표지·콘 설치) 후 긴급 보수를 시행한다. 보수 공법은 상온/가열 아스팔트를 "
+            "상황에 맞게 선택한다."
+        ),
     },
     {
         "source": "도로_균열_점검.md",
-        "text": "균열 폭 3mm 이상이면 보수 대상으로 기록한다. 거북등 균열은 면적을 산정해 보수 물량을 추정한다.",
+        "text": (
+            "균열은 폭 3mm 이상이면 보수 대상으로 기록한다. 거북등(망상) 균열은 면적을 산정해 보수 물량을 추정하고, "
+            "표면 실링 또는 부분 재포장으로 대응한다. 균열 진행 속도가 빠른 구간은 하부 지지력 저하를 의심한다."
+        ),
     },
     {
         "source": "도로_균열_점검.md",
-        "text": "선형 균열은 표면 실링으로 우선 조치하고 진행 상황을 재촬영으로 추적한다.",
+        "text": (
+            "선형(종·횡) 균열은 표면 실링으로 우선 조치하고 진행 상황을 재촬영해 추적한다. 균열이 포트홀로 "
+            "발전하기 전에 조기 보수하는 것이 비용 효율적이다."
+        ),
     },
     {
         "source": "시설물_점검_주기.md",
-        "text": "가드레일·표지판 등 도로 시설물은 분기 1회 정기 점검하며 손상 발견 시 즉시 보수를 요청한다.",
+        "text": (
+            "가드레일·표지판·중앙분리대 등 도로 시설물은 분기 1회 정기 점검을 원칙으로 한다. 손상·변형·부식이 "
+            "발견되면 즉시 보수를 요청하고, 안전과 직결되는 가드레일은 우선순위를 높게 둔다. 점검 결과는 대장에 "
+            "기록해 이력 관리한다."
+        ),
     },
     {
         "source": "우천_긴급보수_지침.md",
-        "text": "우천 시에는 상온 아스팔트 등 긴급 보수 공법으로 임시 복구한 뒤, 노면이 마르면 정식 보수한다.",
+        "text": (
+            "우천 시에는 가열 아스팔트 시공이 어려우므로 상온 아스팔트(코일드믹스) 등 긴급 보수 공법으로 임시 "
+            "복구한다. 노면이 마른 뒤 정식 보수로 전환하며, 임시 보수 구간은 재방문 점검 대상으로 등록한다."
+        ),
     },
     {
         "source": "도로보수_예산_현황.csv",
-        "text": "도로보수 예산 집행률은 수도권 92%, 충청권 88%, 영남권 85%로 지역별 편차가 있다.",
+        "text": (
+            "최근 도로보수 예산 집행률은 수도권 92%, 충청권 88%, 영남권 85%, 호남권 84%로 지역별 편차가 있다. "
+            "집행률이 낮은 권역은 신고 적체와 보수 지연이 누적되는 경향이 있어 예산 재배분 검토가 필요하다."
+        ),
     },
     {
         "source": "CCTV_이상행동_가이드.md",
-        "text": "CCTV 영상에서 낙하물·무단횡단·차량 정지 같은 이상행동을 탐지해 관제에 알림을 보낸다.",
+        "text": (
+            "CCTV 영상에서 낙하물, 무단횡단, 차량 정지·역주행 같은 이상행동을 탐지해 관제센터에 자동 알림을 보낸다. "
+            "야간·악천후에는 오탐이 늘 수 있어 신뢰도 임계값과 사람 확인 절차를 함께 둔다."
+        ),
     },
 ]
 # 사용자가 업로드했거나 웹에서 추가한 문서(모듈 메모리에 누적).
 _user_docs: list[dict] = []
+# 사용자가 삭제한 소스명(샘플 포함). 활성 코퍼스에서 제외.
+_removed_sources: set[str] = set()
+
+
+def _active_corpus() -> list[dict]:
+    """삭제된 소스를 제외한 현재 활성 코퍼스(샘플 + 사용자 문서)."""
+    return [d for d in (_SAMPLE_DOCS + _user_docs) if d["source"] not in _removed_sources]
+
 
 # 한국어 조사 근사 제거용(끝 한 글자).
 _PARTICLES = ("은", "는", "이", "가", "을", "를", "의", "에", "도", "로", "와", "과", "만")
@@ -340,7 +327,7 @@ def rag_search(query: str, top_k: int = 4) -> dict:
     '참고 문서에 관련 정보가 없다'고 명확히 응답한다.
     """
     q = (query or "").strip()
-    corpus = _SAMPLE_DOCS + _user_docs
+    corpus = _active_corpus()
     scored = sorted(((_relevance(q, d), d) for d in corpus), key=lambda x: -x[0])
     relevant = [(s, d) for s, d in scored if s >= _MIN_RELEVANCE]
 
@@ -398,8 +385,15 @@ def rag_index(
     for name in sources or []:  # 이름만 온 경우(본문 없음)
         _user_docs.append({"source": str(name).strip(), "text": ""})
         added += 1
+    # 다시 추가하면 삭제 상태 해제.
+    for d in docs or []:
+        _removed_sources.discard((d.get("name") or "문서").strip())
 
-    corpus = (_SAMPLE_DOCS if use_samples else []) + _user_docs
+    corpus = (
+        _active_corpus()
+        if use_samples
+        else [d for d in _user_docs if d["source"] not in _removed_sources]
+    )
     source_count = len({d["source"] for d in corpus})
     return {
         "backend": BACKEND,
@@ -842,6 +836,102 @@ def _grounding_sources(resp) -> list[dict]:
     return ded[:6]
 
 
+def _web_answer(question: str) -> tuple[str, list[dict], str]:
+    """질문에 웹 검색(Gemini 그라운딩)으로 답한다. (answer, sources, backend)"""
+    q = (question or "").strip()
+    if not q:
+        return ("무엇이 궁금한지 입력해 주세요.", [], "MOCK")
+    key = _gemini_key()
+    if key:
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=key)
+            tool = types.Tool(google_search=types.GoogleSearch())
+            prompt = (
+                "너는 도로 유지보수·공공데이터 업무 도우미다. 다음 질문에 한국어로 정확하고 친절하게 "
+                "답하라. 필요하면 웹을 검색해 최신 사실·수치에 근거하라. 3~6문장으로 답하고, 핵심은 "
+                f"'- ' 불릿으로 정리해도 좋다.\n\n질문: {q}"
+            )
+            resp = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(tools=[tool]),
+            )
+            text = (resp.text or "").strip()
+            if text:
+                return (text, _grounding_sources(resp), "GEMINI_WEB")
+        except Exception:
+            pass
+    return (
+        "지금은 외부 검색을 사용할 수 없어 정확한 답변을 드리기 어렵습니다. 잠시 후 다시 시도하거나, "
+        "아래 버튼으로 관련 작업 화면으로 이동해 직접 처리할 수 있습니다.",
+        [],
+        "MOCK",
+    )
+
+
+def ask_about_text(context: str, question: str) -> dict:
+    """이 페이지의 글/문서 내용만 근거로 질의응답(보고서 등). Gemini, 실패 시 안내."""
+    q = (question or "").strip()
+    ctx = (context or "").strip()
+    if not q:
+        return {"backend": "MOCK", "answer": "질문을 입력해 주세요."}
+    if not ctx:
+        return {
+            "backend": "MOCK",
+            "answer": "이 페이지에 참조할 내용이 아직 없습니다. 먼저 보고서를 생성해 주세요.",
+        }
+    key = _gemini_key()
+    if key:
+        try:
+            from google import genai
+
+            client = genai.Client(api_key=key)
+            prompt = (
+                "아래 '문서'의 내용만 근거로 질문에 한국어로 간결히(2~4문장) 답하라. "
+                "문서에 답이 없으면 '이 문서에는 해당 내용이 없습니다.'라고만 답하라.\n\n"
+                f"문서:\n{ctx[:6000]}\n\n질문: {q}"
+            )
+            resp = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+            text = (resp.text or "").strip()
+            if text:
+                return {"backend": "GEMINI", "answer": text}
+        except Exception:
+            pass
+    return {
+        "backend": "MOCK",
+        "answer": "지금은 AI 응답을 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+    }
+
+
+def ask_about_image(image_bytes: bytes, question: str, mime: str = "image/png") -> dict:
+    """이 페이지에 올린 이미지만 근거로 질의응답(라벨링 등). Gemini Vision."""
+    q = (question or "").strip()
+    if not q:
+        return {"backend": "MOCK", "answer": "질문을 입력해 주세요."}
+    key = _gemini_key()
+    if key:
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=key)
+            part = types.Part.from_bytes(data=image_bytes, mime_type=mime or "image/png")
+            prompt = f"이 이미지만 보고 질문에 한국어로 간결히(2~4문장) 답하라.\n질문: {q}"
+            resp = client.models.generate_content(model="gemini-2.5-flash", contents=[part, prompt])
+            text = (resp.text or "").strip()
+            if text:
+                return {"backend": "GEMINI", "answer": text}
+        except Exception:
+            pass
+    return {
+        "backend": "MOCK",
+        "answer": "지금은 이미지 분석 응답을 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+    }
+
+
 def generate_report_web(
     report_type: str = "현황 분석",
     period: str = "최근 3년",
@@ -1020,13 +1110,32 @@ def rag_web_search(keyword: str) -> dict:
 def rag_get_doc(source: str) -> dict:
     """참고중인 파일(소스명)의 본문 청크를 돌려준다 — 파일 열람용."""
     name = (source or "").strip()
-    chunks = [d["text"] for d in (_SAMPLE_DOCS + _user_docs) if d["source"] == name]
+    chunks = [d["text"] for d in _active_corpus() if d["source"] == name]
     return {"backend": BACKEND, "source": name, "found": bool(chunks), "chunks": chunks}
 
 
+def rag_remove_doc(source: str) -> dict:
+    """참고중인 파일을 색인에서 삭제(이후 검색 근거에서 제외)."""
+    name = (source or "").strip()
+    # 사용자 문서면 제거, 샘플이면 제외 목록에 등록.
+    before = len(_user_docs)
+    _user_docs[:] = [d for d in _user_docs if d["source"] != name]
+    if len(_user_docs) == before:
+        _removed_sources.add(name)
+    corpus = _active_corpus()
+    return {
+        "backend": BACKEND,
+        "removed": name,
+        "source_count": len({d["source"] for d in corpus}),
+        "chunk_count": len(corpus),
+        "message": f"‘{name}’ 문서를 색인에서 삭제했습니다",
+    }
+
+
 def rag_reset() -> dict:
-    """색인 초기화 — 사용자가 추가한 문서를 비우고 샘플만 남긴다."""
+    """색인 초기화 — 사용자가 추가/삭제한 변경을 비우고 샘플만 남긴다."""
     _user_docs.clear()
+    _removed_sources.clear()
     source_count = len({d["source"] for d in _SAMPLE_DOCS})
     return {
         "backend": BACKEND,

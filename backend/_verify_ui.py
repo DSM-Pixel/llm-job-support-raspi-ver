@@ -147,6 +147,12 @@ with sync_playwright() as p:
     )
     page.locator(".modal-overlay:not([hidden]) .modal-close").click()
 
+    # 참고중인 파일 삭제(✕)
+    files_n = len(page.query_selector_all(".file-list li"))
+    page.locator(".file-list li .file-del").first.click()
+    page.wait_for_function("(n) => document.querySelectorAll('.file-list li').length === n - 1", arg=files_n)
+    check("rag: 참고 파일 삭제", len(page.query_selector_all(".file-list li")) == files_n - 1)
+
     # 4) Labeling ─ 설명 분석 + 모달(그리기/AI탐지/중복방지/저장→미리보기 유지)
     page.goto(f"{BASE}/pages/labeling.html")
     page.click(".label-panel .primary")
@@ -313,7 +319,13 @@ with sync_playwright() as p:
     page.evaluate("(el)=>{el.textContent='수정된 본문 테스트';}", p)
     check("report: 본문 편집 가능", "수정된 본문 테스트" in page.inner_text(".report-page"))
 
-    # 6) Data ─ 목록 로드 + 검색 필터
+    # 이 페이지 내용만 참조하는 'AI에게 물어보기'(Gemini/폴백 모두 답변 표시)
+    page.fill(".page-ask-input", "핵심 권고가 뭐야?")
+    page.click(".page-ask-btn")
+    page.wait_for_selector(".page-ask-answer:not([hidden])", timeout=70000)
+    check("report: AI에게 물어보기", len(page.inner_text(".page-ask-answer").strip()) > 0)
+
+    # 6) Data ─ 목록 + 필터 + 업로드(행추가) + ⋮메뉴 삭제
     page.goto(f"{BASE}/pages/data.html")
     page.wait_for_selector("tbody tr")
     rows = page.query_selector_all("tbody tr")
@@ -322,6 +334,24 @@ with sync_playwright() as p:
     page.wait_for_timeout(200)
     visible = [r for r in page.query_selector_all("tbody tr") if r.is_visible()]
     check("data: 검색 필터 동작", len(visible) == 1, f"{len(visible)}행 표시")
+    page.fill(".search-upload input", "")
+
+    # 업로드: 파일 선택 → 표에 행 추가
+    before_rows = len(page.query_selector_all("tbody tr"))
+    page.set_input_files(
+        "input[type=file]",
+        files=[{"name": "newset.csv", "mimeType": "text/csv", "buffer": b"a,b,c"}],
+    )
+    page.wait_for_function("(n) => document.querySelectorAll('tbody tr').length > n", arg=before_rows)
+    check("data: 업로드 행 추가", len(page.query_selector_all("tbody tr")) == before_rows + 1)
+
+    # ⋮ 메뉴 → 삭제
+    now_rows = len(page.query_selector_all("tbody tr"))
+    page.click("tbody tr:first-child .row-menu")
+    page.wait_for_selector(".row-pop:not([hidden])")
+    page.click(".row-pop button[data-act='delete']")
+    page.wait_for_function("(n) => document.querySelectorAll('tbody tr').length === n - 1", arg=now_rows)
+    check("data: ⋮ 메뉴 삭제", len(page.query_selector_all("tbody tr")) == now_rows - 1)
 
     browser.close()
 

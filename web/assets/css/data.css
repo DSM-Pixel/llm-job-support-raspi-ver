@@ -2,6 +2,69 @@
   padding-top: 22px;
 }
 
+/* ⋮ 행 메뉴 버튼 + 팝오버 */
+.row-actions {
+  text-align: center;
+}
+
+.row-menu {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.row-menu:hover {
+  background: #eef1f6;
+  color: #1f2937;
+}
+
+.row-pop {
+  position: absolute;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  min-width: 130px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+}
+
+.row-pop[hidden] {
+  display: none;
+}
+
+.row-pop button {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #334155;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-pop button:hover {
+  background: #f3f6fb;
+}
+
+.row-pop button[data-act="delete"] {
+  color: var(--red);
+}
+
+.preview-body .field.row {
+  border-bottom: 1px solid #eef2f6;
+  padding-bottom: 8px;
+}
+
 .data-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -346,14 +346,42 @@
   font-weight: 900;
 }
 
-/* 참고중인 파일 — 클릭하면 내용 열람 */
+/* 참고중인 파일 — 클릭하면 내용 열람, ✕로 삭제 */
 .file-list li {
+  position: relative;
   cursor: pointer;
+  padding-right: 26px;
 }
 
 .file-list li:hover {
   background: #f5f8ff;
   border-radius: 7px;
+}
+
+.file-del {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #94a3b8;
+  font-weight: 900;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.file-list li:hover .file-del {
+  opacity: 1;
+}
+
+.file-del:hover {
+  background: #fdeaea;
+  color: var(--red);
 }
 
 .doc-body {

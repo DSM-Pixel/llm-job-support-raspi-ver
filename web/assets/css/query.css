@@ -1,3 +1,33 @@
+/* 답변 하단 참고 출처(웹 검색) */
+.msg-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.msg-sources b {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.msg-sources .src-link {
+  text-decoration: none;
+  border: 1px solid #8fb0ff;
+  border-radius: 999px;
+  padding: 2px 9px;
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.msg-sources .src-link:hover {
+  background: #eff5ff;
+}
+
 .query-main {
   display: grid;
   grid-template-rows: 54px minmax(0, 1fr) 132px;
