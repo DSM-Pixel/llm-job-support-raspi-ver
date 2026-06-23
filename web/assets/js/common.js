@@ -471,6 +471,20 @@ const ABC = (() => {
     return html || "<p></p>";
   };
 
+  // 대화 기록을 페이지별로 영속(닫았다 켜도 유지, '지우기'로만 비움).
+  const chatKey = () =>
+    `gnsoft.chat.${(location.pathname.split("/").pop() || "").replace(".html", "") || "page"}`;
+
+  // 화면 컨텍스트와 무관한 '일반 지식' 질문인지 — 자연어 질의로 보낼지 판단.
+  // 화면을 가리키는 말(이 보고서/이미지/여기/요약/섹션 등)이 있으면 컨텍스트 질문으로 본다.
+  const RE_PAGEREF =
+    /이\s*(보고서|문서|이미지|사진|화면|내용|자료|표)|여기|위\s*내용|방금|이거|이걸|요약|핵심|서론|본론|결론|섹션|문단|출처/;
+  const RE_GENERALQ = /뭐야|뭐임|무엇|무어|이란|란\s*뭐|왜냐|왜\s|어떻게|방법|종류|원인|차이|날씨|예방|정의|개념|의미/;
+  const looksGeneral = (q) => RE_GENERALQ.test(q) && !RE_PAGEREF.test(q);
+
+  const GREETING =
+    '<div class="ai-msg assistant"><span class="ai-ava sm">AI</span><div class="ai-bubble"><p>안녕하세요! 지금 화면 내용에 대해 무엇이든 물어보세요.</p></div></div>';
+
   let aiPanel = null;
   const buildAiPanel = () => {
     if (aiPanel) return aiPanel;
@@ -480,7 +494,10 @@ const ABC = (() => {
     panel.innerHTML = `
       <header class="ai-panel-head">
         <span class="ai-panel-title"><span class="ai-ava">AI</span> 어시스턴트</span>
-        <button class="ai-panel-close" type="button" aria-label="닫기">✕</button>
+        <div class="ai-panel-actions">
+          <button class="ai-panel-clear" type="button">지우기</button>
+          <button class="ai-panel-close" type="button" aria-label="닫기">✕</button>
+        </div>
       </header>
       <p class="ai-panel-scope"></p>
       <div class="ai-chat-log"></div>
@@ -492,6 +509,21 @@ const ABC = (() => {
 
     const log = panel.querySelector(".ai-chat-log");
     const input = panel.querySelector(".ai-chat-input input");
+
+    // 저장된 대화 복원(없으면 빈 상태).
+    try {
+      const saved = localStorage.getItem(chatKey());
+      if (saved) log.innerHTML = saved;
+    } catch {
+      /* 무시 */
+    }
+    const saveChat = () => {
+      try {
+        localStorage.setItem(chatKey(), log.innerHTML);
+      } catch {
+        /* 무시 */
+      }
+    };
 
     const addBubble = (role, html) => {
       const el = document.createElement("div");
@@ -507,6 +539,18 @@ const ABC = (() => {
       if (!q) return;
       addBubble("user", escapeHtml(q));
       input.value = "";
+      // 컨텍스트 패널(askHandler 등록됨)인데 화면과 무관한 일반 질문이면 자연어 질의로 안내.
+      if (askHandler && looksGeneral(q)) {
+        addBubble(
+          "assistant",
+          renderRich(
+            `이 대화는 지금 화면 내용에 대한 질문에 답해요. ‘${q}’ 같은 일반 질문은 ‘자연어 질의’에서 답해드릴게요.`,
+          ) +
+            `<a class="btn primary ai-route" href="query.html?q=${encodeURIComponent(q)}">자연어 질의로 물어보기 →</a>`,
+        );
+        saveChat();
+        return;
+      }
       const typing = addBubble("assistant", '<div class="ai-typing"><span></span><span></span><span></span></div>');
       try {
         const ans = askHandler
@@ -517,8 +561,15 @@ const ABC = (() => {
         typing.querySelector(".ai-bubble").innerHTML = "<p>답변을 가져오지 못했습니다. 잠시 후 다시 시도해주세요.</p>";
       } finally {
         log.scrollTop = log.scrollHeight;
+        saveChat();
       }
     };
+
+    // '지우기' → 대화 비우고 인사말만 남김(이때만 기록이 바뀐다).
+    panel.querySelector(".ai-panel-clear").addEventListener("click", () => {
+      log.innerHTML = GREETING;
+      saveChat();
+    });
 
     panel.querySelector(".ai-send").addEventListener("click", send);
     input.addEventListener("keydown", (e) => {
@@ -538,13 +589,9 @@ const ABC = (() => {
   const openAi = () => {
     const panel = buildAiPanel();
     panel.querySelector(".ai-panel-scope").textContent = askScope;
+    // 저장된 대화가 없을 때만 인사말 표시(있으면 이전 대화 그대로 유지).
     if (!panel.querySelector(".ai-chat-log").children.length) {
-      panel
-        .querySelector(".ai-chat-log")
-        .insertAdjacentHTML(
-          "beforeend",
-          '<div class="ai-msg assistant"><span class="ai-ava sm">AI</span><div class="ai-bubble"><p>안녕하세요! 무엇을 도와드릴까요?</p></div></div>',
-        );
+      panel.querySelector(".ai-chat-log").insertAdjacentHTML("beforeend", GREETING);
     }
     panel.hidden = false;
     requestAnimationFrame(() => {

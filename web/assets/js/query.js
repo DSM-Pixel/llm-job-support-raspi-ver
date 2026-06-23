@@ -131,4 +131,11 @@ document.addEventListener("DOMContentLoaded", () => {
   input?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") submit();
   });
+
+  // AI 대화 패널 등에서 ?q=로 넘어온 일반 질문을 진입 시 바로 질의.
+  const incomingQ = new URLSearchParams(location.search).get("q");
+  if (incomingQ && input) {
+    input.value = incomingQ;
+    submit();
+  }
 });

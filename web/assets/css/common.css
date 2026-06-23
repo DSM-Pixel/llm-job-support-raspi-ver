@@ -758,6 +758,28 @@ textarea {
   flex: none;
 }
 
+.ai-panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-panel-clear {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ai-panel-clear:hover {
+  background: #f3f7ff;
+}
+
 .ai-panel-close {
   width: 30px;
   height: 30px;
@@ -767,6 +789,15 @@ textarea {
   color: #475569;
   font-weight: 900;
   cursor: pointer;
+}
+
+/* 일반 질문을 자연어 질의로 보내는 안내 링크 */
+.ai-route {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  text-decoration: none;
 }
 
 .ai-panel-scope {

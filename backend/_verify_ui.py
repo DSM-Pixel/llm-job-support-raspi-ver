@@ -495,6 +495,34 @@ with sync_playwright() as p:
         timeout=70000,
     )
     check("report: AI 대화 패널", len(page.query_selector_all(".ai-msg.assistant")) >= 2)
+
+    # 화면과 무관한 일반 질문('포트홀이 뭐야?') → 자연어 질의로 연계 안내(라우팅 링크)
+    page.fill(".ai-chat-input input", "포트홀이 뭐야?")
+    page.click(".ai-send")
+    page.wait_for_selector(".ai-chat-log .ai-route")
+    route_href = page.get_attribute(".ai-chat-log .ai-route", "href")
+    check(
+        "report: 일반 질문은 자연어 질의로 연계",
+        route_href.startswith("query.html?q="),
+        route_href[:28],
+    )
+
+    # 대화 기록 영속 — 닫았다 다시 열어도 그대로
+    msgs_before = len(page.query_selector_all(".ai-msg"))
+    page.click(".ai-panel-close")
+    page.wait_for_selector(".ai-panel", state="hidden")
+    page.click(".ai-open")
+    page.wait_for_selector(".ai-panel.open")
+    check(
+        "report: 대화 기록 영속(닫았다 켜도 유지)",
+        len(page.query_selector_all(".ai-msg")) == msgs_before,
+        f"{msgs_before}건",
+    )
+
+    # '지우기' → 인사말만 남기고 비움(이때만 기록 변경)
+    page.click(".ai-panel-clear")
+    page.wait_for_function("() => document.querySelectorAll('.ai-msg').length === 1")
+    check("report: 대화 지우기", len(page.query_selector_all(".ai-msg")) == 1)
     page.click(".ai-panel-close")
 
     # RAG에서 ?q=질문 으로 넘어오면 그 주제로 보고서 생성(기능 연결)
