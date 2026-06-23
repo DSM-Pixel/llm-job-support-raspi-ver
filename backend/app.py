@@ -63,6 +63,15 @@ class ReportWebIn(BaseModel):
     include_chart: bool = True
 
 
+class ReportFromRagIn(BaseModel):
+    question: str = ""
+    answer: str = ""
+    sources: list[dict] = []
+    report_type: str = "현황 분석"
+    period: str = "최근 3년"
+    include_chart: bool = True
+
+
 class UploadIn(BaseModel):
     name: str = ""
 
@@ -195,6 +204,19 @@ def report_web(body: ReportWebIn) -> dict:
     """웹 검색(Gemini 그라운딩) 기반 보고서 생성."""
     return services.generate_report_web(
         body.report_type, body.period, body.sources, body.query, body.include_chart
+    )
+
+
+@app.post("/api/report/from-rag")
+def report_from_rag(body: ReportFromRagIn) -> dict:
+    """RAG 검색 결과(질문·답변·근거)를 그대로 이어받아 보고서 생성."""
+    return services.generate_report_from_rag(
+        body.question,
+        body.answer,
+        body.sources,
+        body.report_type,
+        body.period,
+        body.include_chart,
     )
 
 

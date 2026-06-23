@@ -1009,6 +1009,86 @@ def generate_report_web(
     }
 
 
+def generate_report_from_rag(
+    question: str,
+    answer: str,
+    sources: list[dict] | None = None,
+    report_type: str = "현황 분석",
+    period: str = "최근 3년",
+    include_chart: bool = True,
+) -> dict:
+    """RAG 검색 결과(질문·AI답변·근거 문서)를 그대로 이어받아 보고서로 확장."""
+    kind = re.sub(r"[▥▤▢]", "", report_type).strip() or "현황 분석"
+    srcs = sources or []
+    file_names: list[str] = []
+    for s in srcs:
+        name = (s.get("source") or "").strip()
+        if name and name not in file_names:
+            file_names.append(name)
+
+    evidence = "\n".join(f"- ({s.get('source', '')}) {s.get('text', '')}" for s in srcs)
+    context = f"질문: {question}\n\nAI 답변:\n{answer}\n\n근거 문서:\n{evidence}"
+
+    key = _gemini_key()
+    if key and (answer or srcs):
+        try:
+            from google import genai
+
+            client = genai.Client(api_key=key)
+            prompt = (
+                f"아래 'RAG 검색 결과'(질문·AI 답변·근거 문서)를 바탕으로 한국어 {kind} 보고서를 "
+                "충실하게 작성하라. 근거 문서에 있는 내용만 사용하고(추측 금지), 질문과 답변을 보고서 "
+                "형태로 확장하라.\n"
+                "출력: 5~6개 섹션. 각 섹션 '## N. 제목' 한 줄, 다음 줄에 본문 2~4문장 또는 '- ' 불릿. "
+                "머리말/맺음말/코드펜스 없이 섹션만.\n\n" + context
+            )
+            resp = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+            sections = _parse_md_sections(resp.text or "")
+            if sections:
+                return {
+                    "backend": "GEMINI_RAG",
+                    "report_type": kind,
+                    "org": "GNSOFT",
+                    "date": "2026.6.24",
+                    "period": period,
+                    "query": question,
+                    "title": f"도로 파손 {kind} 보고서",
+                    "subtitle": f"생성일 2026.6.24 · RAG 검색 결과 기반 · 근거 {len(file_names)}건",
+                    "sections": sections,
+                    "table": _report_table(period) if include_chart else None,
+                    "sources": file_names or ["RAG 근거 문서"],
+                }
+        except Exception:
+            pass
+
+    # 폴백: RAG 내용을 그대로 섹션으로 구성(질문/답변/근거).
+    sections = [
+        {"heading": "1. 질문", "body": question or "—"},
+        {"heading": "2. AI 답변 요약", "body": answer or "—"},
+    ]
+    if evidence:
+        sections.append({"heading": "3. 근거 문서", "body": evidence})
+    sections.append(
+        {
+            "heading": f"{len(sections) + 1}. 종합 의견",
+            "body": "위 질문과 근거 문서를 바탕으로 추가 분석·보수 우선순위 검토가 필요하다.",
+        }
+    )
+    return {
+        "backend": "MOCK",
+        "report_type": kind,
+        "org": "GNSOFT",
+        "date": "2026.6.24",
+        "period": period,
+        "query": question,
+        "title": f"도로 파손 {kind} 보고서",
+        "subtitle": f"생성일 2026.6.24 · RAG 검색 결과 기반(예시) · 근거 {len(file_names)}건",
+        "sections": sections,
+        "table": _report_table(period) if include_chart else None,
+        "sources": file_names or ["RAG 근거 문서"],
+    }
+
+
 # ────────────────────────────────────────────────────────────────────
 # 6. 데이터 관리 (MOCK)
 # ────────────────────────────────────────────────────────────────────

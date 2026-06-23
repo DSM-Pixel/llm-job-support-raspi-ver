@@ -239,9 +239,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const label = button.textContent.trim();
     if (label.includes("보고서")) {
       button.addEventListener("click", () => {
-        // 방금 검색한 질문을 보고서 주제로 전달(기능 연결).
-        const q = askInput.value.trim();
-        window.location.href = q ? `report.html?q=${encodeURIComponent(q)}` : "report.html";
+        // 지금 RAG에서 하던 내용(질문·AI답변·근거 문서)을 그대로 보고서로 이어받기.
+        const sources = [...document.querySelectorAll(".source-list .source")].map((card) => ({
+          source: card.querySelector("b")?.textContent.replace(/^\d+\s*/, "").trim() || "",
+          text: card.querySelector("p")?.textContent.trim() || "",
+        }));
+        const ctx = {
+          question: askInput.value.trim() || "도로 파손 현황",
+          answer: answer.textContent.trim(),
+          sources,
+        };
+        sessionStorage.setItem("ragReport", JSON.stringify(ctx));
+        window.location.href = "report.html?from=rag";
       });
     } else if (label.includes("복사")) {
       button.addEventListener("click", async () => {

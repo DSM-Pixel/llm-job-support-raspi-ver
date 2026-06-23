@@ -132,9 +132,45 @@ document.addEventListener("DOMContentLoaded", () => {
     .querySelector(".report-form .primary")
     ?.addEventListener("click", (e) => generate(e.currentTarget, true));
 
-  // RAG 등에서 ?q=질문 으로 넘어오면 그 주제로 웹 검색 보고서를 자동 생성.
-  const incomingQuery = new URLSearchParams(location.search).get("q");
-  if (incomingQuery) {
+  // RAG 검색 결과를 그대로 이어받아 보고서로 생성.
+  const generateFromRag = async (ctx) => {
+    const reportType =
+      document.querySelector(".select-list .active")?.textContent.trim() || "현황 분석";
+    const period = document.querySelector(".chips .active")?.textContent.trim() || "최근 3년";
+    const btn = document.querySelector(".report-form .primary");
+    const done = ABC.setBusy(btn, "생성 중…");
+    try {
+      const result = await ABC.api("/api/report/from-rag", {
+        question: ctx.question,
+        answer: ctx.answer,
+        sources: ctx.sources,
+        report_type: reportType,
+        period,
+        include_chart: includeChart(),
+      });
+      renderReport(result);
+      ABC.toast("RAG 검색 내용으로 보고서를 생성했습니다 (본문 수정 가능)");
+    } catch {
+      /* api()가 toast */
+    } finally {
+      done();
+    }
+  };
+
+  const params = new URLSearchParams(location.search);
+  let ragCtx = null;
+  if (params.get("from") === "rag") {
+    try {
+      ragCtx = JSON.parse(sessionStorage.getItem("ragReport") || "null");
+    } catch {
+      ragCtx = null;
+    }
+  }
+  const incomingQuery = params.get("q");
+
+  if (ragCtx) {
+    generateFromRag(ragCtx);
+  } else if (incomingQuery) {
     ABC.toast(`‘${incomingQuery}’ 관련 보고서를 생성합니다…`);
     generate(document.querySelector(".report-form .primary"), true, incomingQuery);
   } else {

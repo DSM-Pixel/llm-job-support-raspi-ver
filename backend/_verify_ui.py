@@ -173,6 +173,13 @@ with sync_playwright() as p:
     chips_text = page.inner_text(".chips")
     check("rag: 추천 질문이 파일 따라 변화", "포트홀" not in chips_text, chips_text[:30])
 
+    # RAG '보고서로 생성' → RAG 검색 내용(질문·답변·근거)을 그대로 이어받아 보고서 생성
+    rag_query("거북등 균열은 어떻게 보수해?")
+    page.click(".answer-actions button:has-text('보고서')")
+    page.wait_for_selector(".report-page section [contenteditable='true']", timeout=70000)
+    rep_text = page.inner_text(".report-page")
+    check("report: RAG 내용 이어받기", "균열" in rep_text and "rag" in page.url, page.url.split("/")[-1])
+
     # 4) Labeling ─ 설명 분석 + 모달(그리기/AI탐지/중복방지/저장→미리보기 유지)
     page.goto(f"{BASE}/pages/labeling.html")
     page.click(".label-panel .primary")
