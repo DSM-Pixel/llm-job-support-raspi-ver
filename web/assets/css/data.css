@@ -2,6 +2,24 @@
   padding-top: 22px;
 }
 
+/* 삭제 확인 모달의 위험(빨강) 버튼 + 안내 문구 */
+.btn.danger {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.btn.danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.confirm-modal .confirm-text {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text);
+}
+
 /* ⋮ 행 메뉴 버튼 + 팝오버 */
 .row-actions {
   text-align: center;

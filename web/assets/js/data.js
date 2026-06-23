@@ -163,14 +163,54 @@ document.addEventListener("DOMContentLoaded", async () => {
     previewModal.hidden = false;
   };
 
+  // 삭제 확인 모달(공통 modal 재사용) — 삭제 전 한 번 더 묻는다.
+  const confirmModal = document.createElement("div");
+  confirmModal.className = "modal-overlay";
+  confirmModal.hidden = true;
+  confirmModal.innerHTML =
+    '<div class="modal confirm-modal"><header class="modal-head"><h3>데이터셋 삭제</h3>' +
+    '<button class="modal-close" type="button" aria-label="닫기">✕</button></header>' +
+    '<div class="modal-body"><p class="confirm-text"></p></div>' +
+    '<div class="modal-foot"><button class="btn modal-cancel" type="button">취소</button>' +
+    '<button class="btn danger confirm-delete" type="button">삭제</button></div></div>';
+  document.body.appendChild(confirmModal);
+
+  let pendingDeleteRow = null;
+  const closeConfirm = () => {
+    confirmModal.hidden = true;
+    pendingDeleteRow = null;
+  };
+  confirmModal.querySelector(".modal-close").addEventListener("click", closeConfirm);
+  confirmModal.querySelector(".modal-cancel").addEventListener("click", closeConfirm);
+  confirmModal.addEventListener("click", (e) => {
+    if (e.target === confirmModal) closeConfirm();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !confirmModal.hidden) closeConfirm();
+  });
+  confirmModal.querySelector(".confirm-delete").addEventListener("click", () => {
+    if (pendingDeleteRow) {
+      pendingDeleteRow.remove();
+      ABC.toast("데이터셋을 삭제했습니다");
+    }
+    closeConfirm();
+  });
+
+  const askDelete = (row) => {
+    const name = row.children[1]?.innerText.trim() || "이 데이터셋";
+    confirmModal.querySelector(".confirm-text").innerHTML =
+      `<b>${ABC.escapeHtml(name)}</b> 을(를) 삭제할까요?<br />이 작업은 되돌릴 수 없습니다.`;
+    pendingDeleteRow = row;
+    confirmModal.hidden = false;
+  };
+
   menu.addEventListener("click", (e) => {
     const act = e.target.closest("button")?.dataset.act;
     if (!act || !menuRow) return;
     const row = menuRow;
     closeMenu();
     if (act === "delete") {
-      row.remove();
-      ABC.toast("데이터셋을 삭제했습니다");
+      askDelete(row); // 바로 지우지 않고 확인 모달을 띄운다
     } else if (act === "edit") {
       const cell = row.querySelector(".name-cell");
       cell.setAttribute("contenteditable", "true");

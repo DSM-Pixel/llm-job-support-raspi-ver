@@ -524,15 +524,31 @@ with sync_playwright() as p:
     )
     check("data: 업로드 행 추가", len(page.query_selector_all("tbody tr")) == before_rows + 1)
 
-    # ⋮ 메뉴 → 삭제
+    # ⋮ 메뉴 → 삭제 → 확인 모달에서 한 번 더 묻기
     now_rows = len(page.query_selector_all("tbody tr"))
     page.click("tbody tr:first-child .row-menu")
     page.wait_for_selector(".row-pop:not([hidden])")
     page.click(".row-pop button[data-act='delete']")
+    # 바로 지우지 않고 확인 모달이 떠야 함
+    page.wait_for_selector(".confirm-modal:not([hidden]) .confirm-delete")
+    check(
+        "data: 삭제 시 확인 모달",
+        page.is_visible(".confirm-modal") and len(page.query_selector_all("tbody tr")) == now_rows,
+    )
+    # 취소하면 행 유지
+    page.click(".confirm-modal .modal-cancel")
+    page.wait_for_selector(".confirm-modal", state="hidden")
+    check("data: 삭제 취소 시 행 유지", len(page.query_selector_all("tbody tr")) == now_rows)
+    # 다시 삭제 → 확인 → 행 제거
+    page.click("tbody tr:first-child .row-menu")
+    page.wait_for_selector(".row-pop:not([hidden])")
+    page.click(".row-pop button[data-act='delete']")
+    page.wait_for_selector(".confirm-modal:not([hidden]) .confirm-delete")
+    page.click(".confirm-modal .confirm-delete")
     page.wait_for_function(
         "(n) => document.querySelectorAll('tbody tr').length === n - 1", arg=now_rows
     )
-    check("data: ⋮ 메뉴 삭제", len(page.query_selector_all("tbody tr")) == now_rows - 1)
+    check("data: ⋮ 메뉴 삭제(확인 후)", len(page.query_selector_all("tbody tr")) == now_rows - 1)
 
     browser.close()
 
