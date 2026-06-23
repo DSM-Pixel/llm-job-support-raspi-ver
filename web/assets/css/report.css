@@ -56,18 +56,23 @@
 }
 
 .report-form {
-  padding: 20px;
+  padding: 24px 22px 28px;
   border-right: 1px solid #e1e7f0;
   background: #fff;
 }
 
 .report-form h2 {
-  margin: 0 0 18px;
+  margin: 0 0 16px;
   font-size: 22px;
 }
 
+/* 섹션 제목 — 위쪽 여백을 넉넉히 줘서 기능별로 구분되게 한다. */
 .report-form h3 {
-  margin: 16px 0 10px;
+  margin: 28px 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #6b7890;
 }
 
 .select-list {
@@ -110,38 +115,65 @@
 }
 
 .report-hint {
-  margin: 0 0 6px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  margin: 0 0 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
   background: #f1f5fb;
   color: #51607a;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
+/* 시작/종료 날짜 — 라벨을 왼쪽 고정폭으로 정렬하고 입력은 폭을 채운다. */
 .date-range {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.date-range label {
+.date-field {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: #51607a;
+  align-items: center;
+  gap: 12px;
+}
+
+.date-field > span {
+  flex: none;
+  width: 48px;
+  color: #6b7890;
   font-size: 13px;
   font-weight: 800;
 }
 
-.date-range input[type="date"] {
-  min-height: 40px;
-  padding: 0 10px;
+.date-field input[type="date"] {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 14px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
-  color: #334155;
+  color: #1f2a44;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.date-field input[type="date"]:focus {
+  outline: none;
+  border-color: #8fb0ff;
+  box-shadow: 0 0 0 3px #e8f0ff;
+}
+
+/* 통계 차트 토글 — 기간 입력과 버튼 사이에 여백을 둔다. */
+.chart-toggle {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #eef2f8;
+}
+
+.report-form .wide {
+  margin-top: 22px;
+  min-height: 48px;
+  font-size: 15px;
 }
 
 .source-toggle {
