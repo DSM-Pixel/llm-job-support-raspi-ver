@@ -100,8 +100,7 @@
 }
 
 [data-theme="dark"] .report-hint,
-[data-theme="dark"] .artifact-empty,
-[data-theme="dark"] .report-finding {
+[data-theme="dark"] .artifact-empty {
   background: #131a24;
   color: #aab6c8;
 }

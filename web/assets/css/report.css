@@ -509,6 +509,7 @@
 
 .report-page {
   background: #fff;
+  color: #1f2a3c; /* 흰 종이 문서 — 테마와 무관하게 어두운 글씨 고정(제목 포함) */
   width: min(760px, 100%);
   margin: 24px auto 0;
   overflow: hidden;
