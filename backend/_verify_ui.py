@@ -274,10 +274,8 @@ with sync_playwright() as p:
     )
     check("rag: 참고 파일 삭제", len(page.query_selector_all(".file-list li")) == files_n - 1)
 
-    # 추천 질문이 참고 파일에 따라 변함(포트홀 파일 삭제 후 포트홀 추천 사라짐)
-    page.wait_for_function("() => document.querySelectorAll('.chips .pill').length >= 1")
-    chips_text = page.inner_text(".chips")
-    check("rag: 추천 질문이 파일 따라 변화", "포트홀" not in chips_text, chips_text[:30])
+    # 추천 질문(.chips) 제거됨
+    check("rag: 추천 질문 제거", page.query_selector(".chips") is None)
 
     # 4) Labeling ─ 설명 분석 + 모달(그리기/AI탐지/중복방지/저장→미리보기 유지)
     page.goto(f"{BASE}/pages/labeling.html")
