@@ -451,6 +451,20 @@ with sync_playwright() as p:
         f"{before_n}→{before_n + 3}",
     )
 
+    # 폴더 전체 AI 라벨링: 버튼 노출 → 모든 업로드 사진 일괄 탐지(빈 이미지라 0박스여도 정상 완료)
+    check("labeling: 전체 라벨링 버튼 노출", page.is_visible(".batch-label"))
+    page.click(".batch-label")
+    page.wait_for_function(
+        "() => { const b=document.querySelector('.batch-label');"
+        " return b && !b.disabled && b.textContent.includes('전체'); }",
+        timeout=30000,
+    )
+    acts = page.evaluate(
+        "JSON.parse(localStorage.getItem('gnsoft.activity')||'[]')"
+        ".filter(a=>a.type==='전체 AI 라벨링').length"
+    )
+    check("labeling: 전체 라벨링 활동 기록", acts >= 1, f"{acts}건")
+
     # 모달에서 사진 네비게이션(폴더 단위 라벨링): 다음/이전으로 사진 전환
     page.click(".image-strip .strip-item[data-i='0']")  # 첫 사진을 활성으로(다음 버튼 동작)
     page.click(".open-label-modal")

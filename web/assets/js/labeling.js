@@ -28,6 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const stripEl = document.querySelector(".image-strip");
   const countEl = document.querySelector(".image-count");
   const folderInput = document.querySelector(".folder-input");
+  const batchBtn = document.querySelector(".batch-label");
 
   // ════════════════════════════════════════════════════════════════
   //  라벨링 모달 — 큰 이미지 위에서 박스 그리기/편집/삭제
@@ -148,6 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .join("");
     if (countEl) countEl.textContent = `이미지 ${images.length}개`;
+    // 실제 업로드 사진이 하나라도 있으면 '전체 AI 라벨링' 노출.
+    if (batchBtn) batchBtn.hidden = !images.some((im) => im.file);
   };
 
   // 활성 이미지 전환 — 미리보기·박스·분석결과를 그 이미지 것으로 교체.
@@ -316,44 +319,47 @@ document.addEventListener("DOMContentLoaded", () => {
     ABC.toast("박스를 모두 지웠습니다");
   });
 
-  // AI 자동 탐지 — 업로드 이미지가 있으면 실제 YOLO(best.pt), 없으면 프리셋 MOCK.
-  // 같은 박스는 중복 추가하지 않는다.
+  // 탐지 결과(labels) → 박스 배열. box_2d=[ymin,xmin,ymax,xmax] (0~1000 스케일).
+  const labelsToBoxes = (result) =>
+    (result.labels || [])
+      .filter((l) => Array.isArray(l.box_2d) && l.box_2d.length === 4)
+      .map((l) => {
+        const [ymin, xmin, ymax, xmax] = l.box_2d;
+        return {
+          x: +(xmin / 10).toFixed(2),
+          y: +(ymin / 10).toFixed(2),
+          w: +((xmax - xmin) / 10).toFixed(2),
+          h: +((ymax - ymin) / 10).toFixed(2),
+          label: l.class_name || "object",
+          tone: l.tone || "",
+          confidence: typeof l.confidence === "number" ? l.confidence : null,
+        };
+      });
+
+  // 한 이미지 탐지 호출 — 업로드 파일이 있으면 실제 YOLO(best.pt), 없으면 프리셋 MOCK.
+  const detectImage = async (file, name) => {
+    if (file) {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch("/api/labeling/detect-image", { method: "POST", body: fd });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+    return ABC.api("/api/labeling/detect", { preset: "도로 파손/포트홀 찾기", image_name: name });
+  };
+
+  // AI 자동 탐지 — 현재 이미지에 박스 추가(같은 박스는 중복 추가하지 않는다).
   modal.querySelector(".modal-detect").addEventListener("click", async (event) => {
     if (!imageURL) return ABC.toast("사진을 먼저 추가하세요");
     const done = ABC.setBusy(event.currentTarget, "탐지 중");
     try {
-      let result;
-      if (imageFile) {
-        const fd = new FormData();
-        fd.append("image", imageFile);
-        const res = await fetch("/api/labeling/detect-image", { method: "POST", body: fd });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        result = await res.json();
-      } else {
-        result = await ABC.api("/api/labeling/detect", {
-          preset: "도로 파손/포트홀 찾기",
-          image_name: imageName,
-        });
-      }
-
+      const result = await detectImage(imageFile, imageName);
       let added = 0;
       let dup = 0;
-      (result.labels || [])
-        .filter((l) => Array.isArray(l.box_2d) && l.box_2d.length === 4)
-        .forEach((l) => {
-          const [ymin, xmin, ymax, xmax] = l.box_2d;
-          const box = {
-            x: +(xmin / 10).toFixed(2),
-            y: +(ymin / 10).toFixed(2),
-            w: +((xmax - xmin) / 10).toFixed(2),
-            h: +((ymax - ymin) / 10).toFixed(2),
-            label: l.class_name || "object",
-            tone: l.tone || "",
-            confidence: typeof l.confidence === "number" ? l.confidence : null,
-          };
-          if (addBox(box)) added += 1;
-          else dup += 1;
-        });
+      labelsToBoxes(result).forEach((box) => {
+        if (addBox(box)) added += 1;
+        else dup += 1;
+      });
       render();
       const engine = result.backend === "YOLO" ? "YOLO" : "MOCK";
       ABC.toast(
@@ -647,6 +653,45 @@ document.addEventListener("DOMContentLoaded", () => {
     if (folderInput.files?.length) addImages(folderInput.files);
     folderInput.value = "";
   });
+  // ── 폴더 전체 AI 라벨링 ─────────────────────────────────────────
+  // 업로드한 모든 사진을 차례로 YOLO 탐지해 각 사진에 박스를 채운다(중복 제외).
+  batchBtn?.addEventListener("click", async (event) => {
+    const targets = images.filter((im) => im.file); // 실제 업로드 사진만(샘플 제외)
+    if (!targets.length) return ABC.toast("폴더로 사진을 먼저 추가하세요");
+    const restore = ABC.setBusy(event.currentTarget, "전체 라벨링 중");
+    let ok = 0;
+    let totalNew = 0;
+    let failed = 0;
+    for (let i = 0; i < targets.length; i += 1) {
+      const im = targets[i];
+      batchBtn.textContent = `라벨링 중 ${i + 1}/${targets.length}`;
+      try {
+        const result = await detectImage(im.file, im.name);
+        const merged = im.savedBoxes.slice();
+        labelsToBoxes(result).forEach((b) => {
+          if (!merged.some((e) => sameBox(e, b))) {
+            merged.push(b);
+            totalNew += 1;
+          }
+        });
+        im.savedBoxes = merged;
+        ok += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    savedBoxes = images[activeIdx].savedBoxes; // 활성 이미지 동기화(배열 교체됨)
+    renderPreviewBoxes();
+    renderStrip();
+    ABC.logActivity("전체 AI 라벨링", `${ok}장 · 박스 ${totalNew}개`);
+    restore();
+    ABC.toast(
+      failed
+        ? `${ok}장 완료 · 박스 ${totalNew}개 (실패 ${failed}장)`
+        : `${ok}장 전체 라벨링 완료 · 박스 ${totalNew}개`,
+    );
+  });
+
   // 갤러리 스트립: 항목 클릭 → 전환, ✕ → 제거.
   stripEl?.addEventListener("click", (e) => {
     const del = e.target.closest(".strip-del");
