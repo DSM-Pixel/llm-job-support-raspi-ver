@@ -597,15 +597,28 @@ const ABC = (() => {
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") send();
     });
-    panel.querySelector(".ai-panel-close").addEventListener("click", () => {
-      panel.classList.remove("open");
-      document.body.classList.remove("ai-pushed"); // 본문 밀기 해제
-      window.setTimeout(() => {
-        panel.hidden = true;
-      }, 200);
-    });
+    panel.querySelector(".ai-panel-close").addEventListener("click", closeAi);
     aiPanel = panel;
     return panel;
+  };
+
+  // 패널 닫기(본문 밀기 해제 + 슬라이드 아웃).
+  const closeAi = () => {
+    if (!aiPanel) return;
+    aiPanel.classList.remove("open");
+    document.body.classList.remove("ai-pushed");
+    document.querySelector(".ai-open")?.classList.remove("is-on");
+    window.setTimeout(() => {
+      if (aiPanel) aiPanel.hidden = true;
+    }, 200);
+  };
+
+  const isAiOpen = () => !!aiPanel && !aiPanel.hidden && aiPanel.classList.contains("open");
+
+  // 'AI와 대화하기' 버튼 = 열려 있으면 닫고, 닫혀 있으면 연다(토글).
+  const toggleAi = () => {
+    if (isAiOpen()) closeAi();
+    else openAi();
   };
 
   const openAi = () => {
@@ -620,6 +633,7 @@ const ABC = (() => {
       panel.classList.add("open");
       document.body.classList.add("ai-pushed"); // 본문을 왼쪽으로 밀어 나란히 표시
     });
+    document.querySelector(".ai-open")?.classList.add("is-on");
     panel.querySelector(".ai-chat-input input").focus();
   };
 
@@ -632,7 +646,7 @@ const ABC = (() => {
       btn.type = "button";
       btn.className = "ai-open";
       btn.innerHTML = "✦ AI와 대화하기";
-      btn.addEventListener("click", openAi);
+      btn.addEventListener("click", toggleAi);
       if (userBox) sidebar.insertBefore(btn, userBox);
       else sidebar.appendChild(btn);
     }

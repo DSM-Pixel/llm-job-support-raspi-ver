@@ -593,6 +593,16 @@ with sync_playwright() as p:
         "report: AI 패널 열 때 본문 밀림",
         page.evaluate("() => document.body.classList.contains('ai-pushed')"),
     )
+    # 'AI와 대화하기'를 다시 누르면 닫힘(토글)
+    page.click(".ai-open")
+    page.wait_for_selector(".ai-panel", state="hidden")
+    check(
+        "report: AI 버튼 토글로 닫힘",
+        not page.is_visible(".ai-panel")
+        and not page.evaluate("() => document.body.classList.contains('ai-pushed')"),
+    )
+    page.click(".ai-open")  # 다시 열어 이후 테스트 진행
+    page.wait_for_selector(".ai-panel.open")
     page.fill(".ai-chat-input input", "핵심 권고가 뭐야?")
     page.click(".ai-send")
     page.wait_for_function(

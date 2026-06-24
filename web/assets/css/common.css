@@ -138,8 +138,13 @@ textarea {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--nav);
+  /* 단조로운 슬레이트 대신 브랜드 인디고 → 슬레이트 그라데이션으로 색감 부여 */
+  background: linear-gradient(180deg, #34487f 0%, #29314a 42%, var(--nav) 100%);
   color: #d7deec;
+}
+
+[data-theme="dark"] .sidebar {
+  background: linear-gradient(180deg, #1b2338 0%, #141a27 60%);
 }
 
 .logo {
@@ -805,6 +810,11 @@ textarea {
 
 .ai-open:hover {
   filter: brightness(1.05);
+}
+
+.ai-open.is-on {
+  filter: brightness(0.92);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
 .ai-panel {
