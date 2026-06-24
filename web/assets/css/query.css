@@ -46,6 +46,29 @@
   padding: 20px 26px;
 }
 
+.chat-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  width: min(980px, 100%);
+  margin: 0 auto 6px;
+}
+
+.chat-toolbar .new-chat {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-toolbar .new-chat:hover {
+  color: var(--text);
+  border-color: var(--blue);
+}
+
 .empty-state {
   width: min(780px, 92%);
   text-align: center;
