@@ -257,7 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((a) => {
         const thumb = a.image
           ? `<img src="${a.image}" alt="" />`
-          : `<span class="artifact-ic">${a.kind === "rag" ? "⌕" : "▣"}</span>`;
+          : `<span class="artifact-ic">${a.kind === "rag" ? "⌕" : "◫"}</span>`;
         const sub = a.kind === "rag" ? a.question || a.title : a.caption || a.title;
         return `<div class="artifact-item" data-ts="${a.ts}"><div class="artifact-thumb">${thumb}</div><div class="artifact-meta"><b>${esc(a.title)}</b><small>${esc(sub || "")}</small></div><button type="button" class="btn artifact-add">추가</button></div>`;
       })

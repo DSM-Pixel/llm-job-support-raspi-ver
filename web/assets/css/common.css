@@ -115,7 +115,11 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif;
+  /* 마지막에 기호·이모지 폰트를 둬, 본문 폰트에 없는 아이콘 글리프(▦ ⊞ ⌗ 등)가
+     last-resort 박스(□)로 깨지지 않고 시스템 기호 폰트로 렌더되게 한다. */
+  font-family:
+    "Pretendard", "Noto Sans KR", Arial, "Segoe UI Symbol", "Segoe UI Emoji",
+    "Apple Symbols", "Apple Color Emoji", "Noto Sans Symbols 2", sans-serif;
   font-size: 14px;
   background: var(--bg);
   color: var(--text);

@@ -285,7 +285,8 @@ const ABC = (() => {
     const avatar = document.querySelector(".user-box .avatar");
     if (nameEl) nameEl.textContent = settings.name || "사용자";
     if (teamEl) teamEl.textContent = settings.team || "";
-    if (avatar) avatar.textContent = (settings.name || "사용자").slice(0, 2);
+    // 아바타 이니셜 = 이름의 뒷 2글자(예: 염세현 → 세현, 김연우 → 연우).
+    if (avatar) avatar.textContent = (settings.name || "사용자").slice(-2);
     // 대시보드 인사말 등 이름을 쓰는 다른 위치도 갱신.
     document
       .querySelectorAll(".user-greet")
@@ -700,7 +701,7 @@ const ABC = (() => {
 
   // ── 기록 관리 모달 — 실제 활동·작업 기록(localStorage)을 나열·영구삭제 ──
   const HIST_ICON = {
-    "자연어 질의": "▤",
+    "자연어 질의": "☰",
     "RAG 검색": "⌕",
     "문서 색인": "▱",
     "이미지 분석": "⌗",
@@ -835,7 +836,7 @@ const ABC = (() => {
     } else {
       listEl.innerHTML = all
         .map((r) => {
-          const ic = HIST_ICON[r.cat] || (r.kind === "art" ? "▣" : "•");
+          const ic = HIST_ICON[r.cat] || (r.kind === "art" ? "◫" : "•");
           const thumb = r.image ? `<img class="hist-thumb" src="${r.image}" alt="" />` : "";
           return (
             `<li class="hist-row"><label class="hist-check"><input type="checkbox" class="hist-cb" data-key="${r.kind}:${r.ts}" /></label>` +

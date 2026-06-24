@@ -88,14 +88,14 @@ def dashboard_stats() -> dict:
                 "sub": "청크 12,840",
             },
             {
-                "icon": "◇",
+                "icon": "⬡",
                 "delta": "↗ +3.9K",
                 "value": "12,840",
                 "label": "라벨 데이터셋",
                 "sub": "검수 100%",
             },
             {
-                "icon": "◎",
+                "icon": "◉",
                 "delta": "↗ +0.04",
                 "value": "0.871",
                 "label": "도로 파손 mAP@0.5",
@@ -880,7 +880,7 @@ def generate_report(
     include_chart: bool = True,
 ) -> dict:
     """선택한 유형·소스·기간에 맞춘 보고서 문서를 생성. (MOCK)"""
-    kind = re.sub(r"[▥▤▢]", "", report_type).strip() or "현황 분석"
+    kind = re.sub(r"[▥☰▢]", "", report_type).strip() or "현황 분석"
     srcs = [s for s in (sources or []) if s]
     return {
         "backend": BACKEND,
@@ -1246,8 +1246,8 @@ def generate_report_web(
 
     검색 주제는 보고서 유형 + 선택한 데이터 소스에서 구성한다(별도 입력 불필요).
     """
-    kind = re.sub(r"[▥▤▢]", "", report_type).strip() or "현황 분석"
-    srcs = [re.sub(r"[▱▣◇▤▢]", "", s).strip() for s in (sources or []) if s]
+    kind = re.sub(r"[▥☰▢]", "", report_type).strip() or "현황 분석"
+    srcs = [re.sub(r"[▱◫⬡☰▢]", "", s).strip() for s in (sources or []) if s]
     srcs = [s for s in srcs if s]
     focus = ", ".join(srcs) if srcs else "신고 현황, 보수 예산, 검수 결과"
     topic = (query or "").strip() or f"한국 도로 포트홀·파손 {kind} ({focus})"
@@ -1318,7 +1318,7 @@ def generate_report_from_rag(
     include_chart: bool = True,
 ) -> dict:
     """RAG 검색 결과(질문·AI답변·근거 문서)를 그대로 이어받아 보고서로 확장."""
-    kind = re.sub(r"[▥▤▢]", "", report_type).strip() or "현황 분석"
+    kind = re.sub(r"[▥☰▢]", "", report_type).strip() or "현황 분석"
     srcs = sources or []
     file_names: list[str] = []
     for s in srcs:

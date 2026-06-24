@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ── 주간 처리량·최근 활동은 실제 사용 기록(localStorage)으로 ──────
   // 통계 카드 수치(색인·라벨 등)는 MOCK 유지, 활동 기반 부분만 실데이터로 교체.
   const ACT_ICON = {
-    "자연어 질의": "▤",
+    "자연어 질의": "☰",
     "RAG 검색": "⌕",
     "문서 색인": "▱",
     "이미지 분석": "⌗",

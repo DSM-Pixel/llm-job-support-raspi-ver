@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
       fileList.innerHTML = (r.files || [])
         .map(
           (f) =>
-            `<li><i>▤</i><b>${ABC.escapeHtml(f.source)}</b><small>청크 ${f.chunks}개</small>${fileDelBtn}</li>`,
+            `<li><i>☰</i><b>${ABC.escapeHtml(f.source)}</b><small>청크 ${f.chunks}개</small>${fileDelBtn}</li>`,
         )
         .join("");
       // 추천 질문을 참고 파일에 맞춰 갱신.

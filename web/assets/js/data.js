@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const search = document.querySelector(".search-upload input");
   const uploadBtn = document.querySelector(".search-upload .primary");
 
-  const ICONS = { 라벨: "◇", 원본: "▧", 공공데이터: "▱", 문서: "▤" };
+  const ICONS = { 라벨: "⬡", 원본: "⊡", 공공데이터: "▱", 문서: "☰" };
 
   // 행에는 이름·아이콘 그대로 두고, 실제 사진은 data-img 에만 담아 '미리보기'에서 보여준다.
   const rowHtml = (d) => `<tr${d.img ? ` data-img="${d.img}"` : ""}>
