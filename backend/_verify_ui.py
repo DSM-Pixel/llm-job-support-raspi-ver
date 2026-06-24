@@ -496,6 +496,35 @@ with sync_playwright() as p:
     page.click(".label-modal .modal-close")
     page.wait_for_selector("#label-modal", state="hidden")
 
+    # AI 모델 칩: 라벨링 헤더에 모델 표시(설정과 바인딩) — 클릭 시 설정 열림
+    chip = ".model-chip[data-model='vision']"
+    check(
+        "labeling: 모델 칩 표시(gemini-2.5-flash)",
+        page.is_visible(chip) and "gemini-2.5-flash" in page.inner_text(chip),
+        page.inner_text(chip),
+    )
+    page.click(chip)
+    page.wait_for_selector("#settings-modal:not([hidden])")
+    check("labeling: 모델 칩 클릭 → 설정 열림", page.is_visible("#settings-modal"))
+    # 모델을 바꾸면 칩이 즉시 갱신(설정→화면 바인딩)
+    page.select_option("#settings-modal [name=engine]", "YOLO-World")
+    page.click(".modal-save-settings")
+    page.wait_for_selector("#settings-modal", state="hidden")
+    page.wait_for_function(
+        "(s) => /yolo-world/.test(document.querySelector(s).textContent)", arg=chip
+    )
+    check(
+        "labeling: 설정 변경 시 모델 칩 갱신",
+        "yolo-world" in page.inner_text(chip),
+        page.inner_text(chip),
+    )
+    # 모델을 Gemini로 되돌려 이후 단계 영향 없게
+    page.click(".gear")
+    page.wait_for_selector("#settings-modal:not([hidden])")
+    page.select_option("#settings-modal [name=engine]", "Gemini")
+    page.click(".modal-save-settings")
+    page.wait_for_selector("#settings-modal", state="hidden")
+
     # 설정(⚙) 모달
     page.click(".gear")
     page.wait_for_selector("#settings-modal:not([hidden])")

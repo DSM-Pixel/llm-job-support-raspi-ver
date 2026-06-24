@@ -221,11 +221,12 @@ const ABC = (() => {
         </header>
         <div class="modal-body">
           <div class="modal-form">
-            <label class="field">탐지 엔진 (모델)
+            <label class="field">이미지 탐지 모델
               <select name="engine">
-                <option value="Gemini">Gemini (VLM)</option>
-                <option value="YOLO-World">YOLO-World</option>
+                <option value="Gemini">gemini-2.5-flash · 멀티모달 VLM</option>
+                <option value="YOLO-World">yolo-world · 탐지 전용</option>
               </select>
+              <small class="field-hint">자연어 질의·RAG·보고서는 항상 gemini-2.5-flash(LLM)를 사용합니다.</small>
             </label>
             <label class="field">이름
               <input type="text" name="name" placeholder="이름" />
@@ -271,6 +272,7 @@ const ABC = (() => {
         theme: overlay.querySelector("[name=theme]").value,
       });
       applyProfile();
+      applyModel(); // 바뀐 모델명을 화면 칩에 즉시 반영
       applyTheme(); // 테마 즉시 반영
       close();
       toast("설정을 저장했습니다");
@@ -299,8 +301,35 @@ const ABC = (() => {
     overlay.hidden = false;
   };
 
+  // 설정의 모델을 화면 모델 칩에 반영. [data-model] 요소를 채운다.
+  //  - data-model="vision": 이미지 탐지 모델(설정에서 선택, 멀티모달)
+  //  - data-model="llm"   : 텍스트 LLM (자연어 질의·RAG·보고서는 항상 Gemini)
+  // 칩을 누르면 설정이 열려 어디서든 모델을 바꿀 수 있다.
+  const MODEL_LABEL = {
+    Gemini: "gemini-2.5-flash",
+    "YOLO-World": "yolo-world",
+  };
+  const applyModel = () => {
+    document.querySelectorAll("[data-model]").forEach((el) => {
+      const kind = el.getAttribute("data-model");
+      const name =
+        kind === "vision" ? MODEL_LABEL[settings.engine] || settings.engine : "gemini-2.5-flash";
+      const suffix =
+        kind === "vision" ? (settings.engine === "YOLO-World" ? " · 탐지" : " · 멀티모달") : "";
+      el.textContent = `⚙ ${name}${suffix}`;
+      el.title = "AI 모델 — 클릭해 설정에서 변경";
+      el.style.cursor = "pointer";
+      if (!el._modelBound) {
+        el._modelBound = true;
+        el.setAttribute("role", "button");
+        el.addEventListener("click", openSettings);
+      }
+    });
+  };
+
   document.addEventListener("DOMContentLoaded", () => {
     applyProfile(); // 저장된 이름/소속을 사이드바에 반영
+    applyModel(); // 저장된 모델을 모델 칩에 반영(+클릭 시 설정 열기)
     document.querySelectorAll(".gear").forEach((gear) => {
       gear.style.cursor = "pointer";
       gear.setAttribute("role", "button");
@@ -892,6 +921,7 @@ const ABC = (() => {
     getSettings,
     saveSettings,
     openSettings,
+    applyModel,
     openHelp,
     registerAskHandler,
     openAi,
