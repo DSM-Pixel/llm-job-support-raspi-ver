@@ -27,15 +27,27 @@ BACKEND = "MOCK"
 _GEMINI_POOL = ThreadPoolExecutor(max_workers=8)
 _GEMINI_TIMEOUT_S = 15
 
+# 이 서버 세션 동안 실제로 쓴 Gemini 토큰 누적(대시보드 부하 막대용).
+_gemini_usage = {"tokens": 0, "calls": 0}
+
 
 def _gemini_generate(client, **kwargs):
     """client.models.generate_content 를 하드 타임아웃으로 감싼다.
 
     초과 시 TimeoutError 를 던져 호출부 except 가 MOCK 폴백을 타게 한다.
-    (백그라운드 스레드는 SDK 호출이 끝나면 정리된다.)
+    성공 시 응답의 usage_metadata 에서 실제 사용 토큰 수를 누적한다.
     """
     fut = _GEMINI_POOL.submit(lambda: client.models.generate_content(**kwargs))
-    return fut.result(timeout=_GEMINI_TIMEOUT_S)
+    resp = fut.result(timeout=_GEMINI_TIMEOUT_S)
+    try:
+        um = getattr(resp, "usage_metadata", None)
+        total = getattr(um, "total_token_count", None) if um else None
+        if total:
+            _gemini_usage["tokens"] += int(total)
+            _gemini_usage["calls"] += 1
+    except Exception:
+        pass
+    return resp
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -148,8 +160,9 @@ def real_model_status(yolo_ok: bool) -> list[dict]:
         },
         {
             "name": "gemini-2.5-flash",
-            "kind": "VLM·생성",
-            "load": 40 if gemini_ok else 0,
+            "kind": f"VLM·생성 · {_gemini_usage['tokens']:,} 토큰",
+            # 파란 막대 = 실제 사용 토큰 / 표시용 예산(50K) 비율.
+            "load": min(100, round(_gemini_usage["tokens"] / 50000 * 100)),
             "state": "운영" if gemini_ok else "키 없음",
             "tone": "green" if gemini_ok else "gray",
         },

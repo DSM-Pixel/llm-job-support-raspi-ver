@@ -48,6 +48,11 @@ with sync_playwright() as p:
     check("dashboard: 통계 카드 4개", len(cards) == 4, f"{len(cards)}개")
     check("dashboard: 주간 차트 7개", len(bars) == 7, f"{len(bars)}개")
     check("dashboard: 모델 상태 4행", len(models) == 4, f"{len(models)}행")
+    check(
+        "dashboard: Gemini 실제 토큰 사용량 표시",
+        "토큰" in page.inner_text(".model-card"),
+        page.inner_text(".model-card").replace("\n", " ")[:40],
+    )
     check("dashboard: 최근 활동 4건", len(acts) == 4, f"{len(acts)}건")
 
     # 활동 기록이 있으면 최근 활동·주간 처리량이 실데이터로 표시(통계 카드는 MOCK 유지)
