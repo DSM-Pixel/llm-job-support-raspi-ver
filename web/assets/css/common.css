@@ -3,6 +3,7 @@
 }
 
 :root {
+  color-scheme: light; /* 네이티브 컨트롤(날짜 선택 아이콘·스크롤바)을 테마에 맞춤 */
   --blue: #4660bf; /* 네온 블루(#2563ff) 완화 — 차분한 로열블루 */
   --cyan: #1fb6a6; /* 차분한 틸 */
   --nav: #232c3f; /* 새까만 남색 대신 보이는 다크 슬레이트(사이드바) */
@@ -18,6 +19,7 @@
 
 /* ── 다크 모드 (설정 → 화면 테마) ──────────────────────────────── */
 :root[data-theme="dark"] {
+  color-scheme: dark; /* 날짜 선택 아이콘 등 네이티브 컨트롤을 밝게(다크 테마) */
   --bg: #0e131b;
   --surface: #161d28; /* 다크 표면(카드·패널) */
   --line: #2a3340;
@@ -1073,17 +1075,18 @@ textarea {
 .top-actions .help-trigger {
   display: inline-grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--line);
+  width: 30px;
+  height: 30px;
+  border: 0;
   border-radius: 50%;
-  font-size: 13px;
+  background: var(--blue);
+  font-size: 15px;
   font-weight: 900;
-  color: var(--blue);
+  color: #fff;
 }
 
 .top-actions .help-trigger:hover {
-  background: #eef4ff;
+  filter: brightness(1.08);
 }
 
 .help-slide {
