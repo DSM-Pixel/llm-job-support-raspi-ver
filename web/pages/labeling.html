@@ -35,8 +35,14 @@
             <span class="lane"></span>
             <div class="preview-boxes"></div>
           </div>
-          <p class="sample">샘플: <span class="sample-name">road_2026Q1_0142.jpg</span> <a href="#" class="replace-image">교체</a></p>
-          <input type="file" class="image-input" accept="image/*" hidden />
+          <p class="sample">현재: <span class="sample-name">road_2026Q1_0142.jpg</span> <span class="image-count">이미지 1개</span></p>
+          <div class="image-actions">
+            <button class="btn flat add-images" type="button">＋ 사진 추가</button>
+            <button class="btn flat add-folder" type="button">폴더 선택</button>
+          </div>
+          <input type="file" class="image-input" accept="image/*" multiple hidden />
+          <input type="file" class="folder-input" accept="image/*" webkitdirectory hidden />
+          <div class="image-strip"></div>
           <button class="btn flat wide open-label-modal" type="button">⛶ 크게 열어 라벨링</button>
           <h3>분석 시나리오 (프리셋)</h3>
           <div class="radio-list"><label class="active"><span></span>도로 파손/포트홀 찾기</label><label><span></span>이미지 전체 설명</label><label><span></span>객체 목록 뽑기</label><label><span></span>이상 상황 탐지</label></div>
@@ -70,7 +76,7 @@
         <div class="canvas-wrap">
           <div class="canvas-stage">
             <img class="canvas-img" alt="라벨 대상 이미지" />
-            <div class="canvas-fallback">이미지를 업로드하면 여기에 표시됩니다 (없어도 그리기 가능)</div>
+            <div class="canvas-fallback">사진을 먼저 추가하면 여기에서 라벨링할 수 있습니다</div>
             <div class="canvas-boxes"></div>
           </div>
         </div>

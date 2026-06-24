@@ -10,12 +10,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const previewBoxesEl = document.querySelector(".preview-boxes");
   const sampleName = document.querySelector(".sample-name");
 
-  let imageName = sampleName?.textContent.trim() || "image.png";
-  let imageURL = ""; // 업로드 이미지 object URL
-  let imageFile = null; // 업로드 원본 File (실제 YOLO 탐지에 사용)
+  // ── 다중 이미지 모델 ─────────────────────────────────────────────
+  // 여러 사진(파일 다중 선택 / 폴더)을 올려 각각 분석·라벨한다.
+  // 이미지 = {name, url, file, sample, savedBoxes:[], result:{html,confText,confClass}|null}
+  const SAMPLE_NAME = sampleName?.textContent.trim() || "road_2026Q1_0142.jpg";
+  let images = [
+    { name: SAMPLE_NAME, url: "", file: null, sample: true, savedBoxes: [], result: null },
+  ];
+  let activeIdx = 0;
 
-  // 저장된 박스(모달을 닫아도 유지 → 미리보기에 표시).
-  let savedBoxes = [];
+  // 활성 이미지에서 동기화되는 현재 작업 대상(모달·분석·내보내기가 참조).
+  let imageName = SAMPLE_NAME;
+  let imageURL = "";
+  let imageFile = null;
+  let savedBoxes = images[0].savedBoxes;
+
+  const stripEl = document.querySelector(".image-strip");
+  const countEl = document.querySelector(".image-count");
+  const folderInput = document.querySelector(".folder-input");
 
   // ════════════════════════════════════════════════════════════════
   //  라벨링 모달 — 큰 이미지 위에서 박스 그리기/편집/삭제
@@ -86,8 +98,113 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const persist = () => {
-    savedBoxes = clone(boxes);
+    images[activeIdx].savedBoxes = clone(boxes);
+    savedBoxes = images[activeIdx].savedBoxes;
     renderPreviewBoxes();
+    renderStrip();
+  };
+
+  // 분석 결과 패널을 이미지별로 복원(전환 시).
+  const restoreResult = (im) => {
+    if (im.result) {
+      resultList.innerHTML = im.result.html;
+      confidence.textContent = im.result.confText;
+      confidence.className = im.result.confClass;
+    } else {
+      resultList.innerHTML =
+        '<li class="finding-empty">아직 분석 전입니다. 왼쪽 ‘분석하기’를 누르세요.</li>';
+      confidence.textContent = "분석 전";
+      confidence.className = "status gray";
+    }
+  };
+
+  // 현재 분석 결과를 활성 이미지에 저장.
+  const saveCurResult = () => {
+    images[activeIdx].result = {
+      html: resultList.innerHTML,
+      confText: confidence.textContent,
+      confClass: confidence.className,
+    };
+  };
+
+  // 이미지 갤러리(스트립) 렌더 — 클릭으로 전환, ✕로 제거, 배지로 라벨 수.
+  const renderStrip = () => {
+    if (!stripEl) return;
+    stripEl.innerHTML = images
+      .map((im, i) => {
+        const thumb = im.url
+          ? `<img src="${im.url}" alt="" />`
+          : '<span class="strip-ph">샘플</span>';
+        const n = im.savedBoxes.length;
+        const badge = n ? `<i class="strip-count" title="라벨 ${n}개">${n}</i>` : "";
+        const del = im.sample
+          ? ""
+          : `<span class="strip-del" data-del="${i}" role="button" aria-label="제거">✕</span>`;
+        return `<div class="strip-item${i === activeIdx ? " active" : ""}" data-i="${i}" title="${ABC.escapeHtml(im.name)}"><span class="strip-thumb">${thumb}${badge}</span><span class="strip-name">${ABC.escapeHtml(im.name)}</span>${del}</div>`;
+      })
+      .join("");
+    if (countEl) countEl.textContent = `이미지 ${images.length}개`;
+  };
+
+  // 활성 이미지 전환 — 미리보기·박스·분석결과를 그 이미지 것으로 교체.
+  const setActive = (i) => {
+    if (i < 0 || i >= images.length) return;
+    activeIdx = i;
+    const im = images[i];
+    imageName = im.name;
+    imageURL = im.url;
+    imageFile = im.file;
+    savedBoxes = im.savedBoxes;
+    if (im.url) {
+      previewImg.src = im.url;
+      previewImg.hidden = false;
+      preview?.classList.add("has-image");
+    } else {
+      previewImg.removeAttribute("src");
+      previewImg.hidden = true;
+      preview?.classList.remove("has-image");
+    }
+    if (sampleName) sampleName.textContent = im.name;
+    renderPreviewBoxes();
+    restoreResult(im);
+    renderStrip();
+  };
+
+  // 이미지 추가(다중 파일/폴더). 첫 실제 업로드면 샘플 placeholder는 치운다.
+  const addImages = (files) => {
+    const imgs = [...files].filter((f) => f.type.startsWith("image/"));
+    if (!imgs.length) {
+      ABC.toast("이미지 파일이 없습니다");
+      return;
+    }
+    if (images.length === 1 && images[0].sample) images = [];
+    imgs.forEach((f) =>
+      images.push({
+        name: f.name,
+        url: URL.createObjectURL(f),
+        file: f,
+        sample: false,
+        savedBoxes: [],
+        result: null,
+      }),
+    );
+    setActive(images.length - 1);
+    ABC.toast(`사진 ${imgs.length}장을 추가했습니다`);
+  };
+
+  // 이미지 제거. 모두 비면 샘플 placeholder로 복귀.
+  const removeImage = (i) => {
+    const im = images[i];
+    if (!im || im.sample) return;
+    if (im.url) URL.revokeObjectURL(im.url);
+    images.splice(i, 1);
+    if (!images.length) {
+      images = [
+        { name: SAMPLE_NAME, url: "", file: null, sample: true, savedBoxes: [], result: null },
+      ];
+    }
+    setActive(Math.min(activeIdx, images.length - 1));
+    ABC.toast("이미지를 제거했습니다");
   };
 
   // 포인터를 stage 기준 퍼센트로.
@@ -114,6 +231,10 @@ document.addEventListener("DOMContentLoaded", () => {
       selected = Number(hit.dataset.i);
       render();
       return;
+    }
+    if (!imageURL) {
+      ABC.toast("사진을 먼저 추가하세요");
+      return; // 사진이 없으면 라벨(박스)을 그릴 수 없다
     }
     clearTemp(); // 이전 잔상 제거
     start = pct(event);
@@ -189,6 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // AI 자동 탐지 — 업로드 이미지가 있으면 실제 YOLO(best.pt), 없으면 프리셋 MOCK.
   // 같은 박스는 중복 추가하지 않는다.
   modal.querySelector(".modal-detect").addEventListener("click", async (event) => {
+    if (!imageURL) return ABC.toast("사진을 먼저 추가하세요");
     const done = ABC.setBusy(event.currentTarget, "탐지 중");
     try {
       let result;
@@ -472,27 +594,26 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ── 이미지 업로드/교체 ──────────────────────────────────────────
-  document.querySelector(".replace-image")?.addEventListener("click", (event) => {
-    event.preventDefault();
-    fileInput?.click();
-  });
-
+  // ── 이미지 추가(다중 파일/폴더) + 갤러리 ────────────────────────
+  document.querySelector(".add-images")?.addEventListener("click", () => fileInput?.click());
+  document.querySelector(".add-folder")?.addEventListener("click", () => folderInput?.click());
   fileInput?.addEventListener("change", () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    if (imageURL) URL.revokeObjectURL(imageURL);
-    imageFile = file;
-    imageURL = URL.createObjectURL(file);
-    previewImg.src = imageURL;
-    previewImg.hidden = false;
-    preview?.classList.add("has-image");
-    imageName = file.name;
-    if (sampleName) sampleName.textContent = file.name;
-    // 새 이미지면 기존 박스는 무효 → 비운다.
-    savedBoxes = [];
-    renderPreviewBoxes();
-    ABC.toast("이미지를 교체했습니다");
+    if (fileInput.files?.length) addImages(fileInput.files);
+    fileInput.value = ""; // 같은 파일 다시 선택 가능
+  });
+  folderInput?.addEventListener("change", () => {
+    if (folderInput.files?.length) addImages(folderInput.files);
+    folderInput.value = "";
+  });
+  // 갤러리 스트립: 항목 클릭 → 전환, ✕ → 제거.
+  stripEl?.addEventListener("click", (e) => {
+    const del = e.target.closest(".strip-del");
+    if (del) {
+      removeImage(Number(del.dataset.del));
+      return;
+    }
+    const item = e.target.closest(".strip-item");
+    if (item) setActive(Number(item.dataset.i));
   });
 
   // ── 설명 분석 (라디오 프리셋) ───────────────────────────────────
@@ -562,8 +683,9 @@ document.addEventListener("DOMContentLoaded", () => {
           .join("");
         confidence.textContent = `예시(MOCK)`;
         confidence.className = "status gray";
-        ABC.toast("이미지를 ‘교체’로 올리면 실제 분석합니다 (지금은 예시)");
+        ABC.toast("사진을 추가하면 실제 분석합니다 (지금은 예시)");
       }
+      saveCurResult(); // 분석 결과를 이 이미지에 저장(전환해도 유지)
       ABC.logActivity("이미지 분석", preset);
     } catch {
       ABC.toast("분석에 실패했습니다");
@@ -582,4 +704,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return (await res.json()).answer;
   }, "이 페이지에 올린 이미지를 근거로 답합니다");
+
+  // 샘플의 초기 분석 결과(정적 HTML)를 보관하고 갤러리를 처음 렌더.
+  images[0].result = {
+    html: resultList.innerHTML,
+    confText: confidence.textContent,
+    confClass: confidence.className,
+  };
+  renderStrip();
 });

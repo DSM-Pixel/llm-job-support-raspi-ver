@@ -278,7 +278,18 @@ with sync_playwright() as p:
     findings = page.query_selector_all(".finding-list li")
     check("labeling: 설명 분석 렌더", len(findings) >= 1, f"{len(findings)}건")
 
-    # 모달 열기(이미지 없음 → AI 자동탐지는 프리셋 MOCK)
+    # 사진 추가(다중 지원) → 활성 이미지로 표시(라벨링은 사진이 있어야 가능)
+    page.set_input_files(
+        ".image-input",
+        files=[{"name": "road1.png", "mimeType": "image/png", "buffer": make_png()}],
+    )
+    page.wait_for_selector(".road-preview.has-image .preview-img")
+    check("labeling: 사진 추가 표시", page.inner_text(".sample-name") == "road1.png")
+    check(
+        "labeling: 갤러리에 사진 1개", len(page.query_selector_all(".image-strip .strip-item")) == 1
+    )
+
+    # 모달 열기(이미지 있음 → AI 자동탐지는 YOLO, 모델 없으면 MOCK 박스)
     page.click(".open-label-modal")
     page.wait_for_selector("#label-modal:not([hidden])")
     page.wait_for_function(
@@ -287,26 +298,31 @@ with sync_playwright() as p:
     check("labeling: 모달 열림", page.is_visible(".label-modal"))
     check("labeling: 신뢰도 필터 제거됨", page.query_selector(".modal-conf") is None)
 
-    # AI 자동 탐지 → 박스 추가
+    # AI 자동 탐지: 에러 없이 동작 + 중복 방지(두 번 눌러도 개수 안 늘어남).
+    # (빈 테스트 이미지는 YOLO가 0개 탐지할 수 있으므로 개수 자체는 단정하지 않음)
     page.click(".modal-detect")
-    page.wait_for_function("() => document.querySelectorAll('.box-list li').length >= 1")
-    n1 = len(page.query_selector_all(".box-list li"))
-    # 같은 이미지로 다시 탐지 → 중복 추가 안 됨
+    page.wait_for_timeout(700)
+    d1 = len(page.query_selector_all(".box-list li"))
     page.click(".modal-detect")
-    page.wait_for_timeout(400)
-    n2 = len(page.query_selector_all(".box-list li"))
-    check("labeling: AI 자동 탐지", n1 >= 1, f"{n1}개")
-    check("labeling: 중복 박스 방지", n2 == n1, f"{n1}→{n2}")
+    page.wait_for_timeout(700)
+    d2 = len(page.query_selector_all(".box-list li"))
+    check("labeling: AI 자동 탐지 중복 방지", d2 == d1, f"{d1}→{d2}")
 
-    # 드래그로 박스 그리기(+1)
+    # 드래그로 박스 2개 그리기
     layer = page.locator(".canvas-boxes").bounding_box()
-    page.mouse.move(layer["x"] + 20, layer["y"] + 20)
-    page.mouse.down()
-    page.mouse.move(layer["x"] + 120, layer["y"] + 90, steps=6)
-    page.mouse.up()
-    page.wait_for_function(
-        "(n) => document.querySelectorAll('.box-list li').length === n + 1", arg=n2
-    )
+
+    def draw_box(x1, y1, x2, y2, before):
+        page.mouse.move(layer["x"] + x1, layer["y"] + y1)
+        page.mouse.down()
+        page.mouse.move(layer["x"] + x2, layer["y"] + y2, steps=6)
+        page.mouse.up()
+        page.wait_for_function(
+            "(n) => document.querySelectorAll('.box-list li').length === n + 1", arg=before
+        )
+
+    draw_box(20, 20, 120, 90, d2)
+    draw_box(150, 30, 240, 100, d2 + 1)
+    check("labeling: 드래그로 박스 그리기", len(page.query_selector_all(".box-list li")) == d2 + 2)
     drawn_total = len(page.query_selector_all(".box-list li"))
 
     # 개별 삭제(-1)
@@ -367,10 +383,11 @@ with sync_playwright() as p:
     page.wait_for_function(
         "() => { const b=document.querySelector('.canvas-boxes'); return b && b.getBoundingClientRect().width > 50; }"
     )
+    # 빈 영역(좌하단)에서 시작 — 복원된 기존 박스를 선택하지 않도록.
     lay2 = page.locator(".canvas-boxes").bounding_box()
-    page.mouse.move(lay2["x"] + 200, lay2["y"] + 30)
+    page.mouse.move(lay2["x"] + 15, lay2["y"] + lay2["height"] - 45)
     page.mouse.down()
-    page.mouse.move(lay2["x"] + 260, lay2["y"] + 80, steps=4)
+    page.mouse.move(lay2["x"] + 80, lay2["y"] + lay2["height"] - 10, steps=4)
     page.mouse.up()
     page.wait_for_function(
         "(n) => document.querySelectorAll('.box-list li').length === n + 1", arg=saved_count
@@ -382,17 +399,36 @@ with sync_playwright() as p:
     pbox2 = len(page.query_selector_all(".preview-boxes .pbox"))
     check("labeling: 저장 안 함 선택 시 미반영", pbox2 == saved_count, f"{pbox2}/{saved_count}")
 
-    # 이미지 교체(인라인)
+    # 다중 이미지: 사진 2장 더 추가 → 갤러리 3개, 활성은 마지막
     page.set_input_files(
         ".image-input",
-        files=[{"name": "my_road.png", "mimeType": "image/png", "buffer": make_png()}],
+        files=[
+            {"name": "road2.png", "mimeType": "image/png", "buffer": make_png()},
+            {"name": "road3.png", "mimeType": "image/png", "buffer": make_png()},
+        ],
     )
-    page.wait_for_selector(".road-preview.has-image .preview-img")
+    page.wait_for_function(
+        "() => document.querySelectorAll('.image-strip .strip-item').length === 3"
+    )
+    check("labeling: 다중 이미지 갤러리(3개)", page.inner_text(".sample-name") == "road3.png")
+
+    # 갤러리에서 첫 사진(라벨 저장돼 있음)으로 전환 → 그 사진의 라벨이 복원됨
+    page.click(".image-strip .strip-item[data-i='0']")
+    page.wait_for_function(
+        "(n) => document.querySelectorAll('.preview-boxes .pbox').length === n", arg=saved_count
+    )
     check(
-        "labeling: 이미지 교체 표시",
-        page.inner_text(".sample-name") == "my_road.png",
-        page.inner_text(".sample-name"),
+        "labeling: 이미지별 라벨 독립 유지(전환 복원)",
+        page.inner_text(".sample-name") == "road1.png"
+        and len(page.query_selector_all(".preview-boxes .pbox")) == saved_count,
     )
+
+    # 활성 사진 제거(✕) → 다른 사진으로 전환, 갤러리 2개
+    page.click(".image-strip .strip-item[data-i='0'] .strip-del")
+    page.wait_for_function(
+        "() => document.querySelectorAll('.image-strip .strip-item').length === 2"
+    )
+    check("labeling: 사진 제거", len(page.query_selector_all(".image-strip .strip-item")) == 2)
 
     # 설정(⚙) 모달
     page.click(".gear")

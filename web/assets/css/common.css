@@ -130,6 +130,39 @@ a {
   text-decoration: none;
 }
 
+/* 기본적으로 UI 텍스트(메뉴·버튼·라벨 등)는 드래그 선택·복사 비활성화.
+   대신 실제로 복사가 필요한 곳(입력·편집·답변·문서·결과)만 아래에서 다시 허용. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"],
+.report-page,
+.answer,
+.answer-body,
+.message-body,
+.ai-bubble,
+.ai-chat-log,
+.doc-chunk,
+.doc-body,
+.finding-list,
+.source-snippet,
+.source-list,
+.mm-body,
+.preview-body,
+.hist-info,
+code,
+pre,
+.mono,
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 button,
 input,
 textarea {
