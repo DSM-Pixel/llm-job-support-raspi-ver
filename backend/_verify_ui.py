@@ -48,7 +48,13 @@ with sync_playwright() as p:
     models = page.query_selector_all(".model-card .model-row")
     acts = page.query_selector_all(".activity-card ul li")
     check("dashboard: 통계 카드 4개", len(cards) == 4, f"{len(cards)}개")
-    check("dashboard: 주간 차트 7개", len(bars) == 7, f"{len(bars)}개")
+    check("dashboard: 주간 차트 월~금 5개", len(bars) == 5, f"{len(bars)}개")
+    check(
+        "dashboard: 막대 수치 표시",
+        len(page.query_selector_all(".chart-bars .bar-val")) == 5,
+        f"{len(page.query_selector_all('.chart-bars .bar-val'))}개",
+    )
+    check("dashboard: 차트 배경 격자", page.query_selector(".chart-bars .chart-grid") is not None)
     check("dashboard: 모델 상태 4행", len(models) == 4, f"{len(models)}행")
 
     # Gemini 모델 행 클릭 → 사용자 관점 사용 현황(상태/언제 다시 사용 가능) 모달
@@ -275,7 +281,7 @@ with sync_playwright() as p:
 
     # 4) Labeling ─ 설명 분석 + 모달(그리기/AI탐지/중복방지/저장→미리보기 유지)
     page.goto(f"{BASE}/pages/labeling.html")
-    page.click(".label-panel .primary")
+    page.click(".label-panel .analyze-btn")
     page.wait_for_selector(".finding-list li")
     findings = page.query_selector_all(".finding-list li")
     check("labeling: 설명 분석 렌더", len(findings) >= 1, f"{len(findings)}건")

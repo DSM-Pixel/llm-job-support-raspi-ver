@@ -110,13 +110,11 @@ def dashboard_stats() -> dict:
             },
         ],
         "weekly": [
-            {"day": "월", "value": 42},
-            {"day": "화", "value": 64},
-            {"day": "수", "value": 48},
-            {"day": "목", "value": 76},
-            {"day": "금", "value": 58},
-            {"day": "토", "value": 70},
-            {"day": "일", "value": 52},
+            {"day": "월", "count": 18},
+            {"day": "화", "count": 27},
+            {"day": "수", "count": 21},
+            {"day": "목", "count": 32},
+            {"day": "금", "count": 24},
         ],
         "models": [
             {

@@ -15,7 +15,7 @@
   border-radius: 8px;
   background: transparent;
   color: #66738b;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .mode-tabs button.active {
@@ -26,7 +26,7 @@
 .mode-tabs span {
   margin-left: auto;
   color: #97a4ba;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .label-layout {
@@ -91,7 +91,7 @@
   background: rgba(7, 11, 20, 0.8);
   color: #fff;
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -105,6 +105,11 @@
   display: flex;
   width: 100%;
   margin-top: 10px;
+}
+
+/* hidden 속성이 .btn.wide의 display:flex 보다 우선하도록 */
+.btn.wide[hidden] {
+  display: none;
 }
 
 /* ── 라벨링 모달 (큰 이미지 + 박스 그리기/편집) ───────────────── */
@@ -235,7 +240,7 @@
   background: var(--blue);
   color: #fff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
   line-height: 1.5;
 }
@@ -253,7 +258,7 @@
   display: grid;
   gap: 6px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--muted);
 }
 
@@ -322,7 +327,7 @@
 .box-list .conf {
   font-size: 11px;
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .box-list .del {
@@ -332,7 +337,7 @@
   border-radius: 6px;
   background: #fdeaea;
   color: var(--red);
-  font-weight: 900;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -384,7 +389,7 @@
 }
 
 .image-count {
-  font-weight: 800;
+  font-weight: 700;
   color: var(--muted);
 }
 
@@ -442,7 +447,7 @@
 
 .strip-ph {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--muted);
 }
 
@@ -470,7 +475,7 @@
   background: var(--blue);
   color: #fff;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   font-style: normal;
 }
 
@@ -486,7 +491,7 @@
   background: var(--red);
   color: #fff;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -497,7 +502,7 @@
 
 .sample a {
   color: var(--blue);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .label-panel h3 {
@@ -525,7 +530,7 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .radio-list label.active {
@@ -552,7 +557,7 @@
   content: "✓";
   color: #fff;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
 }
 
@@ -616,7 +621,7 @@ textarea {
   border-radius: 8px;
   color: #fff;
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .badge.red {

@@ -13,7 +13,7 @@
 .date {
   margin: 0 0 6px;
   color: #00a99d;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
 }
 
@@ -41,7 +41,7 @@
   right: 18px;
   color: var(--green);
   font-style: normal;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .stat-card strong {
@@ -55,7 +55,7 @@
 .stat-card small {
   margin: 6px 0 0;
   color: var(--text);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .stat-card small {
@@ -85,15 +85,36 @@ h3 {
 }
 
 .chart-bars {
-  height: 118px;
+  position: relative;
+  height: 132px;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   align-items: stretch;
   gap: 18px;
-  padding: 12px 28px 0;
+  padding: 18px 28px 0;
+}
+
+/* 배경 격자 — 막대가 빈 공간에 떠 보이지 않도록 가로 기준선을 깐다. */
+.chart-grid {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  right: 22px;
+  bottom: 22px;
+  background-image: repeating-linear-gradient(
+    to top,
+    var(--line) 0,
+    var(--line) 1px,
+    transparent 1px,
+    transparent 25%
+  );
+  border-bottom: 1px solid var(--line);
+  pointer-events: none;
 }
 
 .bar-item {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-rows: 1fr 22px;
   justify-items: center;
@@ -102,17 +123,30 @@ h3 {
 }
 
 .bar-item span {
+  position: relative;
   display: block;
-  width: 28px;
+  width: 30px;
   border-radius: 6px 6px 0 0;
   background: linear-gradient(180deg, var(--blue) 0%, #8b9fd6 100%);
   box-shadow: 0 4px 10px rgba(70, 96, 191, 0.14);
 }
 
+/* 막대 위 수치 */
+.bar-val {
+  position: absolute;
+  top: -17px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .bar-item b {
   color: #a0abc0;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -134,7 +168,7 @@ h3 {
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
-  font-weight: 900;
+  font-weight: 800;
   text-align: left;
 }
 
@@ -166,7 +200,7 @@ h3 {
 
 .card-head a {
   color: var(--blue);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .model-row {
@@ -207,7 +241,7 @@ h3 {
 .model-more {
   margin-top: 2px;
   color: var(--blue) !important;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* 모델 사용 현황 상세 모달 */
@@ -231,7 +265,7 @@ h3 {
 }
 
 .mm-row b {
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.45;
 }
 

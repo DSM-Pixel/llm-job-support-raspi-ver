@@ -113,7 +113,7 @@
   border: 1px solid var(--line);
   color: var(--text);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 800;
   text-align: left;
 }
 
@@ -203,7 +203,7 @@
   background: #e8efff;
   color: var(--blue);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .message-body {
@@ -247,7 +247,7 @@
   border-radius: 999px;
   background: rgba(70, 96, 191, 0.06);
   color: var(--text);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .typing {

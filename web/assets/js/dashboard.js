@@ -6,6 +6,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     dateEl.textContent = `${today.getFullYear()}.${today.getMonth() + 1}.${today.getDate()} · ${weekday}`;
   }
 
+  // 주간 처리량 차트 HTML — 배경 격자 + 막대(높이=상대값) + 막대 위 수치.
+  // days: [{day:"월", count:Number}, ...] (월~금 5일)
+  const chartHtml = (days) => {
+    const max = Math.max(1, ...days.map((d) => d.count));
+    const bars = days
+      .map((d) => {
+        const h = d.count ? Math.max(8, Math.round((d.count / max) * 100)) : 2;
+        return `<div class="bar-item"><span style="height:${h}%" title="${d.count}건"><i class="bar-val">${d.count}</i></span><b>${d.day}</b></div>`;
+      })
+      .join("");
+    return `<div class="chart-grid" aria-hidden="true"></div>${bars}`;
+  };
+
   const countUp = (value) => {
     const raw = value.textContent.replace(/,/g, "");
     const target = Number.parseFloat(raw);
@@ -99,9 +112,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const chart = document.querySelector(".chart-bars");
     if (chart && data.weekly) {
-      chart.innerHTML = data.weekly
-        .map((w) => `<div class="bar-item"><span style="height: ${w.value}%"></span><b>${w.day}</b></div>`)
-        .join("");
+      chart.innerHTML = chartHtml(
+        data.weekly.map((w) => ({ day: w.day, count: w.count ?? w.value ?? 0 })),
+      );
     }
 
     renderModels(data.models);
@@ -162,26 +175,23 @@ document.addEventListener("DOMContentLoaded", async () => {
           })
           .join("");
       }
-      // 주간 처리량 — 최근 7일 일별 활동 건수.
+      // 주간 처리량 — 이번 주 월~금 일별 활동 건수(5일 고정).
       const chart = document.querySelector(".chart-bars");
       if (chart) {
         const now = new Date();
-        const days = [];
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-          const start = d.getTime();
+        const dow = (now.getDay() + 6) % 7; // 월=0 … 일=6
+        const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow);
+        const days = ["월", "화", "수", "목", "금"].map((lab, i) => {
+          const start = new Date(
+            monday.getFullYear(),
+            monday.getMonth(),
+            monday.getDate() + i,
+          ).getTime();
           const end = start + 86400000;
           const count = acts.filter((a) => a.ts >= start && a.ts < end).length;
-          const wd = new Intl.DateTimeFormat("ko-KR", { weekday: "short" }).format(d);
-          days.push({ day: wd, count });
-        }
-        const max = Math.max(1, ...days.map((d) => d.count));
-        chart.innerHTML = days
-          .map(
-            (d) =>
-              `<div class="bar-item"><span style="height:${d.count ? Math.max(8, Math.round((d.count / max) * 100)) : 2}%" title="${d.count}건"></span><b>${d.day}</b></div>`,
-          )
-          .join("");
+          return { day: lab, count };
+        });
+        chart.innerHTML = chartHtml(days);
       }
     }
   } catch {

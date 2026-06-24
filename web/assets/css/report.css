@@ -70,7 +70,7 @@
 .report-form h3 {
   margin: 28px 0 12px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.02em;
   color: #6b7890;
 }
@@ -90,7 +90,7 @@
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
-  font-weight: 900;
+  font-weight: 800;
   text-align: left;
 }
 
@@ -142,7 +142,7 @@
   width: 48px;
   color: #6b7890;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .date-field input[type="date"] {
@@ -153,7 +153,7 @@
   border-radius: 10px;
   background: var(--surface);
   color: var(--text);
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -479,7 +479,7 @@
   gap: 14px;
   min-height: 42px;
   color: #111827;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .source-toggle.is-off,
@@ -502,7 +502,7 @@
   justify-content: space-between;
   height: 54px;
   color: #718097;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .preview-toolbar div {
@@ -527,7 +527,7 @@
 .report-page header p {
   margin: 0 0 10px;
   color: #34d3cc;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
 }
 
@@ -586,7 +586,7 @@
   display: flex;
   justify-content: space-around;
   color: #7f8ba1;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .report-page table {
@@ -643,7 +643,7 @@
 .report-empty p {
   margin: 0;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: #334155;
 }
 

@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const analyzeButton = document.querySelector(".label-panel .primary");
+  const analyzeButton = document.querySelector(".label-panel .analyze-btn");
   const resultList = document.querySelector(".finding-list");
   const confidence = document.querySelector(".result-card .status");
   const customInput = document.querySelector(".label-panel textarea");
