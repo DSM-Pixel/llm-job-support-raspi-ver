@@ -625,3 +625,30 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* 모달 내 사진 네비게이션 — 폴더 단위로 이전/다음 사진을 넘기며 라벨링 */
+.modal-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.modal-nav .modal-pos {
+  min-width: 48px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.modal-prev,
+.modal-next {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.modal-prev:disabled,
+.modal-next:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

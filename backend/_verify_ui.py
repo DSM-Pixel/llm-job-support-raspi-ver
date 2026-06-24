@@ -9,7 +9,9 @@
 """
 
 import io
+import os
 import sys
+import tempfile
 from urllib.parse import quote
 
 from PIL import Image
@@ -429,6 +431,50 @@ with sync_playwright() as p:
         "() => document.querySelectorAll('.image-strip .strip-item').length === 2"
     )
     check("labeling: 사진 제거", len(page.query_selector_all(".image-strip .strip-item")) == 2)
+
+    # 폴더 선택: 실제 디렉터리를 골랐을 때 폴더 안 이미지들만 추가(비-이미지는 제외).
+    before_n = len(page.query_selector_all(".image-strip .strip-item"))
+    tmp_dir = tempfile.mkdtemp(prefix="label_folder_")
+    for fn in ("folder_a.jpg", "folder_b.JPEG", "folder_c.png"):
+        with open(os.path.join(tmp_dir, fn), "wb") as fh:
+            fh.write(make_png())
+    with open(os.path.join(tmp_dir, "notes.txt"), "w", encoding="utf-8") as fh:
+        fh.write("not an image")
+    page.set_input_files(".folder-input", files=tmp_dir)
+    page.wait_for_function(
+        "(n) => document.querySelectorAll('.image-strip .strip-item').length === n",
+        arg=before_n + 3,
+    )
+    check(
+        "labeling: 폴더 선택으로 이미지 추가(비-이미지 제외)",
+        len(page.query_selector_all(".image-strip .strip-item")) == before_n + 3,
+        f"{before_n}→{before_n + 3}",
+    )
+
+    # 모달에서 사진 네비게이션(폴더 단위 라벨링): 다음/이전으로 사진 전환
+    page.click(".image-strip .strip-item[data-i='0']")  # 첫 사진을 활성으로(다음 버튼 동작)
+    page.click(".open-label-modal")
+    page.wait_for_selector("#label-modal:not([hidden])")
+    page.wait_for_selector(".modal-nav:not([hidden])")
+    pos_before = page.inner_text(".modal-pos")
+    name_before = page.inner_text(".modal-imgname")
+    page.click(".modal-next")
+    page.wait_for_function(
+        "(p) => document.querySelector('.modal-pos').textContent !== p", arg=pos_before
+    )
+    check(
+        "labeling: 모달 다음 사진 전환",
+        page.inner_text(".modal-imgname") != name_before
+        and page.inner_text(".modal-pos") != pos_before,
+        f"{pos_before} → {page.inner_text('.modal-pos')}",
+    )
+    page.click(".modal-prev")
+    page.wait_for_function(
+        "(p) => document.querySelector('.modal-pos').textContent === p", arg=pos_before
+    )
+    check("labeling: 모달 이전 사진 전환", page.inner_text(".modal-pos") == pos_before)
+    page.click(".label-modal .modal-close")
+    page.wait_for_selector("#label-modal", state="hidden")
 
     # 설정(⚙) 모달
     page.click(".gear")

@@ -40,6 +40,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const classInput = modal.querySelector(".modal-class");
   const totalEl = modal.querySelector(".box-total");
   const nameEl = modal.querySelector(".modal-imgname");
+  const navEl = modal.querySelector(".modal-nav");
+  const posEl = modal.querySelector(".modal-pos");
+  const prevBtn = modal.querySelector(".modal-prev");
+  const nextBtn = modal.querySelector(".modal-next");
 
   let boxes = []; // {x,y,w,h (%, 0~100), label, confidence|null}
   let selected = -1;
@@ -170,11 +174,16 @@ document.addEventListener("DOMContentLoaded", () => {
     renderStrip();
   };
 
+  // 이미지 파일 판별 — MIME 타입이 비어 있는 경우(폴더 업로드 시 흔함)
+  // 확장자로 폴백한다.
+  const IMG_EXT = /\.(png|jpe?g|gif|webp|bmp|svg|avif|heic|heif|tiff?)$/i;
+  const isImageFile = (f) => f.type.startsWith("image/") || IMG_EXT.test(f.name || "");
+
   // 이미지 추가(다중 파일/폴더). 첫 실제 업로드면 샘플 placeholder는 치운다.
   const addImages = (files) => {
-    const imgs = [...files].filter((f) => f.type.startsWith("image/"));
+    const imgs = [...files].filter(isImageFile);
     if (!imgs.length) {
-      ABC.toast("이미지 파일이 없습니다");
+      ABC.toast("이미지 파일이 없습니다 (선택한 폴더에 사진이 없어요)");
       return;
     }
     if (images.length === 1 && images[0].sample) images = [];
@@ -558,6 +567,33 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmEl.hidden = true; // 닫지 않고 모달에 머무름
   });
 
+  // ── 모달 내 사진 네비게이션(폴더 단위 라벨링) ──────────────────
+  // 모달을 닫지 않고 폴더의 다른 사진으로 넘어가며 박스를 그린다.
+  const updateModalNav = () => {
+    const multi = images.length > 1;
+    navEl.hidden = !multi;
+    if (!multi) return;
+    posEl.textContent = `${activeIdx + 1} / ${images.length}`;
+    prevBtn.disabled = activeIdx === 0;
+    nextBtn.disabled = activeIdx === images.length - 1;
+  };
+
+  // 현재 박스를 활성 이미지에 보관하고 이웃 사진으로 전환.
+  const switchInModal = (dir) => {
+    const next = activeIdx + dir;
+    if (next < 0 || next >= images.length) return;
+    persist(); // 현재 박스를 메모리에 저장 + 미리보기/갤러리 갱신(닫아도 유지)
+    setActive(next); // 이미지명·미리보기·결과 패널 전환
+    boxes = clone(savedBoxes); // 새 사진의 저장 박스를 편집 대상으로
+    selected = -1;
+    setImage(); // 캔버스 이미지·이름 갱신
+    render();
+    updateModalNav();
+  };
+
+  prevBtn.addEventListener("click", () => switchInModal(-1));
+  nextBtn.addEventListener("click", () => switchInModal(1));
+
   // ── 모달 열기/닫기 ──────────────────────────────────────────────
   const openModal = () => {
     const s = ABC.getSettings();
@@ -567,6 +603,7 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmEl.hidden = true;
     setImage();
     render();
+    updateModalNav();
     modal.hidden = false;
   };
   const closeModal = () => {
@@ -583,7 +620,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (event.target === modal) closeModal();
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !modal.hidden) closeModal();
+    if (modal.hidden) return;
+    if (event.key === "Escape") return closeModal();
+    // 입력 중이 아닐 때만 ←/→ 로 사진 전환(폴더 라벨링).
+    const typing = /^(INPUT|TEXTAREA)$/.test(event.target.tagName);
+    if (!typing && event.key === "ArrowLeft") switchInModal(-1);
+    if (!typing && event.key === "ArrowRight") switchInModal(1);
   });
 
   // ── 모드 탭 ─────────────────────────────────────────────────────
