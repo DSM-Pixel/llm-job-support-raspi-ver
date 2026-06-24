@@ -127,7 +127,8 @@
   border: 0;
   outline: 0;
   padding: 0 10px;
-  color: var(--muted);
+  background: transparent;
+  color: var(--text);
   font-size: 14px;
 }
 
