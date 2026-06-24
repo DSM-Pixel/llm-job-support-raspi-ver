@@ -618,6 +618,57 @@
   color: #14b8a6;
 }
 
+/* 출처 칩 — 문서는 항상 흰 종이라 테마와 무관하게 밝게 고정(다크모드에서 까맣게 보이던 것 수정) */
+.report-page footer .pill {
+  background: #eef2f8;
+  border-color: #dbe3ef;
+  color: #475569;
+}
+
+/* 보고서 로딩/빈 상태 — 진입 시 가짜 보고서 대신 '로딩 중' 표시 */
+.report-loading,
+.report-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 360px;
+  padding: 48px 24px;
+  text-align: center;
+  color: #64748b;
+}
+
+.report-loading p,
+.report-empty p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.report-loading small,
+.report-empty p:last-child:not(:first-child) {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.report-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #dbe3ef;
+  border-top-color: #2563ff;
+  border-radius: 50%;
+  animation: report-spin 0.8s linear infinite;
+}
+
+@keyframes report-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 1200px) {
   .report-layout {
     grid-template-columns: 1fr;

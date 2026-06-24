@@ -222,6 +222,15 @@ document.addEventListener("DOMContentLoaded", () => {
     addSectionControls(); // 섹션 삭제 버튼 부착
   };
 
+  // 생성 실패로 '로딩 중'이 멈춰 있으면 안내 문구로 대체(가짜 보고서 대신).
+  const clearLoadingIfStuck = () => {
+    if (reportPage?.querySelector(".report-loading")) {
+      reportPage.innerHTML =
+        `<div class="report-empty"><p>보고서를 불러오지 못했습니다.</p>` +
+        `<p>왼쪽에서 기간·유형을 정하고 ‘보고서 생성’을 눌러주세요.</p></div>`;
+    }
+  };
+
   // 추가 예정(staged) 자료 안내 — 본문에는 '보고서 생성' 시에만 반영된다.
   const stagedNote = document.querySelector(".staged-note");
   const updateStagedNote = () => {
@@ -422,6 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch {
       /* api()가 toast */
     } finally {
+      clearLoadingIfStuck();
       done();
     }
   };
@@ -456,6 +466,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch {
       /* api()가 toast */
     } finally {
+      clearLoadingIfStuck();
       done();
     }
   };
@@ -486,6 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch {
       /* api()가 toast */
     } finally {
+      clearLoadingIfStuck();
       done();
     }
   };
