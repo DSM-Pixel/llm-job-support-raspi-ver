@@ -128,7 +128,10 @@ def health() -> dict:
 
 @app.get("/api/dashboard")
 def dashboard() -> dict:
-    return services.dashboard_stats()
+    # 통계 카드 수치는 데모(MOCK) 유지, 모델 상태는 실제 가용성(YOLO best.pt·Gemini 키)으로.
+    data = services.dashboard_stats()
+    data["models"] = services.real_model_status(yolo_service.model_available())
+    return data
 
 
 @app.post("/api/query")

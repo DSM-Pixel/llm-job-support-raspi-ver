@@ -58,6 +58,68 @@ document.addEventListener("DOMContentLoaded", async () => {
     /* 서버 미연결 시 HTML 기본값 그대로 사용 */
   }
 
+  // ── 주간 처리량·최근 활동은 실제 사용 기록(localStorage)으로 ──────
+  // 통계 카드 수치(색인·라벨 등)는 MOCK 유지, 활동 기반 부분만 실데이터로 교체.
+  const ACT_ICON = {
+    "자연어 질의": "▤",
+    "RAG 검색": "⌕",
+    "문서 색인": "▱",
+    "이미지 분석": "⌗",
+    "라벨 저장": "⌗",
+    "데이터 업로드": "▱",
+  };
+  const relTime = (ts) => {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return "방금";
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}분 전`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}시간 전`;
+    return `${Math.floor(h / 24)}일 전`;
+  };
+
+  try {
+    const acts = ABC.getActivity ? ABC.getActivity() : [];
+    if (acts.length) {
+      // 최근 활동(최신 6개) — 실제 내가 한 작업.
+      const activity = document.querySelector(".activity-card ul");
+      if (activity) {
+        activity.innerHTML = acts
+          .slice(-6)
+          .reverse()
+          .map((a) => {
+            const icon = ACT_ICON[a.type] || "•";
+            const label = a.label ? ` — ${a.label}` : "";
+            return `<li><span class="activity-icon">${icon}</span><b>${ABC.escapeHtml(a.type + label)}</b><small>${ABC.escapeHtml(a.page || "")} · ${relTime(a.ts)}</small></li>`;
+          })
+          .join("");
+      }
+      // 주간 처리량 — 최근 7일 일별 활동 건수.
+      const chart = document.querySelector(".chart-bars");
+      if (chart) {
+        const now = new Date();
+        const days = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+          const start = d.getTime();
+          const end = start + 86400000;
+          const count = acts.filter((a) => a.ts >= start && a.ts < end).length;
+          const wd = new Intl.DateTimeFormat("ko-KR", { weekday: "short" }).format(d);
+          days.push({ day: wd, count });
+        }
+        const max = Math.max(1, ...days.map((d) => d.count));
+        chart.innerHTML = days
+          .map(
+            (d) =>
+              `<div class="bar-item"><span style="height:${d.count ? Math.max(8, Math.round((d.count / max) * 100)) : 2}%" title="${d.count}건"></span><b>${d.day}</b></div>`,
+          )
+          .join("");
+      }
+    }
+  } catch {
+    /* 활동 기록 읽기 실패 시 서버/기본값 유지 */
+  }
+
   document.querySelectorAll(".stat-card strong").forEach(countUp);
 
   const routes = ["rag.html", "labeling.html", "report.html", "query.html"];

@@ -135,6 +135,35 @@ def dashboard_stats() -> dict:
     }
 
 
+def real_model_status(yolo_ok: bool) -> list[dict]:
+    """모델 상태 — YOLO(best.pt)·Gemini 는 실제 가용성, 나머지는 데모값."""
+    gemini_ok = bool(_gemini_key())
+    return [
+        {
+            "name": "YOLOe-L 도로파손",
+            "kind": "탐지",
+            "load": 74 if yolo_ok else 0,
+            "state": "운영" if yolo_ok else "모델 없음",
+            "tone": "green" if yolo_ok else "gray",
+        },
+        {
+            "name": "gemini-2.5-flash",
+            "kind": "VLM·생성",
+            "load": 40 if gemini_ok else 0,
+            "state": "운영" if gemini_ok else "키 없음",
+            "tone": "green" if gemini_ok else "gray",
+        },
+        {"name": "SAM 분할", "kind": "세그멘테이션", "load": 56, "state": "대기", "tone": "gray"},
+        {
+            "name": "도로파손 v3 파인튜닝",
+            "kind": "학습",
+            "load": 88,
+            "state": "학습 중",
+            "tone": "orange",
+        },
+    ]
+
+
 # ────────────────────────────────────────────────────────────────────
 # 2. 자연어 질의 — 의도 라우팅 + 답변 (MOCK)
 #    실제 연동: rag_search + labeling_detect 를 의도에 맞게 호출/오케스트레이션.

@@ -50,6 +50,22 @@ with sync_playwright() as p:
     check("dashboard: 모델 상태 4행", len(models) == 4, f"{len(models)}행")
     check("dashboard: 최근 활동 4건", len(acts) == 4, f"{len(acts)}건")
 
+    # 활동 기록이 있으면 최근 활동·주간 처리량이 실데이터로 표시(통계 카드는 MOCK 유지)
+    page.evaluate(
+        "() => { const n=Date.now(); localStorage.setItem('gnsoft.activity', JSON.stringify(["
+        "{ts:n-3600e3,page:'rag',type:'RAG 검색',label:'포트홀 위치'},"
+        "{ts:n-120e3,page:'query',type:'자연어 질의',label:'포트홀이 뭐야?'}])); }"
+    )
+    page.reload()
+    page.wait_for_selector(".activity-card ul li")
+    act_text = page.inner_text(".activity-card ul")
+    check(
+        "dashboard: 활동 기록 실데이터 반영",
+        "RAG 검색" in act_text and "자연어 질의" in act_text,
+        act_text[:24].replace("\n", " "),
+    )
+    page.evaluate("() => localStorage.removeItem('gnsoft.activity')")
+
     # 상단 ? 사용법 모달 + 클로바(♧) 제거
     clover = page.evaluate(
         "() => [...document.querySelectorAll('.top-actions span')].some(s => s.textContent.trim()==='♧')"
