@@ -3,8 +3,8 @@ const ABC = (() => {
   const SETTINGS_KEY = "gnsoft.settings";
   const DEFAULT_SETTINGS = {
     engine: "Gemini",
-    name: "김연우",
-    team: "R&D · 청년 1팀",
+    name: "박도현",
+    team: "도로관리처 · 점검분석팀",
     notify: true,
     theme: "light",
   };
@@ -232,7 +232,7 @@ const ABC = (() => {
               <input type="text" name="name" placeholder="이름" />
             </label>
             <label class="field">직함 · 소속
-              <input type="text" name="team" placeholder="예: R&D · 청년 1팀" />
+              <input type="text" name="team" placeholder="예: 도로관리처 · 점검분석팀" />
             </label>
             <label class="field">화면 테마
               <select name="theme">
@@ -287,7 +287,7 @@ const ABC = (() => {
     const avatar = document.querySelector(".user-box .avatar");
     if (nameEl) nameEl.textContent = settings.name || "사용자";
     if (teamEl) teamEl.textContent = settings.team || "";
-    // 아바타 이니셜 = 이름의 뒷 2글자(예: 염세현 → 세현, 김연우 → 연우).
+    // 아바타 이니셜 = 이름의 뒷 2글자(예: 염세현 → 세현, 박도현 → 도현).
     if (avatar) avatar.textContent = (settings.name || "사용자").slice(-2);
     // 대시보드 인사말 등 이름을 쓰는 다른 위치도 갱신.
     document
@@ -326,6 +326,59 @@ const ABC = (() => {
       }
     });
   };
+
+  // ── 데모 시드 — 처음 열었을 때 '사용 중인 느낌'이 나도록 활동·작업물 채움 ──
+  // 한 번만(gnsoft.demoSeeded) 실행하고, 이미 활동 기록이 있으면 건드리지 않는다.
+  // (검증/실사용에서 이미 데이터가 있으면 그대로 둠)
+  const seedDemoIfEmpty = () => {
+    try {
+      if (localStorage.getItem("gnsoft.demoSeeded")) return;
+      localStorage.setItem("gnsoft.demoSeeded", "1");
+      if (localStorage.getItem(ACTIVITY_KEY)) return; // 사용 흔적 있으면 유지
+      const now = Date.now();
+      const H = 3600000;
+      const D = 86400000;
+      const acts = [
+        { ts: now - 4 * H, page: "query", type: "자연어 질의", label: "포트홀 보수 기한이 어떻게 돼?" },
+        { ts: now - 6 * H, page: "rag", type: "RAG 검색", label: "심각한 포트홀 긴급 보수 기준" },
+        { ts: now - D - 3 * H, page: "labeling", type: "이미지 분석", label: "도로 파손/포트홀 찾기" },
+        { ts: now - D - 4 * H, page: "labeling", type: "라벨 저장", label: "road_2026Q2_0142.jpg (3개)" },
+        { ts: now - D - 6 * H, page: "report", type: "보고서 생성", label: "활동 통계" },
+        { ts: now - 2 * D - 2 * H, page: "rag", type: "RAG 검색", label: "거북등 균열 보수 공법" },
+        { ts: now - 2 * D - 5 * H, page: "query", type: "자연어 질의", label: "가드레일 점검 주기" },
+        { ts: now - 3 * D - 3 * H, page: "labeling", type: "전체 AI 라벨링", label: "12장 · 박스 27개" },
+        { ts: now - 3 * D - 7 * H, page: "rag", type: "문서 색인", label: "도로_균열_점검.md" },
+        { ts: now - 4 * D - 4 * H, page: "query", type: "자연어 질의", label: "우천 시 긴급 보수 공법" },
+        { ts: now - 4 * D - 8 * H, page: "labeling", type: "이미지 분석", label: "이상 상황 탐지" },
+        { ts: now - 6 * D - 5 * H, page: "data", type: "데이터 업로드", label: "pothole_set_2026Q2" },
+      ];
+      localStorage.setItem(ACTIVITY_KEY, JSON.stringify(acts));
+      const arts = [
+        {
+          ts: now - D - 4 * H,
+          kind: "image",
+          page: "labeling",
+          title: "라벨링 · road_2026Q2_0142.jpg",
+          image: "../assets/img/intro-2-labeling.png",
+          caption: "라벨 3개 · 포트홀, 균열",
+        },
+        {
+          ts: now - 6 * H,
+          kind: "rag",
+          page: "rag",
+          title: "RAG · 심각한 포트홀 긴급 보수 기준",
+          question: "심각한 포트홀은 며칠 안에 보수해야 해?",
+          answer: "심각(상) 등급은 발견 즉시 24시간 이내 긴급 보수 대상입니다.",
+          source: "포트홀_보수_기준.md",
+          snippet: "심각(상) 등급은 발견 즉시 24시간 이내 긴급 보수.",
+        },
+      ];
+      localStorage.setItem(ARTIFACT_KEY, JSON.stringify(arts));
+    } catch {
+      /* localStorage 불가 시 무시 */
+    }
+  };
+  seedDemoIfEmpty();
 
   document.addEventListener("DOMContentLoaded", () => {
     applyProfile(); // 저장된 이름/소속을 사이드바에 반영

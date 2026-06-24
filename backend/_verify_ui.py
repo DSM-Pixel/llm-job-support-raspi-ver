@@ -37,6 +37,8 @@ def make_png():
 with sync_playwright() as p:
     browser = p.chromium.launch()
     page = browser.new_page()
+    # 데모 시드(첫 방문 시 활동 채우기)가 검증을 오염시키지 않도록 비활성화.
+    page.add_init_script("try{localStorage.setItem('gnsoft.demoSeeded','1')}catch(e){}")
     page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
     page.on("pageerror", lambda e: console_errors.append(str(e)))
 
