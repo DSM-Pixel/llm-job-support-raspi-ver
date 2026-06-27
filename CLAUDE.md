@@ -99,7 +99,7 @@ llm-job-support/
 
 ## 협업 / 깃 정책
 
-- **main에 직접 commit 금지**. 팀별 브랜치 `team-<n>/<topic>` 사용.
+- **기본은 `main`에 직접 commit/push OK**. 특별한 지시가 있을 때만 브랜치(`team-<n>/<topic>`)·PR을 쓴다.
 - 커밋 메시지는 한국어 OK. 단 동사로 시작:
   `포트홀 라벨링 데모 추가`, `RAG 검색 결과 요약 기능 수정` 등.
 - 큰 모델 weight, 데이터셋 원본은 **커밋 금지**. `data/`는 기본 ignore.
