@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNSoft</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <link rel="stylesheet" href="../assets/css/pubdata.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="logo" href="dashboard.html"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft</a>
+      <nav class="nav-group">
+        <p class="nav-label">AI 서비스</p>
+        <a class="nav-item" data-icon="⊞" href="dashboard.html">메인 대시보드</a>
+        <a class="nav-item" data-icon="☰" href="query.html">자연어 질의</a>
+        <a class="nav-item" data-icon="⌕" href="rag.html">RAG 공공데이터 검색</a>
+        <a class="nav-item active" data-icon="◫" href="pubdata.html">공공데이터 연계 <span class="nav-chevron">›</span></a>
+        <a class="nav-item" data-icon="⌗" href="labeling.html">이미지 분석·라벨링</a>
+        <a class="nav-item" data-icon="⇱" href="report.html">요약·보고서 생성</a>
+        <a class="nav-item" data-icon="▱" href="data.html">데이터 관리</a>
+      </nav>
+      <div class="user-box"><span class="avatar">도현</span><div><div class="user-name">박도현</div><div class="user-team">도로관리처 · 점검분석팀</div></div><span class="gear">⚙</span></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><h1>공공데이터 연계</h1><span class="live">LIVE</span><div class="top-actions"><span class="model-chip" data-model="llm">⚙ gemini-2.5-flash</span><span>?</span></div></header>
+
+      <section class="pd-layout">
+        <div class="pd-search card">
+          <label class="pd-label"><span>1</span>공공데이터포털에서 찾기</label>
+          <div class="pd-search-line">
+            <input class="pd-input" value="포트홀 도로 파손" placeholder="예: 포트홀, CCTV 이상행동, 시설물 안전점검, 교통사고">
+            <button class="btn primary pd-go">→ 통계 보기</button>
+          </div>
+          <div class="pd-chips">
+            <button class="pd-chip" type="button">포트홀 도로 파손</button>
+            <button class="pd-chip" type="button">CCTV 이상행동</button>
+            <button class="pd-chip" type="button">시설물 안전점검</button>
+            <button class="pd-chip" type="button">교통사고 다발지역</button>
+          </div>
+          <p class="pd-help">
+            자연어로 주제를 입력하면 <b>공공데이터포털(data.go.kr)</b> 관련 데이터셋과
+            통계를 찾아 시각화합니다. <span class="pd-badge sample">샘플 통계</span> 표시는 발표용 예시 수치입니다.
+          </p>
+          <p class="pd-catalog" data-role="catalog"></p>
+        </div>
+
+        <div class="pd-result" hidden>
+          <div class="pd-summary card">
+            <div class="pd-summary-head">
+              <h3>✣ AI 통계 요약 <span class="pd-badge" data-role="summary-badge"></span></h3>
+              <span class="pd-domain" data-role="domain"></span>
+            </div>
+            <p class="pd-summary-text" data-role="summary"></p>
+            <ul class="pd-insights" data-role="insights"></ul>
+            <div class="pd-summary-actions">
+              <button class="btn flat pd-to-report" type="button" title="이 통계 요약을 보고서 초안으로 보냅니다">보고서로 보내기 →</button>
+              <a class="btn flat pd-portal" target="_blank" rel="noopener">data.go.kr에서 열기 ↗</a>
+            </div>
+          </div>
+
+          <div class="pd-chart card">
+            <h3 class="pd-chart-title" data-role="chart-title"></h3>
+            <p class="pd-chart-src" data-role="chart-src"></p>
+            <div class="pd-bars" data-role="bars"></div>
+          </div>
+
+          <div class="pd-datasets">
+            <h2 class="section-title">▤ 관련 공공데이터셋 <small data-role="ds-count"></small></h2>
+            <div class="pd-ds-list" data-role="datasets"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/pubdata.js"></script>
+</body>
+</html>
