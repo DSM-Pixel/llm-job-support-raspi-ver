@@ -258,6 +258,9 @@ textarea {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* 스크롤바 자리를 항상 예약 — JS가 칩·버튼을 끼워넣어 메뉴가 넘칠 때
+     스크롤바가 생기며 메뉴 글자가 옆으로 밀리는 현상을 막는다. */
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
