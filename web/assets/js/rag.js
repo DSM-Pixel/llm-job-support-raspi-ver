@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // 현재 프로젝트 id — RAG 지식이 프로젝트별로 분리되도록 모든 호출에 실어 보낸다.
+  const PID = () => (ABC.getProject() || {}).id || "";
   const askInput = document.querySelector(".ask-line input");
   const askButton = document.querySelector(".ask-line .primary");
   const answer = document.querySelector(".answer p");
@@ -27,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const done = ABC.setBusy(askButton, "검색 중");
     try {
-      const result = await ABC.api("/api/rag/search", { query });
+      const result = await ABC.api("/api/rag/search", { query, project: PID() });
       answer.innerHTML = result.answer;
       confidence.textContent = result.found ? `연관도 ${result.confidence}%` : "근거 없음";
       if (methodTag) methodTag.textContent = result.method;
@@ -74,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sw.classList.toggle("off");
     const on = !sw.classList.contains("off");
     try {
-      await ABC.api("/api/rag/samples", { on });
+      await ABC.api("/api/rag/samples", { on, project: PID() });
       await loadFiles();
       ABC.toast(on ? "샘플 문서를 포함했습니다" : "샘플 문서를 제외했습니다");
     } catch {
@@ -91,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loadFiles = async () => {
     if (!fileList) return;
     try {
-      const r = await ABC.api("/api/rag/files");
+      const r = await ABC.api(`/api/rag/files?project=${encodeURIComponent(PID())}`);
       fileList.innerHTML = (r.files || [])
         .map(
           (f) =>
@@ -105,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const removeFile = async (name) => {
     try {
-      const r = await ABC.api("/api/rag/remove", { source: name });
+      const r = await ABC.api("/api/rag/remove", { source: name, project: PID() });
       await loadFiles();
       ABC.toast(r.message || `‘${name}’ 삭제됨`);
     } catch {
@@ -137,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const openDoc = async (name) => {
     try {
-      const r = await ABC.api(`/api/rag/doc?source=${encodeURIComponent(name)}`);
+      const r = await ABC.api(`/api/rag/doc?source=${encodeURIComponent(name)}&project=${encodeURIComponent(PID())}`);
       docModal.querySelector(".doc-title").textContent = name;
       docModal.querySelector(".doc-body").innerHTML = r.found
         ? r.chunks
@@ -189,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const done = ABC.setBusy(event.currentTarget, "추가 중");
       try {
         const docs = picked.map((r) => ({ name: r.title, text: r.snippet }));
-        const res = await ABC.api("/api/rag/index", { docs, use_samples: true });
+        const res = await ABC.api("/api/rag/index", { docs, use_samples: true, project: PID() });
         await loadFiles();
         document.querySelector(".indexed").textContent = `✓ ${res.message}`;
         webResults.innerHTML = "";
@@ -277,7 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const stagedNames = stagedDocs.map((d) => d.name).join(", ");
     try {
       const useSamples = !document.querySelector(".toggle-row .switch")?.classList.contains("off");
-      const res = await ABC.api("/api/rag/index", { docs: stagedDocs, use_samples: useSamples });
+      const res = await ABC.api("/api/rag/index", { docs: stagedDocs, use_samples: useSamples, project: PID() });
       stagedDocs = [];
       renderStaged();
       if (uploadInput) uploadInput.value = "";
@@ -308,7 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
   resetAllBtn?.addEventListener("click", async () => {
     const done = ABC.setBusy(resetAllBtn, "초기화 중");
     try {
-      const result = await ABC.api("/api/rag/reset", {});
+      const result = await ABC.api("/api/rag/reset", { project: PID() });
       document.querySelector(".toggle-row .switch")?.classList.add("off"); // 샘플 토글 OFF 동기화
       await loadFiles();
       document.querySelector(".indexed").textContent = `✓ ${result.message}`;

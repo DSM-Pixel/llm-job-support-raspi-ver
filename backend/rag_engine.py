@@ -218,7 +218,14 @@ def search(corpus: list[dict], query: str, k: int = 4) -> dict:
     chunks = idx["chunks"]
     embedder = idx["embedder"]
     if not chunks:
-        return {"hits": [], "method": "빈 인덱스", "chunk_count": 0, "embedder": embedder}
+        return {
+            "hits": [],
+            "found": False,
+            "confidence": 0,
+            "method": "빈 인덱스",
+            "chunk_count": 0,
+            "embedder": embedder,
+        }
 
     # dense 검색(질의 임베딩). gemini 질의 임베딩 실패 시 dense 생략(BM25 단독).
     dense_scores = None

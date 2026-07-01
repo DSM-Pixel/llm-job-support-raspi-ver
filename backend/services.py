@@ -503,18 +503,33 @@ _SAMPLE_DOCS = [
         ),
     },
 ]
-# 사용자가 업로드했거나 웹에서 추가한 문서(모듈 메모리에 누적).
-_user_docs: list[dict] = []
-# 사용자가 삭제한 소스명(샘플 포함). 활성 코퍼스에서 제외.
-_removed_sources: set[str] = set()
-# 샘플 문서 포함 여부(샘플 토글). 전체 초기화 시 꺼진다.
-_rag_state = {"samples_on": True}
+# 프로젝트(노트북)별 RAG 지식 — 문서·삭제분·샘플토글이 프로젝트마다 분리된다.
+_user_docs_by_project: dict[str, list[dict]] = {}
+_removed_by_project: dict[str, set[str]] = {}
+_samples_on_by_project: dict[str, bool] = {}
 
 
-def _active_corpus() -> list[dict]:
-    """현재 활성 코퍼스(샘플 토글 + 사용자 문서, 삭제분 제외)."""
-    base = (_SAMPLE_DOCS if _rag_state["samples_on"] else []) + _user_docs
-    return [d for d in base if d["source"] not in _removed_sources]
+def _pkey(project: str) -> str:
+    return (project or "").strip() or "none"
+
+
+def _udocs(project: str) -> list[dict]:
+    return _user_docs_by_project.setdefault(_pkey(project), [])
+
+
+def _removed(project: str) -> set[str]:
+    return _removed_by_project.setdefault(_pkey(project), set())
+
+
+def _samples_on(project: str) -> bool:
+    return _samples_on_by_project.setdefault(_pkey(project), True)
+
+
+def _active_corpus(project: str = "") -> list[dict]:
+    """프로젝트의 활성 코퍼스(샘플 토글 + 사용자 문서, 삭제분 제외)."""
+    base = (_SAMPLE_DOCS if _samples_on(project) else []) + _udocs(project)
+    removed = _removed(project)
+    return [d for d in base if d["source"] not in removed]
 
 
 # 한국어 조사 근사 제거용(끝 한 글자).
@@ -620,7 +635,7 @@ def _generate_answer(query: str, hits: list[dict]) -> tuple[str, str]:
 _MIN_RELEVANCE = 40
 
 
-def rag_search(query: str, top_k: int = 4) -> dict:
+def rag_search(query: str, top_k: int = 4, project: str = "") -> dict:
     """질의-연관도 기반 검색 + 근거 기반 답변(Gemini/폴백).
 
     연관도가 임계값(_MIN_RELEVANCE) 미만이면 비슷한 문서로 답을 만들어내지 않고
@@ -629,7 +644,7 @@ def rag_search(query: str, top_k: int = 4) -> dict:
     from . import rag_engine
 
     q = (query or "").strip()
-    corpus = _active_corpus()
+    corpus = _active_corpus(project)
     result, elapsed = rag_engine.timed_search(corpus, q, top_k)
     hits = result["hits"]
     # 근거 있음 판정은 엔진(상대 gap/커버리지)에 맡기고, 표시 근거는 유효 점수만.
@@ -681,26 +696,29 @@ def rag_index(
     docs: list[dict] | None = None,
     sources: list[str] | None = None,
     use_samples: bool = True,
+    project: str = "",
 ) -> dict:
-    """문서를 코퍼스에 색인한다. docs=[{name,text}] 형태(업로드/웹 추가 공용)."""
+    """프로젝트 코퍼스에 문서를 색인한다. docs=[{name,text}] 형태(업로드/웹 추가 공용)."""
+    udocs = _udocs(project)
+    removed = _removed(project)
     added = 0
     for d in docs or []:
         name = (d.get("name") or "문서").strip()
-        _user_docs.append({"source": name, "text": (d.get("text") or "").strip()})
+        udocs.append({"source": name, "text": (d.get("text") or "").strip()})
         added += 1
     for name in sources or []:  # 이름만 온 경우(본문 없음)
-        _user_docs.append({"source": str(name).strip(), "text": ""})
+        udocs.append({"source": str(name).strip(), "text": ""})
         added += 1
     # 다시 추가하면 삭제 상태 해제.
     for d in docs or []:
-        _removed_sources.discard((d.get("name") or "문서").strip())
+        removed.discard((d.get("name") or "문서").strip())
     # 색인 시 샘플 포함 여부 반영(토글 ON이면 전체 초기화로 빠졌던 샘플도 복원).
-    _rag_state["samples_on"] = bool(use_samples)
+    _samples_on_by_project[_pkey(project)] = bool(use_samples)
     if use_samples:
         for d in _SAMPLE_DOCS:
-            _removed_sources.discard(d["source"])
+            removed.discard(d["source"])
 
-    corpus = _active_corpus()
+    corpus = _active_corpus(project)
     source_count = len({d["source"] for d in corpus})
     return {
         "backend": BACKEND,
@@ -1783,10 +1801,10 @@ def rag_web_search(keyword: str) -> dict:
     }
 
 
-def rag_get_doc(source: str) -> dict:
+def rag_get_doc(source: str, project: str = "") -> dict:
     """참고중인 파일(소스명)의 본문 청크를 돌려준다 — 파일 열람용."""
     name = (source or "").strip()
-    chunks = [d["text"] for d in _active_corpus() if d["source"] == name]
+    chunks = [d["text"] for d in _active_corpus(project) if d["source"] == name]
     return {"backend": BACKEND, "source": name, "found": bool(chunks), "chunks": chunks}
 
 
@@ -1810,11 +1828,11 @@ def _suggest_for(source: str) -> str:
     return f"‘{base}’ 문서의 핵심 내용은?"
 
 
-def rag_list_files() -> dict:
+def rag_list_files(project: str = "") -> dict:
     """현재 색인된 참고 파일 목록 + 실제 청크 수(하이브리드 엔진 기준) + 추천 질문."""
     from . import rag_engine
 
-    corpus = _active_corpus()
+    corpus = _active_corpus(project)
     order: list[str] = []
     for d in corpus:
         if d["source"] not in order:
@@ -1830,15 +1848,16 @@ def rag_list_files() -> dict:
     return {"backend": BACKEND, "files": files, "suggestions": suggestions[:4]}
 
 
-def rag_remove_doc(source: str) -> dict:
+def rag_remove_doc(source: str, project: str = "") -> dict:
     """참고중인 파일을 색인에서 삭제(이후 검색 근거에서 제외)."""
     name = (source or "").strip()
+    udocs = _udocs(project)
     # 사용자 문서면 제거, 샘플이면 제외 목록에 등록.
-    before = len(_user_docs)
-    _user_docs[:] = [d for d in _user_docs if d["source"] != name]
-    if len(_user_docs) == before:
-        _removed_sources.add(name)
-    corpus = _active_corpus()
+    before = len(udocs)
+    udocs[:] = [d for d in udocs if d["source"] != name]
+    if len(udocs) == before:
+        _removed(project).add(name)
+    corpus = _active_corpus(project)
     return {
         "backend": BACKEND,
         "removed": name,
@@ -1848,11 +1867,11 @@ def rag_remove_doc(source: str) -> dict:
     }
 
 
-def rag_reset() -> dict:
-    """전체 초기화 — 샘플 포함 모든 참고 파일을 비운다(샘플 토글 OFF)."""
-    _user_docs.clear()
-    _removed_sources.clear()
-    _rag_state["samples_on"] = False
+def rag_reset(project: str = "") -> dict:
+    """전체 초기화 — 이 프로젝트의 참고 파일을 비운다(샘플 토글 OFF)."""
+    _udocs(project).clear()
+    _removed(project).clear()
+    _samples_on_by_project[_pkey(project)] = False
     return {
         "backend": BACKEND,
         "indexed": True,
@@ -1862,16 +1881,17 @@ def rag_reset() -> dict:
     }
 
 
-def rag_set_samples(on: bool) -> dict:
+def rag_set_samples(on: bool, project: str = "") -> dict:
     """샘플 점검 문서 포함/제외(토글). 켜면 샘플이 참고 파일에 다시 들어간다."""
-    _rag_state["samples_on"] = bool(on)
+    _samples_on_by_project[_pkey(project)] = bool(on)
     if on:
+        removed = _removed(project)
         for d in _SAMPLE_DOCS:
-            _removed_sources.discard(d["source"])
-    corpus = _active_corpus()
+            removed.discard(d["source"])
+    corpus = _active_corpus(project)
     return {
         "backend": BACKEND,
-        "samples_on": _rag_state["samples_on"],
+        "samples_on": _samples_on(project),
         "source_count": len({d["source"] for d in corpus}),
         "chunk_count": len(corpus),
         "message": "샘플 문서를 포함했습니다" if on else "샘플 문서를 제외했습니다",

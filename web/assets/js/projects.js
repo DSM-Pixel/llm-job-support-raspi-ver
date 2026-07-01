@@ -39,18 +39,21 @@
     });
 
   // ── 갤러리 ──
+  let galleryProjects = [];
   const renderGallery = (projects) => {
+    galleryProjects = projects;
     const cards = projects
       .map((p) => {
         const bar = `<div class="pj-card-bar"><span style="width:${p.progress}%"></span></div>`;
         return (
-          `<article class="pj-card" data-open="${p.id}">` +
+          `<article class="pj-card" data-enter="${p.id}" title="이 프로젝트로 들어가기">` +
           `<button class="pj-card-del" data-del="${p.id}" title="프로젝트 삭제">✕</button>` +
           `<div class="pj-card-emoji">${ABC.escapeHtml(p.emoji)}</div>` +
           `<b class="pj-card-name">${ABC.escapeHtml(p.name)}</b>` +
           `<small class="pj-card-meta">소스 ${p.source_count}개 · 검수 ${p.approved}/${p.source_count}</small>` +
           bar +
-          `<small class="pj-card-progress">검수 진행률 ${p.progress}%</small>` +
+          `<div class="pj-card-foot"><small class="pj-card-progress">검수 진행률 ${p.progress}%</small>` +
+          `<button class="pj-card-manage" data-manage="${p.id}">소스·검수 →</button></div>` +
           `</article>`
         );
       })
@@ -58,6 +61,15 @@
     grid.innerHTML =
       `<button class="pj-card pj-new" data-role="new"><span class="pj-new-plus">+</span>새 프로젝트 만들기</button>` +
       cards;
+  };
+
+  // 프로젝트로 '진입' — 현재 프로젝트로 설정하고 작업 공간(대시보드)으로.
+  const enterProject = (pid) => {
+    const p = galleryProjects.find((x) => x.id === pid) || (currentDetail && currentDetail.id === pid ? currentDetail : null);
+    if (!p) return;
+    ABC.setProject({ id: p.id, name: p.name, emoji: p.emoji });
+    ABC.toast(`‘${p.name}’ 프로젝트로 전환`);
+    location.href = "dashboard.html";
   };
 
   const loadGallery = async () => {
@@ -101,11 +113,13 @@
   };
 
   let currentPid = null;
+  let currentDetail = null;
   const openProject = async (pid) => {
     try {
       const p = await ABC.api(`/api/projects/${pid}`);
       if (p.error) return showGallery();
       currentPid = pid;
+      currentDetail = p;
       gallery.hidden = true;
       detail.hidden = false;
       history.replaceState(null, "", `?p=${pid}`);
@@ -130,6 +144,7 @@
   // ── 이벤트 위임 ──
   document.addEventListener("DOMContentLoaded", () => {
     $('[data-role="back"]').addEventListener("click", showGallery);
+    $('[data-role="enter"]').addEventListener("click", () => currentPid && enterProject(currentPid));
 
     grid.addEventListener("click", async (e) => {
       const del = e.target.closest("[data-del]");
@@ -163,8 +178,14 @@
         }
         return;
       }
-      const card = e.target.closest("[data-open]");
-      if (card) openProject(card.dataset.open);
+      const manage = e.target.closest("[data-manage]");
+      if (manage) {
+        e.stopPropagation();
+        openProject(manage.dataset.manage);
+        return;
+      }
+      const card = e.target.closest("[data-enter]");
+      if (card) enterProject(card.dataset.enter);
     });
 
     $('[data-role="src-list"]').addEventListener("click", (e) => {

@@ -19,6 +19,27 @@ const ABC = (() => {
 
   let settings = loadSettings();
 
+  // ── 현재 프로젝트(노트북) 컨텍스트 ───────────────────────────────
+  // 앱은 '현재 프로젝트' 아래에서 돈다. 기록·작업물·대화·RAG 문서가 프로젝트별로
+  // 분리된다. 프로젝트 미선택 상태로 작업 화면에 오면 프로젝트 선택으로 보낸다.
+  const PROJECT_KEY = "gnsoft.currentProject";
+  const getProject = () => {
+    try {
+      return JSON.parse(localStorage.getItem(PROJECT_KEY) || "null");
+    } catch {
+      return null;
+    }
+  };
+  const setProject = (p) => {
+    try {
+      localStorage.setItem(PROJECT_KEY, JSON.stringify(p));
+    } catch {
+      /* 무시 */
+    }
+  };
+  const clearProject = () => localStorage.removeItem(PROJECT_KEY);
+  const _pid = () => (getProject() || {}).id || "none";
+
   // 화면 테마(라이트/다크)를 <html data-theme>에 반영. 깜빡임 줄이려 즉시 적용.
   const applyTheme = () => {
     document.documentElement.setAttribute("data-theme", settings.theme === "dark" ? "dark" : "light");
@@ -66,20 +87,20 @@ const ABC = (() => {
   // ── 활동 로그 (보고서 통계용, localStorage 영속) ────────────────
   // 사용자가 웹에서 한 행동(질의·검색·이미지 분석·라벨 저장·업로드 등)을
   // {ts, page, type, label} 형태로 누적. 보고서가 이를 분석·통계 낸다.
-  const ACTIVITY_KEY = "gnsoft.activity";
+  const actKey = () => `gnsoft.activity.${_pid()}`;
   const logActivity = (type, label = "") => {
     try {
       const page = (location.pathname.split("/").pop() || "").replace(".html", "");
-      const list = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || "[]");
+      const list = JSON.parse(localStorage.getItem(actKey()) || "[]");
       list.push({ ts: Date.now(), page, type, label: String(label).slice(0, 200) });
-      localStorage.setItem(ACTIVITY_KEY, JSON.stringify(list.slice(-300))); // 최근 300개 유지
+      localStorage.setItem(actKey(), JSON.stringify(list.slice(-300))); // 최근 300개 유지
     } catch {
       /* localStorage 불가 시 무시 */
     }
   };
   const getActivity = () => {
     try {
-      return JSON.parse(localStorage.getItem(ACTIVITY_KEY) || "[]");
+      return JSON.parse(localStorage.getItem(actKey()) || "[]");
     } catch {
       return [];
     }
@@ -88,7 +109,7 @@ const ABC = (() => {
   // ── 작업 산출물(아티팩트) 저장 — 보고서에 넣을 '내 작업 결과' ──────
   // 분석·라벨한 이미지(+라벨 결과)나 RAG로 도출한 결과(질문·근거파일·답)를
   // 저장해 두면, 보고서 페이지에서 골라 본문에 삽입할 수 있다.
-  const ARTIFACT_KEY = "gnsoft.artifacts";
+  const artKey = () => `gnsoft.artifacts.${_pid()}`;
 
   // 이미지를 캔버스로 축소한 JPEG data URL로 변환(localStorage 용량 절약).
   const toThumb = (imgOrSrc, max = 560) =>
@@ -122,7 +143,7 @@ const ABC = (() => {
     const page = (location.pathname.split("/").pop() || "").replace(".html", "");
     const entry = { ts: Date.now(), page, ...art };
     try {
-      let list = JSON.parse(localStorage.getItem(ARTIFACT_KEY) || "[]");
+      let list = JSON.parse(localStorage.getItem(artKey()) || "[]");
       // 같은 id(예: 같은 사진의 분석/라벨)는 최신 것으로 교체 — 원본+라벨 중복 방지.
       if (art.id) list = list.filter((a) => a.id !== art.id);
       list.push(entry);
@@ -130,7 +151,7 @@ const ABC = (() => {
       // 용량 초과 시 가장 오래된 이미지 아티팩트부터 제거하며 재시도.
       for (let i = 0; i < 10; i++) {
         try {
-          localStorage.setItem(ARTIFACT_KEY, JSON.stringify(list));
+          localStorage.setItem(artKey(), JSON.stringify(list));
           return;
         } catch {
           const idx = list.findIndex((a) => a.image);
@@ -145,7 +166,7 @@ const ABC = (() => {
 
   const getArtifacts = () => {
     try {
-      return JSON.parse(localStorage.getItem(ARTIFACT_KEY) || "[]");
+      return JSON.parse(localStorage.getItem(artKey()) || "[]");
     } catch {
       return [];
     }
@@ -160,8 +181,8 @@ const ABC = (() => {
       /* 무시 */
     }
   };
-  const deleteActivities = (tsArr) => removeRecords(ACTIVITY_KEY, new Set(tsArr.map(Number)));
-  const deleteArtifacts = (tsArr) => removeRecords(ARTIFACT_KEY, new Set(tsArr.map(Number)));
+  const deleteActivities = (tsArr) => removeRecords(actKey(), new Set(tsArr.map(Number)));
+  const deleteArtifacts = (tsArr) => removeRecords(artKey(), new Set(tsArr.map(Number)));
 
   // 상대 시간(방금/N분 전/N시간 전/N일 전).
   const relTime = (ts) => {
@@ -332,9 +353,11 @@ const ABC = (() => {
   // (검증/실사용에서 이미 데이터가 있으면 그대로 둠)
   const seedDemoIfEmpty = () => {
     try {
+      if (!getProject()) return; // 프로젝트 선택 전에는 시드하지 않음
+      // 데모 시드는 '처음 들어간 프로젝트'에만 1회. 새로 만든 프로젝트는 빈 상태로 시작.
       if (localStorage.getItem("gnsoft.demoSeeded")) return;
       localStorage.setItem("gnsoft.demoSeeded", "1");
-      if (localStorage.getItem(ACTIVITY_KEY)) return; // 사용 흔적 있으면 유지
+      if (localStorage.getItem(actKey())) return; // 사용 흔적 있으면 유지
       const now = Date.now();
       const H = 3600000;
       const D = 86400000;
@@ -352,7 +375,7 @@ const ABC = (() => {
         { ts: now - 4 * D - 8 * H, page: "labeling", type: "이미지 분석", label: "이상 상황 탐지" },
         { ts: now - 6 * D - 5 * H, page: "data", type: "데이터 업로드", label: "pothole_set_2026Q2" },
       ];
-      localStorage.setItem(ACTIVITY_KEY, JSON.stringify(acts));
+      localStorage.setItem(actKey(), JSON.stringify(acts));
       const arts = [
         {
           ts: now - D - 4 * H,
@@ -373,7 +396,7 @@ const ABC = (() => {
           snippet: "심각(상) 등급은 발견 즉시 24시간 이내 긴급 보수.",
         },
       ];
-      localStorage.setItem(ARTIFACT_KEY, JSON.stringify(arts));
+      localStorage.setItem(artKey(), JSON.stringify(arts));
     } catch {
       /* localStorage 불가 시 무시 */
     }
@@ -599,9 +622,9 @@ const ABC = (() => {
     return html || "<p></p>";
   };
 
-  // 대화 기록을 페이지별로 영속(닫았다 켜도 유지, '지우기'로만 비움).
+  // 대화 기록을 프로젝트·페이지별로 영속(닫았다 켜도 유지, '지우기'로만 비움).
   const chatKey = () =>
-    `gnsoft.chat.${(location.pathname.split("/").pop() || "").replace(".html", "") || "page"}`;
+    `gnsoft.chat.${_pid()}.${(location.pathname.split("/").pop() || "").replace(".html", "") || "page"}`;
 
   // 화면 컨텍스트와 무관한 '일반 지식' 질문인지 — 자연어 질의로 보낼지 판단.
   // 화면을 가리키는 말(이 보고서/이미지/여기/요약/섹션 등)이 있으면 컨텍스트 질문으로 본다.
@@ -940,10 +963,37 @@ const ABC = (() => {
     buildHistoryModal().hidden = false;
   };
 
+  // 작업 화면인지(프로젝트 필요) — 프로젝트 선택/랜딩 화면은 제외.
+  const _page = () => (location.pathname.split("/").pop() || "").replace(".html", "");
+  const _needsProject = () => !["projects", "index", ""].includes(_page());
+
   document.addEventListener("DOMContentLoaded", () => {
-    // 사이드바 하단에 'AI와 대화하기' 버튼 + 그 아래 '기록 관리' 링크 추가.
+    // 프로젝트 미선택 상태로 작업 화면에 오면 프로젝트 선택 화면으로 보낸다.
+    if (_needsProject() && !getProject()) {
+      location.replace("projects.html");
+      return;
+    }
+
     const sidebar = document.querySelector(".sidebar");
     const userBox = sidebar?.querySelector(".user-box");
+
+    // 사이드바 상단(로고 아래)에 현재 프로젝트 칩 — 클릭 시 프로젝트 전환.
+    const proj = getProject();
+    if (sidebar && proj && _needsProject() && !sidebar.querySelector(".project-switch")) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "project-switch";
+      chip.title = "프로젝트 전환";
+      chip.innerHTML =
+        `<span class="ps-emoji">${escapeHtml(proj.emoji || "📁")}</span>` +
+        `<span class="ps-name">${escapeHtml(proj.name || "프로젝트")}</span>` +
+        `<span class="ps-swap">전환 ⇄</span>`;
+      chip.addEventListener("click", () => (location.href = "projects.html"));
+      const logo = sidebar.querySelector(".logo");
+      if (logo) logo.insertAdjacentElement("afterend", chip);
+      else sidebar.prepend(chip);
+    }
+    // 사이드바 하단에 'AI와 대화하기' 버튼 + 그 아래 '기록 관리' 링크 추가.
     if (sidebar && !sidebar.querySelector(".ai-open")) {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -966,6 +1016,9 @@ const ABC = (() => {
   });
 
   return {
+    getProject,
+    setProject,
+    clearProject,
     toast,
     setBusy,
     activateInGroup,

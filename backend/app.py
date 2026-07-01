@@ -52,12 +52,14 @@ class QueryIn(BaseModel):
 class RagSearchIn(BaseModel):
     query: str
     top_k: int = 4
+    project: str = ""
 
 
 class RagIndexIn(BaseModel):
     docs: list[dict] = []
     sources: list[str] = []
     use_samples: bool = True
+    project: str = ""
 
 
 class DetectIn(BaseModel):
@@ -114,10 +116,12 @@ class WebSearchIn(BaseModel):
 
 class RagRemoveIn(BaseModel):
     source: str = ""
+    project: str = ""
 
 
 class RagSamplesIn(BaseModel):
     on: bool = True
+    project: str = ""
 
 
 class AskContextIn(BaseModel):
@@ -175,12 +179,12 @@ def query(body: QueryIn) -> dict:
 
 @app.post("/api/rag/search")
 def rag_search(body: RagSearchIn) -> dict:
-    return services.rag_search(body.query, body.top_k)
+    return services.rag_search(body.query, body.top_k, body.project)
 
 
 @app.post("/api/rag/index")
 def rag_index(body: RagIndexIn) -> dict:
-    return services.rag_index(body.docs, body.sources, body.use_samples)
+    return services.rag_index(body.docs, body.sources, body.use_samples, body.project)
 
 
 @app.post("/api/rag/web-search")
@@ -189,28 +193,28 @@ def rag_web_search(body: WebSearchIn) -> dict:
 
 
 @app.post("/api/rag/reset")
-def rag_reset() -> dict:
-    return services.rag_reset()
+def rag_reset(body: RagSamplesIn | None = None) -> dict:
+    return services.rag_reset(body.project if body else "")
 
 
 @app.get("/api/rag/doc")
-def rag_doc(source: str) -> dict:
-    return services.rag_get_doc(source)
+def rag_doc(source: str, project: str = "") -> dict:
+    return services.rag_get_doc(source, project)
 
 
 @app.get("/api/rag/files")
-def rag_files() -> dict:
-    return services.rag_list_files()
+def rag_files(project: str = "") -> dict:
+    return services.rag_list_files(project)
 
 
 @app.post("/api/rag/remove")
 def rag_remove(body: RagRemoveIn) -> dict:
-    return services.rag_remove_doc(body.source)
+    return services.rag_remove_doc(body.source, body.project)
 
 
 @app.post("/api/rag/samples")
 def rag_samples(body: RagSamplesIn) -> dict:
-    return services.rag_set_samples(body.on)
+    return services.rag_set_samples(body.on, body.project)
 
 
 @app.post("/api/ask/context")

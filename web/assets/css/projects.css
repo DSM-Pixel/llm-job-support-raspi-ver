@@ -64,9 +64,34 @@
   background: var(--green);
   border-radius: 4px;
 }
+.pj-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .pj-card-progress {
   color: var(--muted);
   font-size: 11.5px;
+}
+.pj-card-manage {
+  border: none;
+  background: transparent;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.pj-card-manage:hover {
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
+.pj-detail-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 .pj-card-del {
   position: absolute;

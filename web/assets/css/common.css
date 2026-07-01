@@ -206,6 +206,43 @@ textarea {
   flex: none;
 }
 
+/* 현재 프로젝트(노트북) 칩 — 사이드바 로고 아래 */
+.project-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #eef2fb;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.project-switch:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.project-switch .ps-emoji {
+  font-size: 18px;
+  flex: none;
+}
+.project-switch .ps-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.project-switch .ps-swap {
+  flex: none;
+  font-size: 11px;
+  color: #aab6cf;
+}
+
 .nav-group {
   padding: 0 16px;
   /* 메뉴가 많아 사이드바 높이를 넘겨도 하단 버튼/프로필이 밀려 깨지지 않도록
