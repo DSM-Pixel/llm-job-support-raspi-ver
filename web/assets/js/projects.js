@@ -143,6 +143,16 @@
 
   // ── 이벤트 위임 ──
   document.addEventListener("DOMContentLoaded", () => {
+    // 아바타 클릭 → 프로필(이름·소속) 모달.
+    const avatar = document.querySelector(".pj-top .avatar");
+    avatar?.addEventListener("click", ABC.openSettings);
+    avatar?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        ABC.openSettings();
+      }
+    });
+
     $('[data-role="back"]').addEventListener("click", showGallery);
     $('[data-role="enter"]').addEventListener("click", () => currentPid && enterProject(currentPid));
 
