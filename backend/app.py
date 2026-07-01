@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import services, yolo_service
+from . import projects, services, yolo_service
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
@@ -136,6 +136,22 @@ class PubDataIn(BaseModel):
 
 class AgentPlanIn(BaseModel):
     goal: str = ""
+
+
+class ProjectCreateIn(BaseModel):
+    name: str = ""
+    emoji: str = "📁"
+
+
+class SourceAddIn(BaseModel):
+    name: str = ""
+    kind: str = "문서"
+
+
+class ReviewIn(BaseModel):
+    source_id: str = ""
+    status: str = "대기"
+    reviewer: str = ""
 
 
 # ── API 라우트 ───────────────────────────────────────────────────────
@@ -302,6 +318,43 @@ def pubdata_catalog() -> dict:
 def agent_plan(body: AgentPlanIn) -> dict:
     """AI 에이전트 — 자연어 목표를 단계별 업무 절차(기능 매핑)로 설계."""
     return services.agent_plan(body.goal)
+
+
+# ── 프로젝트(노트북) + 검수 워크플로 ─────────────────────────────────
+@app.get("/api/projects")
+def projects_list() -> dict:
+    """프로젝트(노트북) 목록 — 소스 수·검수 진행률 포함."""
+    return projects.list_projects()
+
+
+@app.post("/api/projects")
+def projects_create(body: ProjectCreateIn) -> dict:
+    """새 프로젝트(노트북) 생성."""
+    return projects.create_project(body.name, body.emoji)
+
+
+@app.get("/api/projects/{pid}")
+def projects_get(pid: str) -> dict:
+    """프로젝트 상세 — 소스 목록·검수 상태."""
+    return projects.get_project(pid) or {"error": "not_found"}
+
+
+@app.delete("/api/projects/{pid}")
+def projects_delete(pid: str) -> dict:
+    """프로젝트 삭제."""
+    return projects.delete_project(pid)
+
+
+@app.post("/api/projects/{pid}/sources")
+def projects_add_source(pid: str, body: SourceAddIn) -> dict:
+    """프로젝트에 소스(데이터) 추가 — 초기 검수 상태 '대기'."""
+    return projects.add_source(pid, body.name, body.kind) or {"error": "not_found"}
+
+
+@app.post("/api/review")
+def review_set(body: ReviewIn) -> dict:
+    """소스 검수 상태 변경(대기/승인/반려) + 검수자·시각 기록."""
+    return projects.set_review(body.source_id, body.status, body.reviewer) or {"error": "invalid"}
 
 
 @app.get("/api/datasets")

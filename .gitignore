@@ -100,3 +100,6 @@ backend/.gemini_state.json
 
 # 공공데이터 통합 저장소(수집 캐시) — 재생성 가능하므로 커밋 제외
 backend/storage/pubdata.db
+
+# 프로젝트(노트북)·검수 상태 저장소 — 로컬 데이터, 커밋 제외
+backend/storage/projects.db

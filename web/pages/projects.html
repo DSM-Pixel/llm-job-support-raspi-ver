@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNSoft</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <link rel="stylesheet" href="../assets/css/projects.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="logo" href="dashboard.html"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft</a>
+      <nav class="nav-group">
+        <p class="nav-label">AI 서비스</p>
+        <a class="nav-item" data-icon="⊞" href="dashboard.html">메인 대시보드</a>
+        <a class="nav-item active" data-icon="◳" href="projects.html">프로젝트 <span class="nav-chevron">›</span></a>
+        <a class="nav-item" data-icon="☰" href="query.html">자연어 질의</a>
+        <a class="nav-item" data-icon="⌕" href="rag.html">RAG 공공데이터 검색</a>
+        <a class="nav-item" data-icon="◫" href="pubdata.html">공공데이터 연계</a>
+        <a class="nav-item" data-icon="✦" href="agent.html">업무 자동화</a>
+        <a class="nav-item" data-icon="⌗" href="labeling.html">이미지 분석·라벨링</a>
+        <a class="nav-item" data-icon="⇱" href="report.html">요약·보고서 생성</a>
+        <a class="nav-item" data-icon="▱" href="data.html">데이터 관리</a>
+      </nav>
+      <div class="user-box"><span class="avatar">도현</span><div><div class="user-name">박도현</div><div class="user-team">도로관리처 · 점검분석팀</div></div><span class="gear">⚙</span></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><h1 class="pj-h1">프로젝트</h1><span class="live">LIVE</span><div class="top-actions"><span class="model-chip" data-model="llm">⚙ gemini-2.5-flash</span><span>?</span></div></header>
+
+      <!-- 갤러리(노트북 목록) -->
+      <section class="pj-gallery" data-role="gallery">
+        <div class="pj-gallery-head">
+          <h2>내 프로젝트</h2>
+          <p>작업을 프로젝트(노트북) 단위로 나눠 관리하고, 소스별 검수 상태를 추적합니다.</p>
+        </div>
+        <div class="pj-grid" data-role="grid"></div>
+      </section>
+
+      <!-- 상세(소스 + 검수) -->
+      <section class="pj-detail" data-role="detail" hidden>
+        <button class="pj-back" data-role="back" type="button">← 프로젝트 목록</button>
+        <div class="pj-detail-head">
+          <div class="pj-detail-title"><span class="pj-emoji" data-role="d-emoji"></span><h2 data-role="d-name"></h2></div>
+          <div class="pj-progress-wrap">
+            <span class="pj-progress-label" data-role="d-progress-label"></span>
+            <div class="pj-progress"><span data-role="d-progress-bar"></span></div>
+          </div>
+        </div>
+        <div class="pj-src-toolbar">
+          <h3>소스 · 검수</h3>
+          <button class="btn primary pj-add-src" data-role="add-src" type="button">+ 소스 추가</button>
+        </div>
+        <div class="pj-src-list" data-role="src-list"></div>
+      </section>
+    </main>
+  </div>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/projects.js"></script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+/* 프로젝트(노트북) + 검수 워크플로 */
+.pj-gallery,
+.pj-detail {
+  padding: 24px 28px;
+  max-width: 1080px;
+}
+
+/* ── 갤러리 ── */
+.pj-gallery-head h2 {
+  font-size: 20px;
+  color: var(--text);
+}
+.pj-gallery-head p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.pj-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+}
+.pj-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 150px;
+  text-align: left;
+}
+.pj-card:hover {
+  border-color: var(--blue);
+  transform: translateY(-2px);
+}
+.pj-card-emoji {
+  font-size: 30px;
+  line-height: 1.1;
+}
+.pj-card-name {
+  color: var(--text);
+  font-size: 15px;
+  margin-top: 2px;
+}
+.pj-card-meta {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.pj-card-bar {
+  margin-top: auto;
+  height: 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--muted) 22%, transparent);
+  overflow: hidden;
+}
+.pj-card-bar span {
+  display: block;
+  height: 100%;
+  background: var(--green);
+  border-radius: 4px;
+}
+.pj-card-progress {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.pj-card-del {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.pj-card:hover .pj-card-del {
+  opacity: 1;
+}
+.pj-card-del:hover {
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+  color: var(--red);
+}
+.pj-new {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--blue);
+  font-weight: 600;
+  border-style: dashed;
+  background: transparent;
+}
+.pj-new:hover {
+  transform: translateY(-2px);
+}
+.pj-new-plus {
+  font-size: 30px;
+  line-height: 1;
+}
+
+/* ── 상세 ── */
+.pj-back {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 0;
+}
+.pj-back:hover {
+  color: var(--blue);
+}
+.pj-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 10px 0 22px;
+  flex-wrap: wrap;
+}
+.pj-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pj-emoji {
+  font-size: 30px;
+}
+.pj-detail-title h2 {
+  font-size: 22px;
+  color: var(--text);
+}
+.pj-progress-wrap {
+  min-width: 200px;
+}
+.pj-progress-label {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.pj-progress {
+  margin-top: 5px;
+  height: 8px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--muted) 22%, transparent);
+  overflow: hidden;
+}
+.pj-progress span {
+  display: block;
+  height: 100%;
+  background: var(--green);
+  transition: width 0.3s;
+}
+
+.pj-src-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.pj-src-toolbar h3 {
+  font-size: 15px;
+  color: var(--text);
+}
+.pj-src-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pj-src {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.pj-src-kind {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pj-src-main {
+  flex: 1;
+  min-width: 0;
+}
+.pj-src-main b {
+  color: var(--text);
+  font-size: 14.5px;
+}
+.pj-src-main small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* 검수 상태 배지 */
+.pj-badge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.pj-badge.wait {
+  background: color-mix(in srgb, var(--muted) 18%, transparent);
+  color: var(--muted);
+}
+.pj-badge.ok {
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green);
+}
+.pj-badge.no {
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+  color: var(--red);
+}
+
+/* 검수 버튼 */
+.pj-rv-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.pj-rv-btn {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pj-rv-btn.ok:hover,
+.pj-rv-btn.ok.on {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  color: var(--green);
+}
+.pj-rv-btn.no:hover,
+.pj-rv-btn.no.on {
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+  color: var(--red);
+}
+.pj-rv-btn.wait:hover,
+.pj-rv-btn.wait.on {
+  border-color: var(--muted);
+  color: var(--text);
+}
+.pj-empty {
+  color: var(--muted);
+  font-size: 14px;
+  padding: 20px;
+  text-align: center;
+}
