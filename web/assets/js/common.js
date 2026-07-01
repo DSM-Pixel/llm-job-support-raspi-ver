@@ -230,6 +230,8 @@ const ABC = (() => {
   // ── 설정 모달 (모든 페이지 사이드바의 ⚙) ────────────────────────
   const buildSettingsModal = () => {
     if (document.querySelector("#settings-modal")) return document.querySelector("#settings-modal");
+    // 이미지 탐지 모델은 프로젝트 안(작업 화면)에서만 노출. 프로필 선택 화면엔 숨김.
+    const showModel = _needsProject();
     const overlay = document.createElement("div");
     overlay.className = "modal-overlay";
     overlay.id = "settings-modal";
@@ -242,6 +244,17 @@ const ABC = (() => {
         </header>
         <div class="modal-body">
           <div class="modal-form">
+            ${
+              showModel
+                ? `<label class="field">이미지 탐지 모델
+              <select name="engine">
+                <option value="Gemini">gemini-2.5-flash · 멀티모달 VLM</option>
+                <option value="YOLO-World">yolo-world · 탐지 전용</option>
+              </select>
+              <small class="field-hint">자연어 질의·RAG·보고서는 항상 gemini-2.5-flash(LLM)를 사용합니다.</small>
+            </label>`
+                : ""
+            }
             <label class="field">이름
               <input type="text" name="name" placeholder="이름" />
             </label>
@@ -267,6 +280,8 @@ const ABC = (() => {
       overlay.hidden = true;
     };
     overlay._fill = () => {
+      const eng = overlay.querySelector("[name=engine]");
+      if (eng) eng.value = settings.engine;
       overlay.querySelector("[name=name]").value = settings.name || "";
       overlay.querySelector("[name=team]").value = settings.team || "";
       overlay.querySelector("[name=theme]").value = settings.theme || "light";
@@ -278,7 +293,9 @@ const ABC = (() => {
       if (e.target === overlay) close();
     });
     overlay.querySelector(".modal-save-settings").addEventListener("click", () => {
+      const eng = overlay.querySelector("[name=engine]");
       saveSettings({
+        ...(eng ? { engine: eng.value } : {}),
         name: overlay.querySelector("[name=name]").value.trim() || "사용자",
         team: overlay.querySelector("[name=team]").value.trim(),
         theme: overlay.querySelector("[name=theme]").value,
