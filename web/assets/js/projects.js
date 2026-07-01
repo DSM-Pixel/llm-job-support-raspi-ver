@@ -143,6 +143,9 @@
 
   // ── 이벤트 위임 ──
   document.addEventListener("DOMContentLoaded", () => {
+    // 로고 클릭 → 프로젝트 목록으로(상세 보던 중이면 목록으로 나감).
+    document.querySelector(".pj-logo")?.addEventListener("click", showGallery);
+
     // 아바타 클릭 → 프로필(이름·소속) 모달.
     const avatar = document.querySelector(".pj-top .avatar");
     avatar?.addEventListener("click", ABC.openSettings);

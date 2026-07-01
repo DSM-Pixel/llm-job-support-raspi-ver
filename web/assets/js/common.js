@@ -237,18 +237,11 @@ const ABC = (() => {
     overlay.innerHTML = `
       <div class="modal" role="dialog" aria-modal="true" aria-label="설정">
         <header class="modal-head">
-          <h3>⚙ 설정</h3>
+          <h3>내 프로필 · 설정</h3>
           <button class="modal-close" type="button" aria-label="닫기">✕</button>
         </header>
         <div class="modal-body">
           <div class="modal-form">
-            <label class="field">이미지 탐지 모델
-              <select name="engine">
-                <option value="Gemini">gemini-2.5-flash · 멀티모달 VLM</option>
-                <option value="YOLO-World">yolo-world · 탐지 전용</option>
-              </select>
-              <small class="field-hint">자연어 질의·RAG·보고서는 항상 gemini-2.5-flash(LLM)를 사용합니다.</small>
-            </label>
             <label class="field">이름
               <input type="text" name="name" placeholder="이름" />
             </label>
@@ -274,7 +267,6 @@ const ABC = (() => {
       overlay.hidden = true;
     };
     overlay._fill = () => {
-      overlay.querySelector("[name=engine]").value = settings.engine;
       overlay.querySelector("[name=name]").value = settings.name || "";
       overlay.querySelector("[name=team]").value = settings.team || "";
       overlay.querySelector("[name=theme]").value = settings.theme || "light";
@@ -287,7 +279,6 @@ const ABC = (() => {
     });
     overlay.querySelector(".modal-save-settings").addEventListener("click", () => {
       saveSettings({
-        engine: overlay.querySelector("[name=engine]").value,
         name: overlay.querySelector("[name=name]").value.trim() || "사용자",
         team: overlay.querySelector("[name=team]").value.trim(),
         theme: overlay.querySelector("[name=theme]").value,
