@@ -97,3 +97,6 @@ _web_server.log
 
 # Gemini 런타임 상태(마지막 성공 시각 등) — 커밋 제외
 backend/.gemini_state.json
+
+# 공공데이터 통합 저장소(수집 캐시) — 재생성 가능하므로 커밋 제외
+backend/storage/pubdata.db

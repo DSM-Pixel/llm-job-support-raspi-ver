@@ -130,6 +130,10 @@ class SaveLabelsIn(BaseModel):
     label_count: int = 0
 
 
+class PubDataIn(BaseModel):
+    keyword: str = ""
+
+
 # ── API 라우트 ───────────────────────────────────────────────────────
 @app.get("/api/health")
 def health() -> dict:
@@ -276,6 +280,18 @@ def report_activity(body: ReportActivityIn) -> dict:
 def report_revise(body: ReportReviseIn) -> dict:
     """AI 대화로 현재 보고서를 수정(예: 서론·본론·결론 분리)하거나 질문에 답한다."""
     return services.revise_report(body.content, body.instruction)
+
+
+@app.post("/api/pubdata/search")
+def pubdata_search(body: PubDataIn) -> dict:
+    """공공데이터포털 연계 — 키워드로 데이터셋·통계·자연어 요약을 돌려준다."""
+    return services.pubdata_search(body.keyword)
+
+
+@app.get("/api/pubdata/catalog")
+def pubdata_catalog() -> dict:
+    """등록된 전체 공공데이터셋 카탈로그(현황·확장 가능 데이터셋 목록)."""
+    return services.pubdata_catalog()
 
 
 @app.get("/api/datasets")

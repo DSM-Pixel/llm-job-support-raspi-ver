@@ -1891,3 +1891,72 @@ def save_labeling(image_name: str = "", label_count: int = 0) -> dict:
         "record_id": f"20260622_{slug}",
         "message": f"[MOCK] 라벨 {label_count}건을 저장했습니다.",
     }
+
+
+# ────────────────────────────────────────────────────────────────────
+# 9. 공공데이터포털(data.go.kr) 연계 — "관련 통계를 보여줘"
+#    여러 데이터셋을 설정만으로 늘리는 확장 구조는 backend/pubdata/ 패키지 참고.
+#    (레지스트리 → 어댑터 → SQLite 통합 저장소 → 통합 조회)
+#    여기서는 그 통계 결과에 Gemini 자연어 요약을 얹는다.
+# ────────────────────────────────────────────────────────────────────
+def _summarize_pubdata(kw: str, domain: str, stats: dict) -> tuple[str, str]:
+    """통계 시리즈를 자연어로 요약. Gemini 우선, 무키/실패 시 템플릿. (summary, backend)"""
+    labels = stats["labels"]
+    values = stats["values"]
+    peak_i = max(range(len(values)), key=lambda i: values[i])
+    low_i = min(range(len(values)), key=lambda i: values[i])
+    facts = (
+        f"주제: {domain}. 지표: {stats['title']} (단위 {stats['unit']}). "
+        f"최고 {labels[peak_i]}={values[peak_i]}, 최저 {labels[low_i]}={values[low_i]}, "
+        f"합계 {sum(values)}, 평균 {round(sum(values) / len(values), 1)}."
+    )
+    key = _gemini_key()
+    if key:
+        try:
+            from google import genai
+
+            client = genai.Client(api_key=key, http_options={"timeout": 20000})
+            prompt = (
+                "너는 공공데이터 분석 도우미다. 아래 통계 요약 수치만 근거로, "
+                "도로·시설 유지보수 담당자에게 도움이 되도록 한국어 2~3문장으로 "
+                "핵심 경향과 시사점을 간결히 설명하라. 수치를 지어내지 마라.\n\n"
+                f"질문 키워드: {kw}\n{facts}"
+            )
+            resp = _gemini_generate(client, model="gemini-2.5-flash", contents=prompt)
+            text = (resp.text or "").strip()
+            if text:
+                return text, "GEMINI"
+        except Exception:
+            pass
+    return (
+        f"‘{kw}’ 관련 {domain} 데이터를 보면, {labels[peak_i]}({stats['unit']} {values[peak_i]})에 "
+        f"가장 높고 {labels[low_i]}에 가장 낮습니다. 합계 {sum(values)}{stats['unit']}, "
+        f"평균 {round(sum(values) / len(values), 1)}{stats['unit']} 수준입니다.",
+        "MOCK",
+    )
+
+
+def pubdata_search(keyword: str) -> dict:
+    """공공데이터포털 연계 검색 — 통합 저장소 통계 + 데이터셋 목록 + 자연어 요약.
+
+    통계 시리즈는 backend/pubdata 통합 저장소(SQLite)에서 조회한다. 서비스키가
+    있으면 실 API 로 적재(live=True), 없으면 시드(stats.sample=True)로 동작한다.
+    """
+    from . import pubdata
+
+    data = pubdata.service.build(keyword)
+    summary, summary_backend = _summarize_pubdata(data["keyword"], data["domain"], data["stats"])
+    return {
+        "backend": BACKEND,
+        **data,
+        "summary": summary,
+        "summary_backend": summary_backend,
+        "message": f"‘{data['keyword']}’ 관련 공공데이터 {data['dataset_matched']}건과 통계를 찾았습니다.",
+    }
+
+
+def pubdata_catalog() -> dict:
+    """등록된 전체 공공데이터셋 카탈로그(현황)."""
+    from . import pubdata
+
+    return pubdata.service.catalog()
