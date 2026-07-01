@@ -1,7 +1,46 @@
 /* 프로젝트(노트북) + 검수 워크플로 */
+
+/* ── 랜딩(프로젝트 선택 전용 화면) ── */
+.pj-landing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.pj-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.pj-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
+}
+.pj-logo .logo-img {
+  width: 32px;
+  height: 32px;
+}
+.pj-top .gear {
+  color: var(--muted);
+}
+.pj-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
 .pj-gallery,
 .pj-detail {
-  padding: 24px 28px;
+  padding: 28px;
 }
 
 /* ── 갤러리 ── */

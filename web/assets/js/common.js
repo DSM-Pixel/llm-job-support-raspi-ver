@@ -994,7 +994,8 @@ const ABC = (() => {
       else sidebar.prepend(chip);
     }
     // 사이드바 하단에 'AI와 대화하기' 버튼 + 그 아래 '기록 관리' 링크 추가.
-    if (sidebar && !sidebar.querySelector(".ai-open")) {
+    // (프로젝트에 종속된 기능이므로 작업 화면에서만 — 프로젝트 선택 화면엔 없음)
+    if (sidebar && _needsProject() && !sidebar.querySelector(".ai-open")) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "ai-open";
@@ -1003,7 +1004,7 @@ const ABC = (() => {
       if (userBox) sidebar.insertBefore(btn, userBox);
       else sidebar.appendChild(btn);
     }
-    if (sidebar && !sidebar.querySelector(".history-open")) {
+    if (sidebar && _needsProject() && !sidebar.querySelector(".history-open")) {
       const hbtn = document.createElement("button");
       hbtn.type = "button";
       hbtn.className = "history-open";

@@ -3,38 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GNSoft</title>
+  <title>GNSoft — 프로젝트 선택</title>
     <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
     <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
   <link rel="stylesheet" href="../assets/css/common.css">
   <link rel="stylesheet" href="../assets/css/projects.css">
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <a class="logo" href="dashboard.html"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft</a>
-      <nav class="nav-group">
-        <p class="nav-label">AI 서비스</p>
-        <a class="nav-item" data-icon="⊞" href="dashboard.html">메인 대시보드</a>
-        <a class="nav-item active" data-icon="◳" href="projects.html">프로젝트 <span class="nav-chevron">›</span></a>
-        <a class="nav-item" data-icon="☰" href="query.html">자연어 질의</a>
-        <a class="nav-item" data-icon="⌕" href="rag.html">RAG 공공데이터 검색</a>
-        <a class="nav-item" data-icon="◫" href="pubdata.html">공공데이터 연계</a>
-        <a class="nav-item" data-icon="✦" href="agent.html">업무 자동화</a>
-        <a class="nav-item" data-icon="⌗" href="labeling.html">이미지 분석·라벨링</a>
-        <a class="nav-item" data-icon="⇱" href="report.html">요약·보고서 생성</a>
-        <a class="nav-item" data-icon="▱" href="data.html">데이터 관리</a>
-      </nav>
-      <div class="user-box"><span class="avatar">도현</span><div><div class="user-name">박도현</div><div class="user-team">도로관리처 · 점검분석팀</div></div><span class="gear">⚙</span></div>
-    </aside>
-    <main class="main">
-      <header class="topbar"><h1 class="pj-h1">프로젝트</h1><span class="live">LIVE</span><div class="top-actions"><span class="model-chip" data-model="llm">⚙ gemini-2.5-flash</span><span>?</span></div></header>
+  <div class="pj-landing">
+    <header class="pj-top">
+      <span class="pj-logo"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft AI 플랫폼</span>
+      <span class="gear" title="설정">⚙</span>
+    </header>
 
-      <!-- 갤러리(노트북 목록) -->
+    <main class="pj-main">
+      <!-- 프로젝트 선택(노트북 목록) -->
       <section class="pj-gallery" data-role="gallery">
         <div class="pj-gallery-head">
-          <h2>내 프로젝트</h2>
-          <p>작업을 프로젝트(노트북) 단위로 나눠 관리하고, 소스별 검수 상태를 추적합니다.</p>
+          <h2>프로젝트를 선택하세요</h2>
+          <p>작업은 프로젝트(노트북) 단위로 나뉩니다. 프로젝트를 열면 그 안에서 질의·검색·라벨링·보고서·기록이 따로 관리됩니다.</p>
         </div>
         <div class="pj-grid" data-role="grid"></div>
       </section>
