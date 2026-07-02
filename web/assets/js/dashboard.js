@@ -120,13 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     const data = await ABC.api("/api/dashboard");
 
-    const statGrid = document.querySelector(".stat-grid");
-    if (statGrid && data.stats) {
-      statGrid.innerHTML = data.stats
-        .map((s) => `<article class="card stat-card"><span class="icon-box">${s.icon}</span><em>${s.delta}</em><strong>${s.value}</strong><p>${ABC.escapeHtml(s.label)}</p><small>${ABC.escapeHtml(s.sub)}</small></article>`)
-        .join("");
-    }
-
+    // 상단 통계 카드는 renderRealStats()가 실제 값으로 채운다(MOCK data.stats 미사용).
     renderModels(data.models);
 
     const activity = document.querySelector(".activity-card ul");
@@ -190,7 +184,46 @@ document.addEventListener("DOMContentLoaded", async () => {
     /* 활동 기록 읽기 실패 시 서버/기본값 유지 */
   }
 
-  document.querySelectorAll(".stat-card strong").forEach(countUp);
+  // ── 상단 통계 4개를 '실제 값'으로 교체 (현재 프로젝트 기준) ──────
+  // ① 색인 문서·청크 = RAG 파일(API)  ② 내 작업물 = 저장 아티팩트(localStorage)
+  // ③ 오늘 처리 작업 = 오늘 활동 수     ④ 총 활동 = 누적 활동 수
+  // (실측 불가한 mAP 대신 실제 집계 가능한 값으로 대체)
+  const statCard = (icon, value, label, sub) =>
+    `<article class="card stat-card"><span class="icon-box">${icon}</span><strong>${value}</strong><p>${ABC.escapeHtml(label)}</p><small>${ABC.escapeHtml(sub)}</small></article>`;
+
+  const renderRealStats = async () => {
+    const grid = document.querySelector(".stat-grid");
+    if (!grid) return;
+    const acts = ABC.getActivity ? ABC.getActivity() : [];
+    const arts = ABC.getArtifacts ? ABC.getArtifacts() : [];
+    // 오늘 0시 이후 활동.
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const todayCnt = acts.filter((a) => a.ts >= dayStart.getTime()).length;
+    // 작업물: 라벨/분석 이미지 vs RAG 결과 구분.
+    const imgArts = arts.filter((a) => a.kind === "image").length;
+    const ragArts = arts.filter((a) => a.kind === "rag").length;
+
+    // RAG 색인 문서·청크(현재 프로젝트) — API.
+    let files = 0;
+    let chunks = 0;
+    try {
+      const pid = (ABC.getProject && ABC.getProject()) ? ABC.getProject().id : "";
+      const r = await ABC.api(`/api/rag/files?project=${encodeURIComponent(pid)}`);
+      files = (r.files || []).length;
+      chunks = (r.files || []).reduce((s, f) => s + (f.chunks || 0), 0);
+    } catch {
+      /* 서버 미연결 시 0 */
+    }
+
+    grid.innerHTML =
+      statCard("▱", files.toLocaleString(), "색인 문서·소스", `청크 ${chunks.toLocaleString()}개`) +
+      statCard("⬡", imgArts.toLocaleString(), "라벨·분석 작업물", `RAG 결과 ${ragArts}건`) +
+      statCard("⌁", todayCnt.toLocaleString(), "오늘 처리 작업", "질의·검색·라벨 등") +
+      statCard("◷", acts.length.toLocaleString(), "총 활동 기록", "이 프로젝트 누적");
+    grid.querySelectorAll(".stat-card strong").forEach(countUp);
+  };
+  renderRealStats();
 
   const routes = ["rag.html", "labeling.html", "report.html", "query.html"];
   document.querySelectorAll(".quick-grid button").forEach((button, index) => {
