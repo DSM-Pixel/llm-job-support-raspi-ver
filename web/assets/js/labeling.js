@@ -62,6 +62,28 @@ document.addEventListener("DOMContentLoaded", () => {
     nameEl.textContent = imageName;
   };
 
+  // 박스 오버레이를 '실제 렌더된 이미지 영역'(object-fit:contain 결과)에 맞춘다.
+  // stage 를 꽉 채운 이미지의 contain 사각형을 계산해 boxesEl 을 그 위치·크기로.
+  // → 이미지를 크게 확대해도 박스 좌표(%)가 이미지에 정확히 정렬된다.
+  const fitBoxes = () => {
+    const cw = stage.clientWidth;
+    const ch = stage.clientHeight;
+    const nw = canvasImg.naturalWidth;
+    const nh = canvasImg.naturalHeight;
+    if (!nw || !nh || !cw || !ch) return;
+    const scale = Math.min(cw / nw, ch / nh);
+    const w = nw * scale;
+    const h = nh * scale;
+    boxesEl.style.left = `${(cw - w) / 2}px`;
+    boxesEl.style.top = `${(ch - h) / 2}px`;
+    boxesEl.style.width = `${w}px`;
+    boxesEl.style.height = `${h}px`;
+  };
+  canvasImg.addEventListener("load", fitBoxes);
+  window.addEventListener("resize", () => {
+    if (!modal.hidden) fitBoxes();
+  });
+
   const render = () => {
     boxesEl.innerHTML = boxes
       .map((b, i) => {
@@ -697,6 +719,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setImage(); // 캔버스 이미지·이름 갱신
     render();
     updateModalNav();
+    requestAnimationFrame(fitBoxes); // 새 사진 크기에 맞춰 박스 오버레이 재정렬
   };
 
   prevBtn.addEventListener("click", () => switchInModal(-1));
@@ -713,6 +736,8 @@ document.addEventListener("DOMContentLoaded", () => {
     render();
     updateModalNav();
     modal.hidden = false;
+    // 모달이 표시된 뒤 stage 크기가 정해지므로 한 프레임 뒤 정렬(캐시 이미지 대비).
+    requestAnimationFrame(fitBoxes);
   };
   const closeModal = () => {
     if (isDirty()) {

@@ -273,33 +273,29 @@
 
 .canvas-wrap {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  /* 여백을 새까만 void 대신 패널 톤으로 — '큰 검은 배경'처럼 도드라지지 않게 */
-  background: var(--bg);
-  overflow: auto;
+  padding: 0;
+  background: #0c111c;
+  overflow: hidden;
 }
 
-/* stage는 이미지에 딱 맞게 줄어들어, 박스 좌표(%)가 이미지에 정확히 정렬된다. */
+/* stage 가 캔버스 영역을 꽉 채우고, 이미지는 object-fit:contain 으로 최대 크기로
+   확대(작은 사진도 채움). 박스 오버레이(.canvas-boxes)는 JS(fitBoxes)가 실제
+   렌더된 이미지 영역에 맞춰 정렬하므로 좌표가 어긋나지 않는다. */
 .canvas-stage {
   position: relative;
-  display: inline-block;
-  line-height: 0;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  place-items: center;
   cursor: crosshair;
   touch-action: none;
 }
 
 .canvas-img {
   display: block;
-  max-width: 100%;
-  /* 모달(92vh) - 헤더(~56px) - 캔버스 패딩(12px) 를 꽉 채워 여백 최소화 */
-  max-height: calc(92vh - 62px);
-  width: auto;
-  height: auto;
-  border-radius: 6px;
-  /* 옅은 배경에서도 이미지 경계가 보이게 */
-  box-shadow: 0 0 0 1px var(--line);
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -329,9 +325,9 @@
   display: none;
 }
 
+/* 위치·크기는 JS(fitBoxes)가 렌더된 이미지 영역에 맞춰 설정한다. */
 .canvas-boxes {
   position: absolute;
-  inset: 0;
 }
 
 .draw-box {
