@@ -3,43 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>요약·보고서 생성</title>
+    <title>GNSoft</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+    <script>try{var _a=localStorage.getItem("gnsoft.auth");if(!_a||_a==="null"){location.replace("login.html");}}catch(e){}</script>
+    <script>try{var _p=localStorage.getItem("gnsoft.currentProject");if(!_p||_p==="null"){location.replace("projects.html");}}catch(e){}</script>
     <link rel="stylesheet" href="../assets/css/common.css" />
     <link rel="stylesheet" href="../assets/css/report.css" />
   </head>
   <body>
     <div class="app">
       <aside class="sidebar">
-        <a class="logo" href="dashboard.html">GNSoft</a>
+        <a class="logo" href="dashboard.html"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft</a>
+        <button class="project-switch" type="button" title="프로젝트 전환"><span class="ps-emoji">📁</span><span class="ps-name">프로젝트</span><span class="ps-swap">전환 ⇄</span></button>
         <nav class="nav-group">
-          <p class="nav-label">AI 서비스</p>
-          <a class="nav-item" data-icon="▦" href="dashboard.html"
-            >메인 대시보드</a
-          >
-          <a
-            class="nav-item"
-            data-icon="▤"
-            href="query.html"
-            >자연어 질의</a
-          >
-          <a class="nav-item" data-icon="⌕" href="rag.html"
-            >RAG 공공데이터 검색</a
-          >
-          <a class="nav-item" data-icon="⌗" href="labeling.html"
-            >이미지 분석·라벨링</a
-          >
-          <a class="nav-item active" data-icon="⇱" href="report.html"
-            >요약·보고서 생성 <span class="nav-chevron">›</span></a
-          >
-          <a class="nav-item" data-icon="▱" href="data.html"
-            >데이터 관리</a
-          >
-        </nav>
+        <p class="nav-label">홈</p>
+        <a class="nav-item" data-icon="⊞" href="dashboard.html">메인 대시보드</a>
+        <p class="nav-label">질문 · 검색</p>
+        <a class="nav-item" data-icon="☰" href="query.html">자연어 질의</a>
+        <a class="nav-item" data-icon="⌕" href="rag.html">문서 지식 검색</a>
+        <a class="nav-item" data-icon="◫" href="pubdata.html">공공데이터 통계</a>
+        <p class="nav-label">데이터 작업</p>
+        <a class="nav-item" data-icon="⌗" href="labeling.html">이미지 분석·라벨링</a>
+        <a class="nav-item" data-icon="▱" href="data.html">데이터 관리</a>
+        <p class="nav-label">자동화 · 보고서</p>
+        <a class="nav-item" data-icon="✦" href="agent.html">업무 자동화</a>
+        <a class="nav-item active" data-icon="⇱" href="report.html">요약·보고서 생성 <span class="nav-chevron">›</span></a>
+      </nav>
+        <button class="ai-open" type="button">✦ AI와 대화하기</button>
+        <button class="history-open" type="button" title="내 질의·검색·이미지 작업 기록을 보고 삭제">기록 관리</button>
         <div class="user-box">
-          <span class="avatar">김연</span>
+          <span class="avatar">도현</span>
           <div>
-            <div class="user-name">김연우</div>
-            <div class="user-team">R&D · 청년 1팀</div>
+            <div class="user-name">박도현</div>
+            <div class="user-team">도로관리처 · 점검분석팀</div>
           </div>
           <span class="gear">⚙</span>
         </div>
@@ -48,39 +45,51 @@
         <header class="topbar">
           <h1>요약·보고서 생성</h1>
           <span class="live">LIVE</span>
-          <div class="top-actions"><span>?</span><span>♧</span></div>
+          <div class="top-actions"><span class="model-chip" data-model="llm">⚙ gemini-2.5-flash</span><span>?</span><span>♧</span></div>
         </header>
         <section class="report-layout">
           <aside class="report-form">
-            <h2>▣ 보고서 구성</h2>
+            <h2>◫ 보고서 구성</h2>
+            <p class="report-hint">
+              내가 웹에서 한 활동(질의·검색·이미지 분석·라벨·업로드)을 분석·통계 내어
+              보고서를 만듭니다.
+            </p>
             <h3>보고서 유형</h3>
             <div class="select-list">
               <button class="active">
-                <i class="chart-icon" aria-hidden="true"></i>현황 분석</button
-              ><button>▤ 정책 브리핑</button><button>▢ 검수 요약</button>
-            </div>
-            <h3>데이터 소스 <small>(3)</small></h3>
-            <div class="source-toggle">
-              <span>▱ 도로 파손 신고 현황</span><span class="switch"></span>
-            </div>
-            <div class="source-toggle">
-              <span>▱ 도로보수 예산 현황</span><span class="switch"></span>
-            </div>
-            <div class="source-toggle">
-              <span>▣ Vision AI 검수 리포트</span><span class="switch"></span>
-            </div>
-            <div class="source-toggle">
-              <span>◇ pothole_set_2025Q2</span><span class="switch off"></span>
+                <i class="chart-icon" aria-hidden="true"></i>활동 요약</button
+              ><button>☰ 활동 통계</button><button>▢ 상세 내역</button>
             </div>
             <h3>기간</h3>
-            <div class="chips">
-              <span class="pill">최근 1년</span
-              ><span class="pill active">최근 3년</span
-              ><span class="pill">최근 5년</span>
+            <div class="date-range">
+              <label class="date-field"
+                ><span>시작일</span
+                ><input type="date" class="date-start"
+              /></label>
+              <label class="date-field"
+                ><span>종료일</span
+                ><input type="date" class="date-end"
+              /></label>
             </div>
-            <div class="source-toggle">
+            <div class="source-toggle chart-toggle">
               <b>통계 차트 포함</b><span class="switch"></span>
             </div>
+            <h3>내 작업에서 가져오기</h3>
+            <p class="report-hint">
+              분석·라벨한 이미지와 RAG로 도출한 결과를 보고서에 넣을 수 있습니다.
+            </p>
+            <div class="artifact-list"></div>
+            <h3>직접 사진 첨부</h3>
+            <button class="btn add-report-image" type="button">＋ 사진 추가</button>
+            <input
+              type="file"
+              class="report-image-input"
+              accept="image/*"
+              multiple
+              hidden
+            />
+            <div class="report-thumbs"></div>
+            <p class="staged-note" hidden></p>
             <button class="btn primary wide">✣ 보고서 생성</button>
           </aside>
           <section class="preview-zone">
@@ -92,77 +101,12 @@
               </div>
             </div>
             <article class="report-page card">
-              <header>
-                <p>GNSOFT · 현황 분석</p>
-                <h2>도로 파손 현황 분석 보고서</h2>
-                <span>생성일 2026.6.18 · 소스 3개 · 최근 3년</span>
-              </header>
-              <section>
-                <h3>✣ 요약 <span class="status green">AI 생성</span></h3>
-                <p>
-                  최근 3년간 전국 도로 파손(포트홀) 신고는
-                  <b>연평균 14.2% 증가</b>했으며 2025년 누적 38,402건으로
-                  집계됩니다. 수도권 비중이 41%로 가장 높고, 도로보수 예산
-                  집행률은 평균 87.6%입니다.
-                </p>
-              </section>
-              <section class="line-chart">
-                <h3>연도별 신고 건수 추이</h3>
-                <div><span>2023</span><span>2024</span><span>2025</span></div>
-              </section>
-              <table>
-                <thead>
-                  <tr>
-                    <th>권역</th>
-                    <th>신고 건수</th>
-                    <th>비중</th>
-                    <th>예산 집행률</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>수도권</td>
-                    <td>15,745</td>
-                    <td>41%</td>
-                    <td>92.1%</td>
-                  </tr>
-                  <tr>
-                    <td>충청권</td>
-                    <td>6,238</td>
-                    <td>16%</td>
-                    <td>88.4%</td>
-                  </tr>
-                  <tr>
-                    <td>영남권</td>
-                    <td>9,104</td>
-                    <td>24%</td>
-                    <td>85.0%</td>
-                  </tr>
-                  <tr>
-                    <td>호남권</td>
-                    <td>7,315</td>
-                    <td>19%</td>
-                    <td>83.7%</td>
-                  </tr>
-                </tbody>
-              </table>
-              <footer>
-                <b>출처</b><span class="pill">도로 파손 신고 현황</span
-                ><span class="pill">도로보수 예산 현황</span
-                ><span class="pill">Vision AI 검수 리포트</span>
-              </footer>
-            </article>
-            <div class="page-ask card">
-              <div class="page-ask-row">
-                <input
-                  class="page-ask-input"
-                  type="text"
-                  placeholder="이 보고서 내용에 대해 AI에게 물어보기 (예: 핵심 권고가 뭐야?)"
-                />
-                <button class="btn primary page-ask-btn" type="button">물어보기</button>
+              <div class="report-loading">
+                <span class="report-spinner" aria-hidden="true"></span>
+                <p>보고서를 생성하는 중입니다…</p>
+                <small>내 활동을 분석하고 있어요</small>
               </div>
-              <div class="page-ask-answer" hidden></div>
-            </div>
+            </article>
           </section>
         </section>
       </main>

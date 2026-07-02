@@ -1,0 +1,264 @@
+/* 로그인·회원가입 페이지 */
+.lg-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+/* 상단 바 — 랜딩과 같은 브랜드 그라데이션 */
+.lg-top {
+  display: flex;
+  align-items: center;
+  height: 64px;
+  padding: 0 24px;
+  background: linear-gradient(90deg, #34487f 0%, #29314a 55%, var(--nav) 100%);
+}
+
+[data-theme="dark"] .lg-top {
+  background: linear-gradient(90deg, #1b2338 0%, #141a27 70%);
+}
+
+.lg-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 18px;
+  color: #fff;
+}
+
+.lg-logo .logo-img {
+  width: 34px;
+  height: 34px;
+}
+
+.lg-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.lg-card {
+  width: min(520px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 26px 28px;
+  box-shadow: 0 18px 50px rgba(8, 12, 22, 0.12);
+}
+
+/* 카드 상단 브랜드 — 로고 + 서비스명 */
+.lg-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  margin-bottom: 22px;
+}
+
+.lg-brand-mark {
+  width: 48px;
+  height: 48px;
+}
+
+.lg-brand-name {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.lg-brand-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.lg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* display:flex 가 hidden 속성을 덮지 않도록 — 탭에 맞는 폼만 보이게 */
+.lg-form[hidden] {
+  display: none;
+}
+
+/* 회원가입 필드 — 한 줄에 하나씩(가독성) */
+.lg-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* 폼 안 인라인 알림(오류=빨강 / 성공=초록) */
+.lg-alert {
+  padding: 11px 14px;
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  color: var(--red);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.lg-alert.ok {
+  border-color: color-mix(in srgb, var(--green) 35%, transparent);
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  color: var(--green);
+}
+
+.lg-form .field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lg-form .field input {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.lg-form .field input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.req {
+  color: var(--red);
+}
+
+/* ── 동의 영역 ── */
+.lg-consent {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.lg-consent hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 2px 0;
+}
+
+.lg-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.lg-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+}
+
+.lg-check span {
+  flex: 1;
+}
+
+.req-tag {
+  font-style: normal;
+  color: var(--red);
+  font-weight: 700;
+}
+
+.opt-tag {
+  font-style: normal;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.lg-view {
+  border: none;
+  background: transparent;
+  color: var(--blue);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.lg-submit {
+  padding: 12px 0;
+  font-size: 15px;
+}
+
+.lg-hint {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.lg-dot {
+  color: var(--muted);
+  margin: 0 8px;
+}
+
+.lg-switch {
+  border: none;
+  background: transparent;
+  color: var(--blue);
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.lg-foot {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 회원가입 모달 — 본문에 폼 여백 부여 */
+.lg-signup-modal {
+  max-width: 560px;
+}
+
+.lg-signup-modal .modal-body {
+  padding: 18px;
+}
+
+/* 비밀번호 찾기 안내문(카드 안 인라인 전환) */
+.lg-reset-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* 약관 전문 모달 — 회원가입 모달 위에 겹쳐 뜨도록 */
+#doc-modal {
+  z-index: 110;
+}
+
+.lg-doc-modal {
+  max-width: 640px;
+}
+
+.lg-doc-modal .doc-body {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  font-size: 13.5px;
+  color: var(--text);
+}

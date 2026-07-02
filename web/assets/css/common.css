@@ -2,23 +2,132 @@
   box-sizing: border-box;
 }
 
+/* 세로 스크롤바 자리를 항상 예약/표시 — 내용 길이에 따라 스크롤바가 생겼다
+   사라지며 페이지 전환 때 본문이 좌우로 밀리는(레이아웃 시프트) 현상을 막는다.
+   overflow-y:scroll 은 스크롤 필요 없는 페이지에서도 트랙 자리를 유지한다. */
+html {
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
+}
+
 :root {
-  --blue: #2563ff;
-  --cyan: #10d4d2;
-  --nav: #070b14;
-  --bg: #f3f6fb;
-  --line: #dce3ee;
-  --text: #111827;
+  color-scheme: light; /* 네이티브 컨트롤(날짜 선택 아이콘·스크롤바)을 테마에 맞춤 */
+  --blue: #4660bf; /* 네온 블루(#2563ff) 완화 — 차분한 로열블루 */
+  --cyan: #1fb6a6; /* 차분한 틸 */
+  --nav: #232c3f; /* 새까만 남색 대신 보이는 다크 슬레이트(사이드바) */
+  --bg: #e6eaf2;
+  --surface: #f2f5fa; /* 카드·패널 표면 — 순백 대신 부드러운 오프화이트(눈부심 완화) */
+  --line: #dbe2ec;
+  --text: #232a3a; /* 순흑 대신 부드러운 잉크 */
   --muted: #7a869b;
-  --green: #19b36b;
-  --orange: #f59e0b;
-  --red: #ef4444;
+  --green: #1aa566;
+  --orange: #e3920c;
+  --red: #e2574b;
+}
+
+/* ── 다크 모드 (설정 → 화면 테마) ──────────────────────────────── */
+:root[data-theme="dark"] {
+  color-scheme: dark; /* 날짜 선택 아이콘 등 네이티브 컨트롤을 밝게(다크 테마) */
+  --bg: #0e131b;
+  --surface: #161d28; /* 다크 표면(카드·패널) */
+  --line: #2a3340;
+  --text: #e7ecf3;
+  --muted: #97a4b6;
+}
+
+/* 표면 배경은 --surface 가 자동 처리. 다크에서 추가 보정만. 보고서 문서는 흰 종이 유지. */
+[data-theme="dark"] .card,
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .modal {
+  box-shadow: none;
+}
+
+[data-theme="dark"] .modal-head,
+[data-theme="dark"] .modal-foot,
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .chat-dock {
+  border-color: var(--line);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #0f1620;
+  color: var(--text);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #6b7890;
+}
+
+[data-theme="dark"] .btn {
+  background: #1c2533;
+  color: #d8dfeb;
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .btn.primary {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+
+/* AI 대화 패널 */
+[data-theme="dark"] .ai-chat-log {
+  background: #0e131b;
+}
+
+[data-theme="dark"] .ai-msg.assistant .ai-bubble,
+[data-theme="dark"] .ai-chat-input {
+  background: #151c26;
+  color: var(--text);
+  border-color: var(--line);
+}
+
+/* 입력칸이 일반 다크 input(#0f1620, 거의 검정)으로 튀어서 패널 톤에 맞춤 */
+[data-theme="dark"] .ai-chat-input input {
+  background: #1c2533;
+}
+
+[data-theme="dark"] .ai-panel-scope {
+  background: #131a24;
+  color: #aab6c8;
+}
+
+[data-theme="dark"] .toast {
+  background: #1c2533;
+  color: #e7ecf3;
+}
+
+/* 페이지 보정 — 어두운 패널 위의 진한 텍스트/흰 버튼/안내 박스 */
+[data-theme="dark"] .source-toggle,
+[data-theme="dark"] .source-toggle b {
+  color: var(--text);
+}
+
+[data-theme="dark"] .select-list button,
+[data-theme="dark"] .chips .pill {
+  background: #1c2533;
+  color: #d8dfeb;
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .report-hint,
+[data-theme="dark"] .artifact-empty {
+  background: #131a24;
+  color: #aab6c8;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif;
+  /* 마지막에 기호·이모지 폰트를 둬, 본문 폰트에 없는 아이콘 글리프(▦ ⊞ ⌗ 등)가
+     last-resort 박스(□)로 깨지지 않고 시스템 기호 폰트로 렌더되게 한다. */
+  font-family:
+    "Pretendard", "Noto Sans KR", Arial, "Segoe UI Symbol", "Segoe UI Emoji",
+    "Apple Symbols", "Apple Color Emoji", "Noto Sans Symbols 2", sans-serif;
   font-size: 14px;
   background: var(--bg);
   color: var(--text);
@@ -27,6 +136,39 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* 기본적으로 UI 텍스트(메뉴·버튼·라벨 등)는 드래그 선택·복사 비활성화.
+   대신 실제로 복사가 필요한 곳(입력·편집·답변·문서·결과)만 아래에서 다시 허용. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"],
+.report-page,
+.answer,
+.answer-body,
+.message-body,
+.ai-bubble,
+.ai-chat-log,
+.doc-chunk,
+.doc-body,
+.finding-list,
+.source-snippet,
+.source-list,
+.mm-body,
+.preview-body,
+.hist-info,
+code,
+pre,
+.mono,
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 button,
@@ -47,27 +189,100 @@ textarea {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--nav);
+  /* 단조로운 슬레이트 대신 브랜드 인디고 → 슬레이트 그라데이션으로 색감 부여 */
+  background: linear-gradient(180deg, #34487f 0%, #29314a 42%, var(--nav) 100%);
   color: #d7deec;
 }
 
+[data-theme="dark"] .sidebar {
+  background: linear-gradient(180deg, #1b2338 0%, #141a27 60%);
+}
+
 .logo {
-  padding: 24px 28px 28px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 22px 24px 26px;
   color: #fff;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
+}
+
+.logo-img {
+  width: 38px;
+  height: 38px;
+  flex: none;
+}
+
+/* 현재 프로젝트(노트북) 칩 — 사이드바 로고 아래 */
+.project-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #eef2fb;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.project-switch:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.project-switch .ps-emoji {
+  font-size: 18px;
+  flex: none;
+}
+.project-switch .ps-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.project-switch .ps-swap {
+  flex: none;
+  font-size: 11px;
+  color: #aab6cf;
 }
 
 .nav-group {
   padding: 0 16px;
+  /* 메뉴가 많아 사이드바 높이를 넘겨도 하단 버튼/프로필이 밀려 깨지지 않도록
+     내부 스크롤. 스크롤바는 은은하게. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* 스크롤바 자리를 항상 예약 — JS가 칩·버튼을 끼워넣어 메뉴가 넘칠 때
+     스크롤바가 생기며 메뉴 글자가 옆으로 밀리는 현상을 막는다. */
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.nav-group::-webkit-scrollbar {
+  width: 6px;
+}
+.nav-group::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
 }
 
 .nav-label {
-  margin: 0 0 10px 10px;
+  margin: 0 0 8px 10px;
   color: #56627a;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: .08em;
+}
+
+/* 두 번째 그룹부터는 위 그룹과 시각적으로 분리 */
+.nav-label:not(:first-child) {
+  margin-top: 16px;
 }
 
 .nav-item {
@@ -242,12 +457,12 @@ textarea {
   background: #e8efff;
   color: #174ce6;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .user-name {
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .user-team {
@@ -257,7 +472,21 @@ textarea {
 
 .gear {
   margin-left: auto;
-  color: #77849b;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 9px;
+  color: #aab4c6;
+  font-size: 19px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.gear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .main {
@@ -271,7 +500,7 @@ textarea {
   gap: 12px;
   padding: 0 24px;
   border-bottom: 1px solid #e6ebf3;
-  background: #fff;
+  background: var(--surface);
 }
 
 .topbar h1 {
@@ -289,7 +518,7 @@ textarea {
   background: #d8faf4;
   color: #007f75;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .live::before {
@@ -302,21 +531,84 @@ textarea {
 
 .top-actions {
   display: flex;
+  align-items: center;
   gap: 18px;
   margin-left: auto;
   color: #738097;
   font-size: 18px;
 }
 
+/* AI 모델 칩 — 클릭하면 설정에서 모델을 바꾼다. 모든 AI 페이지 공통 */
+.model-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgba(99, 120, 160, 0.1);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.model-chip:hover {
+  color: var(--blue);
+  background: rgba(70, 96, 191, 0.12);
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .content {
   padding: 22px 26px;
+}
+
+/* 설정 모달 푸터 — 왼쪽 로그아웃, 오른쪽 취소/저장 */
+.settings-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-foot .foot-spacer {
+  flex: 1;
+}
+
+.modal-logout {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 40%, transparent);
+}
+
+.modal-logout:hover {
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+}
+
+/* 카드 우상단 등에서 쓰는 텍스트 링크(버튼/앵커 공용) */
+.card-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--blue);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.card-link:hover {
+  text-decoration: underline;
 }
 
 .card {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(20, 30, 50, .08);
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(20, 30, 50, .05);
 }
 
 .btn {
@@ -328,9 +620,9 @@ textarea {
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
-  color: #1f2937;
-  font-weight: 800;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
 }
 
 .btn.primary {
@@ -347,15 +639,15 @@ textarea {
   padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   color: #526079;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .pill.active {
   border-color: #8fb0ff;
-  background: #eff5ff;
+  background: rgba(70, 96, 191, 0.08);
   color: var(--blue);
 }
 
@@ -365,10 +657,10 @@ textarea {
   height: 34px;
   place-items: center;
   border-radius: 7px;
-  background: #eef4ff;
+  background: rgba(70, 96, 191, 0.10);
   color: var(--blue);
   font-size: 17px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .switch {
@@ -386,7 +678,7 @@ textarea {
   height: 14px;
   margin-left: auto;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
 }
 
 .status {
@@ -395,7 +687,7 @@ textarea {
   padding: 4px 8px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .status.green {
@@ -409,13 +701,13 @@ textarea {
 }
 
 .status.blue {
-  background: #eef4ff;
-  color: #2563ff;
+  background: rgba(70, 96, 191, 0.10);
+  color: var(--blue);
 }
 
 .status.gray {
-  background: #eef1f6;
-  color: #475569;
+  background: rgba(99, 120, 160, 0.10);
+  color: var(--muted);
 }
 
 .switch.off {
@@ -435,7 +727,7 @@ textarea {
   border-radius: 8px;
   background: #111827;
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
   opacity: 0;
   transform: translateY(10px);
   transition: .2s ease;
@@ -508,13 +800,20 @@ textarea {
   max-width: 540px;
   max-height: 90vh;
   overflow: hidden;
-  background: #fff;
+  background: var(--surface);
   border-radius: 12px;
   box-shadow: 0 24px 60px rgba(8, 12, 22, 0.4);
 }
 
+/* 라벨링 모달은 사진 작업 공간 — 화면을 거의 꽉 채워 여백을 최소화한다. */
 .modal.label-modal {
-  max-width: 1080px;
+  max-width: min(96vw, 1600px);
+  height: 92vh;
+  max-height: 92vh;
+}
+
+.modal.help-modal {
+  max-width: 880px;
 }
 
 .modal-head {
@@ -536,10 +835,10 @@ textarea {
   height: 30px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  color: #475569;
+  background: var(--surface);
+  color: var(--muted);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -547,6 +846,84 @@ textarea {
   flex: 1;
   min-height: 0;
   overflow: auto;
+}
+
+/* 모델 사용 현황 상세(Gemini 한도 사용률 %) */
+.mm-body {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.mm-row {
+  font-size: 13px;
+}
+
+.mm-row:not(.mm-bar-row) {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mm-row > span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.mm-row > b {
+  color: var(--text);
+  font-weight: 700;
+  text-align: right;
+}
+
+.mm-bar-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.mm-bar-top span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.mm-bar-top b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.mm-bar {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.mm-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--blue);
+  transition: width 0.4s ease;
+}
+
+.mm-bar.warn > span {
+  background: var(--orange);
+}
+
+.mm-bar.crit > span {
+  background: var(--red);
+}
+
+.mm-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
 }
 
 .modal-form {
@@ -559,8 +936,8 @@ textarea {
   display: grid;
   gap: 6px;
   font-size: 13px;
-  font-weight: 800;
-  color: #334155;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .modal-form .field input[type="text"],
@@ -586,6 +963,25 @@ textarea {
   border-top: 1px solid var(--line);
 }
 
+/* 삭제 확인 모달의 위험(빨강) 버튼 + 안내 문구 (데이터·보고서 등 공통) */
+.btn.danger {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.btn.danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.confirm-modal .confirm-text {
+  margin: 0;
+  padding: 18px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
 /* 페이지 내 'AI에게 물어보기' (보고서/라벨링 공통) */
 .page-ask {
   margin-top: 14px;
@@ -598,33 +994,34 @@ textarea {
   margin-bottom: 10px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.01em;
 }
 
+/* RAG '웹에서 찾아넣기' 검색칸과 동일한 사각 박스 + 버튼 느낌 */
 .page-ask-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   gap: 8px;
 }
 
 .page-ask-input {
-  flex: 1;
   min-width: 0;
-  height: 40px;
+  min-height: 38px;
   padding: 0 14px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 8px;
   outline: none;
+  color: var(--text);
 }
 
 .page-ask-input:focus {
   border-color: #8fb0ff;
-  box-shadow: 0 0 0 3px rgba(37, 99, 255, 0.1);
 }
 
-.page-ask-row .btn.primary {
-  border-radius: 999px;
-  padding: 0 18px;
+.page-ask-row .btn {
+  min-width: 64px;
+  border-radius: 8px;
 }
 
 .page-ask-answer {
@@ -647,10 +1044,10 @@ textarea {
   height: 26px;
   place-items: center;
   border-radius: 8px;
-  background: linear-gradient(145deg, #2dd4bf, #2563ff);
+  background: linear-gradient(145deg, var(--cyan), var(--blue));
   color: #fff;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .page-ask-answer[hidden] {
@@ -665,13 +1062,478 @@ textarea {
   margin-bottom: 0;
 }
 
+/* ── AI와 대화하기: 사이드바 버튼 + 우측 슬라이드 대화 패널 ─────── */
+.ai-open {
+  margin: 8px 16px 6px;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 18px -8px rgba(37, 99, 255, 0.6);
+}
+
+.ai-open:hover {
+  filter: brightness(1.05);
+}
+
+.ai-open.is-on {
+  filter: brightness(0.92);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+/* 'AI와 대화하기' 아래 작은 '기록 관리' 링크 */
+.history-open {
+  margin: 0 16px 8px;
+  padding: 4px 4px;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-open:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* ── 기록 관리 모달 ─────────────────────────────────────────────── */
+.modal.history-modal {
+  max-width: 640px;
+}
+
+.history-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.history-toolbar .hist-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.history-toolbar .hist-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px 14px;
+}
+
+.hist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.hist-row:hover {
+  background: rgba(70, 96, 191, 0.06);
+}
+
+.hist-check {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.hist-ic {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 7px;
+  background: rgba(70, 96, 191, 0.1);
+  color: var(--blue);
+  font-size: 13px;
+}
+
+.hist-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.hist-info b {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hist-info small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.hist-thumb {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  cursor: zoom-in;
+}
+
+/* 사진 크게 보기(라이트박스) */
+.lightbox-overlay {
+  z-index: 200;
+  cursor: zoom-out;
+  background: rgba(8, 12, 22, 0.82);
+}
+
+.lightbox-img {
+  max-width: 96vw;
+  max-height: 92vh;
+  border-radius: 10px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+}
+
+.hist-empty {
+  padding: 38px 18px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ai-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 130;
+  display: flex;
+  flex-direction: column;
+  width: min(400px, 92vw);
+  height: 100vh;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -18px 0 50px -30px rgba(8, 12, 22, 0.5);
+  transform: translateX(100%);
+  transition: transform 0.22s ease;
+}
+
+.ai-panel.open {
+  transform: translateX(0);
+}
+
+/* 패널이 열리면 본문(.app)을 패널 너비만큼 왼쪽으로 밀어 나란히 보이게 한다.
+   넓은 화면에서만 적용(좁은 화면에선 패널이 거의 전체폭이라 그대로 오버레이). */
+.app,
+.pj-landing {
+  transition: margin-right 0.22s ease;
+}
+
+@media (min-width: 1100px) {
+  body.ai-pushed .app,
+  body.ai-pushed .pj-landing {
+    margin-right: 400px;
+  }
+}
+
+.ai-panel[hidden] {
+  display: none;
+}
+
+.ai-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ai-panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ai-ava {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 8px;
+  background: linear-gradient(145deg, var(--cyan), var(--blue));
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.ai-ava.sm {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+
+.ai-panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-panel-clear {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ai-panel-clear:hover {
+  background: rgba(70, 96, 191, 0.07);
+}
+
+.ai-panel-close {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* 일반 질문을 자연어 질의로 보내는 안내 링크 */
+.ai-route {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.ai-panel-scope {
+  margin: 0;
+  padding: 10px 18px;
+  background: rgba(70, 96, 191, 0.07);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ai-chat-log {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg);
+}
+
+.ai-msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  max-width: 100%;
+}
+
+.ai-msg.user {
+  justify-content: flex-end;
+}
+
+.ai-bubble {
+  max-width: 80%;
+  padding: 10px 13px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+
+.ai-msg.assistant .ai-bubble {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top-left-radius: 4px;
+}
+
+.ai-msg.user .ai-bubble {
+  background: var(--blue);
+  color: #fff;
+  border-top-right-radius: 4px;
+}
+
+.ai-bubble p {
+  margin: 0 0 6px;
+}
+
+.ai-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-bubble ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.ai-typing {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.ai-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #b8c3d5;
+  animation: ai-blink 1.2s infinite;
+}
+
+.ai-typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ai-typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes ai-blink {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+.ai-chat-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.ai-chat-input input {
+  min-width: 0;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  outline: none;
+}
+
+.ai-chat-input input:focus {
+  border-color: #8fb0ff;
+}
+
+.ai-chat-input .ai-send {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 16px;
+}
+
 /* ── 사용법 모달 (?) ────────────────────────────────────────────── */
-.help-trigger {
-  font-weight: 900;
+.top-actions .help-trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--blue);
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.top-actions .help-trigger:hover {
+  filter: brightness(1.08);
+}
+
+/* 다크모드에선 파란 원이 너무 튀어 — 은은한 중립 버튼으로 */
+[data-theme="dark"] .top-actions .help-trigger {
+  background: rgba(255, 255, 255, 0.08);
+  color: #c2ccde;
+  filter: none;
+}
+
+[data-theme="dark"] .top-actions .help-trigger:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
 }
 
 .help-slide {
-  padding: 4px 2px;
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 24px;
+  padding: 24px 28px;
+}
+
+/* 실제 화면 캡쳐 미리보기 */
+.help-shot {
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 30px -18px rgba(8, 12, 22, 0.45);
+  background: rgba(99, 120, 160, 0.08);
+}
+
+.help-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+}
+
+.help-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.help-go {
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 10px 16px;
+}
+
+@media (max-width: 760px) {
+  .help-slide {
+    grid-template-columns: 1fr;
+  }
+  .help-shot {
+    max-height: 220px;
+  }
 }
 
 .help-badge {
@@ -679,10 +1541,10 @@ textarea {
   margin-bottom: 8px;
   padding: 2px 10px;
   border-radius: 999px;
-  background: #eef4ff;
+  background: rgba(70, 96, 191, 0.10);
   color: var(--blue);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .help-title {

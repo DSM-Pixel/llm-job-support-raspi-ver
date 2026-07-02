@@ -15,13 +15,13 @@
   background: transparent;
   color: #64748b;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 800;
   cursor: pointer;
 }
 
 .row-menu:hover {
-  background: #eef1f6;
-  color: #1f2937;
+  background: rgba(120, 140, 180, 0.16);
+  color: var(--text);
 }
 
 .row-pop {
@@ -33,7 +33,7 @@
   padding: 6px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
 }
 
@@ -46,14 +46,14 @@
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #334155;
+  color: var(--text);
   font-weight: 700;
   text-align: left;
   cursor: pointer;
 }
 
 .row-pop button:hover {
-  background: #f3f6fb;
+  background: rgba(120, 140, 180, 0.12);
 }
 
 .row-pop button[data-act="delete"] {
@@ -63,6 +63,13 @@
 .preview-body .field.row {
   border-bottom: 1px solid #eef2f6;
   padding-bottom: 8px;
+}
+
+/* 프로젝트 소스·검수로 가는 연결 링크(표 위) */
+.data-project-link {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 
 .data-stats {
@@ -87,8 +94,8 @@
 
 .data-stats p {
   margin: 4px 0 0;
-  color: #7a869b;
-  font-weight: 800;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .table-tools {
@@ -123,6 +130,43 @@
   overflow: hidden;
 }
 
+/* 데이터셋 미리보기 — 실제 파일(업로드·내 작업물)의 사진 */
+.preview-frames {
+  display: grid;
+  gap: 8px;
+}
+
+.preview-frame {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(120, 140, 170, 0.08);
+}
+
+.preview-note {
+  margin: -4px 0 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.preview-note.no-file {
+  margin: 0;
+  padding: 16px;
+  line-height: 1.6;
+  text-align: center;
+  border-radius: 8px;
+  background: rgba(120, 140, 170, 0.08);
+}
+
+/* 선택된 필터 칩을 또렷하게(채운 파랑) 구분 */
+.table-tools .chips .pill.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -131,20 +175,21 @@ table {
 th,
 td {
   padding: 12px 16px;
-  border-bottom: 1px solid #e5ebf4;
-  color: #334155;
+  /* 행 구분선 — 흰색처럼 튀지 않게 은은한 반투명 회색(라이트·다크 공통) */
+  border-bottom: 1px solid rgba(120, 140, 170, 0.16);
+  color: var(--text);
   text-align: left;
   vertical-align: middle;
 }
 
 th {
-  background: #f5f7fb;
-  color: #718097;
-  font-weight: 900;
+  background: rgba(99, 120, 170, 0.13);
+  color: var(--muted);
+  font-weight: 800;
 }
 
 td b {
-  color: #1f2937;
+  color: var(--text);
 }
 
 .name-cell {
@@ -159,7 +204,7 @@ td b {
   height: 28px;
   place-items: center;
   border-radius: 6px;
-  background: #eef1f6;
+  background: rgba(70, 96, 191, 0.12);
   color: var(--blue);
   font-size: 15px;
   font-weight: 700;
@@ -169,7 +214,7 @@ td b {
 td small {
   display: block;
   margin-top: 4px;
-  color: #9aa6ba;
+  color: var(--muted);
 }
 
 input[type="checkbox"] {
@@ -177,8 +222,12 @@ input[type="checkbox"] {
   height: 16px;
 }
 
+tbody tr {
+  cursor: pointer;
+}
+
 tbody tr:hover {
-  background: #f8fbff;
+  background: rgba(70, 96, 191, 0.1);
 }
 
 @media (max-width: 1300px) {

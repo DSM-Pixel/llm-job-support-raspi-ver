@@ -3,27 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RAG 공공데이터 검색</title>
+  <title>GNSoft</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+    <script>try{var _a=localStorage.getItem("gnsoft.auth");if(!_a||_a==="null"){location.replace("login.html");}}catch(e){}</script>
+    <script>try{var _p=localStorage.getItem("gnsoft.currentProject");if(!_p||_p==="null"){location.replace("projects.html");}}catch(e){}</script>
   <link rel="stylesheet" href="../assets/css/common.css">
   <link rel="stylesheet" href="../assets/css/rag.css">
 </head>
 <body>
   <div class="app">
     <aside class="sidebar">
-      <a class="logo" href="dashboard.html">GNSoft</a>
+      <a class="logo" href="dashboard.html"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft</a>
+      <button class="project-switch" type="button" title="프로젝트 전환"><span class="ps-emoji">📁</span><span class="ps-name">프로젝트</span><span class="ps-swap">전환 ⇄</span></button>
       <nav class="nav-group">
-        <p class="nav-label">AI 서비스</p>
-        <a class="nav-item" data-icon="▦" href="dashboard.html">메인 대시보드</a>
-        <a class="nav-item" data-icon="▤" href="query.html">자연어 질의</a>
-        <a class="nav-item active" data-icon="⌕" href="rag.html">RAG 공공데이터 검색 <span class="nav-chevron">›</span></a>
+        <p class="nav-label">홈</p>
+        <a class="nav-item" data-icon="⊞" href="dashboard.html">메인 대시보드</a>
+        <p class="nav-label">질문 · 검색</p>
+        <a class="nav-item" data-icon="☰" href="query.html">자연어 질의</a>
+        <a class="nav-item active" data-icon="⌕" href="rag.html">문서 지식 검색 <span class="nav-chevron">›</span></a>
+        <a class="nav-item" data-icon="◫" href="pubdata.html">공공데이터 통계</a>
+        <p class="nav-label">데이터 작업</p>
         <a class="nav-item" data-icon="⌗" href="labeling.html">이미지 분석·라벨링</a>
-        <a class="nav-item" data-icon="⇱" href="report.html">요약·보고서 생성</a>
         <a class="nav-item" data-icon="▱" href="data.html">데이터 관리</a>
+        <p class="nav-label">자동화 · 보고서</p>
+        <a class="nav-item" data-icon="✦" href="agent.html">업무 자동화</a>
+        <a class="nav-item" data-icon="⇱" href="report.html">요약·보고서 생성</a>
       </nav>
-      <div class="user-box"><span class="avatar">김연</span><div><div class="user-name">김연우</div><div class="user-team">R&D · 청년 1팀</div></div><span class="gear">⚙</span></div>
+      <button class="ai-open" type="button">✦ AI와 대화하기</button>
+      <button class="history-open" type="button" title="내 질의·검색·이미지 작업 기록을 보고 삭제">기록 관리</button>
+      <div class="user-box"><span class="avatar">도현</span><div><div class="user-name">박도현</div><div class="user-team">도로관리처 · 점검분석팀</div></div><span class="gear">⚙</span></div>
     </aside>
     <main class="main">
-      <header class="topbar"><h1>RAG 공공데이터 검색</h1><span class="live">LIVE</span><div class="top-actions"><span>?</span><span>♧</span></div></header>
+      <header class="topbar"><h1>문서 지식 검색</h1><span class="live">LIVE</span><div class="top-actions"><span class="model-chip" data-model="llm">⚙ gemini-2.5-flash</span><span>?</span><span>♧</span></div></header>
       <section class="rag-layout">
         <aside class="knowledge">
           <h2><span class="kb-icon">▥</span>지식베이스</h2>
@@ -37,33 +49,33 @@
             <label class="upload card">
               <input type="file" class="upload-input" multiple accept=".txt,.md,.pdf">
               <span class="upload-icon">⇧</span>
-              <b>내 문서 업로드</b>
-              <small>txt · md · pdf · 여러 개 — 업로드하면 검색 근거에 추가</small>
+              <b>내 문서 선택</b>
+              <small>txt · md · pdf</small>
             </label>
+            <div class="staged-files" hidden></div>
             <div class="index-actions">
-              <button class="btn primary" title="업로드/샘플 문서를 검색 가능한 색인으로 만듭니다">문서 색인</button>
-              <button class="btn flat" title="추가·삭제한 문서를 비우고 기본 샘플만 남깁니다">↻ 초기화</button>
+              <button class="btn primary index-btn" title="선택한 문서를 참고중인 파일(검색 근거)에 추가합니다">문서 색인</button>
+              <button class="btn flat stage-clear" title="아직 색인하지 않은 선택만 취소합니다(참고중인 파일은 그대로)">선택 취소</button>
             </div>
             <p class="kb-help">
-              <b>문서 색인</b>은 문서를 검색 가능한 형태로 등록하는 것이고,
-              <b>초기화</b>는 추가/삭제한 문서를 비우고 기본 샘플만 남깁니다.
+              문서를 <b>선택</b>한 뒤 <b>문서 색인</b>을 눌러야 ‘참고중인 파일’에 추가됩니다.
+              <b>선택 취소</b>는 색인 전 선택만 비웁니다.
             </p>
             <div class="indexed">✓ 색인됨</div>
           </section>
 
           <section class="kb-section">
-            <h3><span>◎</span>웹에서 찾아 넣기</h3>
+            <h3><span>◉</span>웹에서 찾아 넣기</h3>
             <div class="search-line"><input value="포트홀 도로 보수 기준"><button>검색</button></div>
             <div class="web-results"></div>
           </section>
 
           <section class="kb-section">
             <h3><span>⌘</span>참고중인 파일</h3>
-            <ul class="file-list">
-              <li><i>▤</i><b>포트홀_보수_기준.md</b><small>청크 5개</small></li>
-              <li><i>▤</i><b>도로_균열_점검.md</b><small>청크 4개</small></li>
-              <li><i>▤</i><b>시설물_점검_주기.md</b><small>청크 5개</small></li>
-            </ul>
+            <ul class="file-list"></ul>
+            <button class="btn flat wide reset-all" type="button" title="참고중인 파일 전체를 비우고 기본 샘플만 남깁니다">
+              ↻ 전체 참고 파일 초기화
+            </button>
           </section>
         </aside>
 
@@ -71,13 +83,12 @@
           <div class="ask-box">
             <label><span>2</span>질문하기</label>
             <div class="ask-line"><input value="심각한 포트홀은 며칠 안에 보수해야 해?"><button class="btn primary">→ 질문하기</button></div>
-            <div class="chips"><span>추천</span><span class="pill active">심각한 포트홀은 며칠 안에 보수해야 해?</span><span class="pill">거북등 균열은 어떻게 보수해?</span><span class="pill">가드레일 점검 주기는 어떻게 돼?</span><span class="pill">우천 시 쓸 수 있는 긴급 보수 공법은?</span></div>
           </div>
 
           <article class="card answer">
             <div class="answer-head"><h3>✣ AI 답변 <span class="status green">하이브리드 RAG</span></h3><span class="status green">신뢰도 0.93</span></div>
             <p>포트홀은 등급에 따라 보수 기한이 다릅니다. <b>심각(상) 등급은 발견 즉시 24시간 이내 긴급 보수</b> 대상입니다. <sup>1</sup> 보통(중)은 7일 이내, 경미(하)는 정기 보수 주기에 포함해 처리합니다. <sup>2</sup></p>
-            <div class="answer-actions"><button class="btn">보고서로 생성</button><button class="btn">복사</button><small>top-K 4 · 14 chunks · 0.41s</small></div>
+            <div class="answer-actions"><small>top-K 4 · 14 chunks · 0.41s</small></div>
           </article>
 
           <h2 class="section-title">⌕ 검색된 근거 <small>3 sources · RRF</small></h2>

@@ -3,44 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>이미지 분석·라벨링</title>
+  <title>GNSoft</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+    <script>try{var _a=localStorage.getItem("gnsoft.auth");if(!_a||_a==="null"){location.replace("login.html");}}catch(e){}</script>
+    <script>try{var _p=localStorage.getItem("gnsoft.currentProject");if(!_p||_p==="null"){location.replace("projects.html");}}catch(e){}</script>
   <link rel="stylesheet" href="../assets/css/common.css">
   <link rel="stylesheet" href="../assets/css/labeling.css">
 </head>
 <body>
   <div class="app">
     <aside class="sidebar">
-      <a class="logo" href="dashboard.html">GNSoft</a>
+      <a class="logo" href="dashboard.html"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft</a>
+      <button class="project-switch" type="button" title="프로젝트 전환"><span class="ps-emoji">📁</span><span class="ps-name">프로젝트</span><span class="ps-swap">전환 ⇄</span></button>
       <nav class="nav-group">
-        <p class="nav-label">AI 서비스</p>
-        <a class="nav-item" data-icon="▦" href="dashboard.html">메인 대시보드</a>
-        <a class="nav-item" data-icon="▤" href="query.html">자연어 질의</a>
-        <a class="nav-item" data-icon="⌕" href="rag.html">RAG 공공데이터 검색</a>
+        <p class="nav-label">홈</p>
+        <a class="nav-item" data-icon="⊞" href="dashboard.html">메인 대시보드</a>
+        <p class="nav-label">질문 · 검색</p>
+        <a class="nav-item" data-icon="☰" href="query.html">자연어 질의</a>
+        <a class="nav-item" data-icon="⌕" href="rag.html">문서 지식 검색</a>
+        <a class="nav-item" data-icon="◫" href="pubdata.html">공공데이터 통계</a>
+        <p class="nav-label">데이터 작업</p>
         <a class="nav-item active" data-icon="⌗" href="labeling.html">이미지 분석·라벨링 <span class="nav-chevron">›</span></a>
-        <a class="nav-item" data-icon="⇱" href="report.html">요약·보고서 생성</a>
         <a class="nav-item" data-icon="▱" href="data.html">데이터 관리</a>
+        <p class="nav-label">자동화 · 보고서</p>
+        <a class="nav-item" data-icon="✦" href="agent.html">업무 자동화</a>
+        <a class="nav-item" data-icon="⇱" href="report.html">요약·보고서 생성</a>
       </nav>
-      <div class="user-box"><span class="avatar">김연</span><div><div class="user-name">김연우</div><div class="user-team">R&D · 청년 1팀</div></div><span class="gear">⚙</span></div>
+      <button class="ai-open" type="button">✦ AI와 대화하기</button>
+      <button class="history-open" type="button" title="내 질의·검색·이미지 작업 기록을 보고 삭제">기록 관리</button>
+      <div class="user-box"><span class="avatar">도현</span><div><div class="user-name">박도현</div><div class="user-team">도로관리처 · 점검분석팀</div></div><span class="gear">⚙</span></div>
     </aside>
     <main class="main">
       <header class="topbar"><h1>이미지 분석·라벨링</h1><span class="live">LIVE</span><div class="top-actions"><span>?</span><span>♧</span></div></header>
-      <nav class="mode-tabs"><button class="active">▤ 설명 분석</button><button>⌗ 박스로 찾기</button><span>⚙ gemini-2.5-flash · 멀티모달</span></nav>
+      <nav class="mode-tabs"><button class="active">☰ 설명 분석</button><button>⌗ 박스로 찾기</button><span class="model-chip" data-model="vision">⚙ gemini-2.5-flash · 멀티모달</span></nav>
       <section class="label-layout">
         <aside class="label-panel">
-          <div class="road-preview">
+          <div class="road-preview" title="클릭하면 크게 열어 라벨링합니다" role="button">
             <img class="preview-img" alt="분석 대상 이미지" hidden />
             <div class="road"></div>
             <span class="lane"></span>
             <div class="preview-boxes"></div>
           </div>
-          <p class="sample">샘플: <span class="sample-name">road_2026Q1_0142.jpg</span> <a href="#" class="replace-image">교체</a></p>
-          <input type="file" class="image-input" accept="image/*" hidden />
+          <p class="sample">현재: <span class="sample-name">road_2026Q1_0142.jpg</span> <span class="image-count">이미지 1개</span></p>
+          <div class="image-actions">
+            <button class="btn flat add-images" type="button">＋ 사진 추가</button>
+            <button class="btn flat add-folder" type="button">폴더 선택</button>
+          </div>
+          <input type="file" class="image-input" accept="image/*" multiple hidden />
+          <input type="file" class="folder-input" accept="image/*" webkitdirectory hidden />
+          <div class="image-strip"></div>
+          <button class="btn primary wide batch-label" type="button" hidden>전체 AI 라벨링</button>
           <button class="btn flat wide open-label-modal" type="button">⛶ 크게 열어 라벨링</button>
+          <hr class="panel-sep" />
           <h3>분석 시나리오 (프리셋)</h3>
           <div class="radio-list"><label class="active"><span></span>도로 파손/포트홀 찾기</label><label><span></span>이미지 전체 설명</label><label><span></span>객체 목록 뽑기</label><label><span></span>이상 상황 탐지</label></div>
           <h3>직접 질문 <small>(선택 · 입력 시 프리셋 대체)</small></h3>
           <textarea placeholder="예: 이 사진에서 보행자에게 위험한 요소를 찾아줘"></textarea>
-          <button class="btn primary wide">✣ 분석하기</button>
+          <button class="btn primary wide analyze-btn">✣ 분석하기</button>
         </aside>
         <section class="result-panel">
           <article class="card result-card">
@@ -50,19 +70,8 @@
               <li><span class="badge orange">중</span>포트홀 — 중앙. 지름 약 18cm. 차량 손상 우려, 7일 이내 보수.</li>
               <li><span class="badge orange">중</span>선형 균열 — 우측 상단으로 진행. 표면 실링 권장.</li>
             </ul>
-            <p class="result-hint">박스 라벨링·저장은 왼쪽 <b>‘크게 열어 라벨링’</b> 또는 상단 <b>‘박스로 찾기’</b> 탭에서 합니다.</p>
+            <p class="result-hint">사진을 추가하면 <b>라벨링 화면이 바로 열립니다</b>. 다시 열려면 미리보기 사진을 클릭하거나 <b>‘크게 열어 라벨링’</b>을 누르세요.</p>
           </article>
-          <div class="page-ask card">
-            <div class="page-ask-row">
-              <input
-                class="page-ask-input"
-                type="text"
-                placeholder="이 이미지에 대해 AI에게 물어보기 (예: 위험한 손상이 있어?)"
-              />
-              <button class="btn primary page-ask-btn" type="button">물어보기</button>
-            </div>
-            <div class="page-ask-answer" hidden></div>
-          </div>
         </section>
       </section>
     </main>
@@ -73,13 +82,18 @@
     <div class="modal label-modal" role="dialog" aria-modal="true" aria-label="라벨 편집">
       <header class="modal-head">
         <h3>라벨 편집 — <span class="modal-imgname">road_2026Q1_0142.jpg</span></h3>
+        <div class="modal-nav" hidden>
+          <button class="btn flat modal-prev" type="button" aria-label="이전 사진">‹ 이전</button>
+          <span class="modal-pos">1 / 1</span>
+          <button class="btn flat modal-next" type="button" aria-label="다음 사진">다음 ›</button>
+        </div>
         <button class="modal-close" type="button" aria-label="닫기">✕</button>
       </header>
       <div class="modal-body">
         <div class="canvas-wrap">
           <div class="canvas-stage">
             <img class="canvas-img" alt="라벨 대상 이미지" />
-            <div class="canvas-fallback">이미지를 업로드하면 여기에 표시됩니다 (없어도 그리기 가능)</div>
+            <div class="canvas-fallback">사진을 먼저 추가하면 여기에서 라벨링할 수 있습니다</div>
             <div class="canvas-boxes"></div>
           </div>
         </div>
@@ -88,13 +102,23 @@
             <input class="modal-class" value="포트홀" />
           </label>
           <div class="modal-actions">
-            <button class="btn primary modal-detect" type="button">✣ AI 자동 탐지</button>
+            <button class="btn primary modal-detect" type="button" title="도로 파손 특화 모델(YOLO)로 포트홀·균열을 탐지">✣ 파손 자동 탐지</button>
+            <button class="btn modal-detect-all" type="button" title="차량·보행자·표지판 등 이미지 속 모든 객체를 탐지해 원하는 것만 골라 라벨링">◎ 전체 객체 탐지</button>
             <button class="btn modal-clear" type="button">전체 지우기</button>
+          </div>
+          <div class="detect-filter" hidden>
+            <h4>탐지된 객체 <small>원하는 클래스만 체크해 추가</small></h4>
+            <div class="filter-chips"></div>
+            <div class="filter-actions">
+              <button class="btn flat filter-cancel" type="button">취소</button>
+              <button class="btn primary filter-apply" type="button">선택 객체만 라벨 추가</button>
+            </div>
           </div>
           <h4>박스 목록 <span class="box-total">0</span>개</h4>
           <ul class="box-list"></ul>
           <p class="modal-hint">이미지 위를 <b>드래그</b>해 박스를 그립니다. 목록의 ✕로 개별 삭제, 클래스명은 바로 수정. <b>저장</b>하면 박스가 미리보기에 유지됩니다.</p>
           <div class="modal-export">
+            <button class="btn modal-export-img" type="button" title="라벨 박스가 그려진 이미지 내려받기">라벨 이미지 다운로드</button>
             <button class="btn modal-export-coco" type="button" title="COCO JSON 형식으로 라벨 파일 내려받기">COCO 내보내기</button>
             <button class="btn modal-export-yolo" type="button" title="YOLO txt 형식으로 라벨 파일 내려받기">YOLO 내보내기</button>
             <button class="btn primary modal-save" type="button" title="현재 박스를 라벨 데이터셋으로 저장하고 미리보기에 반영">라벨 데이터셋에 저장</button>

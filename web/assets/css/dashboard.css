@@ -13,13 +13,42 @@
 .date {
   margin: 0 0 6px;
   color: #00a99d;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
 }
 
 .hero-row h2 {
   margin: 0;
   font-size: 22px;
+}
+
+/* ── 히어로 질문창(허브) — 모든 기능의 입구 ── */
+.hero-ask {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.hero-ask-input {
+  flex: 1;
+  min-width: 0;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14.5px;
+  box-shadow: 0 3px 14px rgba(8, 12, 22, 0.05);
+}
+
+.hero-ask-input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.hero-ask-go {
+  white-space: nowrap;
+  padding: 0 18px;
 }
 
 .stat-grid {
@@ -41,7 +70,7 @@
   right: 18px;
   color: var(--green);
   font-style: normal;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .stat-card strong {
@@ -54,8 +83,8 @@
 .stat-card p,
 .stat-card small {
   margin: 6px 0 0;
-  color: #273244;
-  font-weight: 800;
+  color: var(--text);
+  font-weight: 700;
 }
 
 .stat-card small {
@@ -69,13 +98,13 @@
   gap: 14px;
 }
 
-.chart-card,
+.agent-card,
 .quick-card,
 .activity-card {
   padding: 18px;
 }
 
-.chart-card {
+.agent-card {
   min-height: 178px;
 }
 
@@ -84,36 +113,119 @@ h3 {
   font-size: 16px;
 }
 
-.chart-bars {
-  height: 118px;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  align-items: stretch;
-  gap: 18px;
-  padding: 12px 28px 0;
+/* ── 업무 자동화 위젯 ── */
+.agent-more {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
 }
 
-.bar-item {
+.agent-more:hover {
+  text-decoration: underline;
+}
+
+.agent-sub {
+  margin: 8px 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.agent-line {
+  display: flex;
+  gap: 8px;
+}
+
+.agent-goal {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+}
+
+.agent-goal:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.agent-go {
+  white-space: nowrap;
+}
+
+.agent-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.agent-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.agent-num {
+  flex: none;
   display: grid;
-  grid-template-rows: 1fr 22px;
-  justify-items: center;
-  align-items: end;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.agent-body {
+  flex: 1;
   min-width: 0;
 }
 
-.bar-item span {
+.agent-body b {
   display: block;
-  width: 28px;
-  border-radius: 6px 6px 0 0;
-  background: linear-gradient(180deg, #2563ff 0%, #7aa2ff 100%);
-  box-shadow: 0 6px 12px rgba(37, 99, 255, 0.18);
+  color: var(--text);
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.bar-item b {
-  color: #a0abc0;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
+.agent-body small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.agent-run {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
+  white-space: nowrap;
+}
+
+.agent-run:hover {
+  text-decoration: underline;
+}
+
+.agent-steps .agent-empty {
+  border-style: dashed;
+  color: var(--muted);
+  font-size: 12.5px;
+  justify-content: center;
+  padding: 14px;
 }
 
 .quick-grid {
@@ -132,9 +244,9 @@ h3 {
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  color: #111827;
-  font-weight: 900;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 800;
   text-align: left;
 }
 
@@ -156,7 +268,7 @@ h3 {
 }
 
 .quick-grid button span:not(.quick-icon) {
-  color: #111827;
+  color: var(--text);
 }
 
 .model-card {
@@ -166,7 +278,7 @@ h3 {
 
 .card-head a {
   color: var(--blue);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .model-row {
@@ -192,6 +304,47 @@ h3 {
 
 .model-row small {
   color: var(--muted);
+}
+
+.model-row-click {
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.12s ease;
+}
+
+.model-row-click:hover {
+  background: rgba(120, 140, 200, 0.10);
+}
+
+.model-more {
+  margin-top: 2px;
+  color: var(--blue) !important;
+  font-weight: 700;
+}
+
+/* 모델 사용 현황 상세 모달 */
+.mm-body {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+}
+
+.mm-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.mm-row span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mm-row b {
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .dot {
@@ -251,7 +404,7 @@ h3 {
   height: 26px;
   place-items: center;
   border-radius: 6px;
-  background: #eef4ff;
+  background: rgba(70, 96, 191, 0.10);
   color: var(--blue);
   font-size: 17px;
   font-weight: 400;

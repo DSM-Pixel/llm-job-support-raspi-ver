@@ -9,7 +9,10 @@
 """
 
 import io
+import os
 import sys
+import tempfile
+from urllib.parse import quote
 
 from PIL import Image
 from playwright.sync_api import sync_playwright
@@ -34,6 +37,8 @@ def make_png():
 with sync_playwright() as p:
     browser = p.chromium.launch()
     page = browser.new_page()
+    # 데모 시드(첫 방문 시 활동 채우기)가 검증을 오염시키지 않도록 비활성화.
+    page.add_init_script("try{localStorage.setItem('gnsoft.demoSeeded','1')}catch(e){}")
     page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
     page.on("pageerror", lambda e: console_errors.append(str(e)))
 
@@ -45,9 +50,42 @@ with sync_playwright() as p:
     models = page.query_selector_all(".model-card .model-row")
     acts = page.query_selector_all(".activity-card ul li")
     check("dashboard: 통계 카드 4개", len(cards) == 4, f"{len(cards)}개")
-    check("dashboard: 주간 차트 7개", len(bars) == 7, f"{len(bars)}개")
+    check("dashboard: 주간 차트 월~금 5개", len(bars) == 5, f"{len(bars)}개")
+    check(
+        "dashboard: 막대 수치 표시",
+        len(page.query_selector_all(".chart-bars .bar-val")) == 5,
+        f"{len(page.query_selector_all('.chart-bars .bar-val'))}개",
+    )
+    check("dashboard: 차트 배경 격자", page.query_selector(".chart-bars .chart-grid") is not None)
     check("dashboard: 모델 상태 4행", len(models) == 4, f"{len(models)}행")
+
+    # Gemini 모델 행 클릭 → 사용자 관점 사용 현황(상태/언제 다시 사용 가능) 모달
+    page.click(".model-row-click")
+    page.wait_for_selector(".mm-body .mm-row")
+    mm = page.inner_text(".mm-body")
+    check(
+        "dashboard: Gemini 사용 현황 상세(클릭)",
+        "상태" in mm,
+        mm.replace("\n", " ")[:30],
+    )
+    page.click(".modal-overlay:not([hidden]) .modal-close")
     check("dashboard: 최근 활동 4건", len(acts) == 4, f"{len(acts)}건")
+
+    # 활동 기록이 있으면 최근 활동·주간 처리량이 실데이터로 표시(통계 카드는 MOCK 유지)
+    page.evaluate(
+        "() => { const n=Date.now(); localStorage.setItem('gnsoft.activity', JSON.stringify(["
+        "{ts:n-3600e3,page:'rag',type:'RAG 검색',label:'포트홀 위치'},"
+        "{ts:n-120e3,page:'query',type:'자연어 질의',label:'포트홀이 뭐야?'}])); }"
+    )
+    page.reload()
+    page.wait_for_selector(".activity-card ul li")
+    act_text = page.inner_text(".activity-card ul")
+    check(
+        "dashboard: 활동 기록 실데이터 반영",
+        "RAG 검색" in act_text and "자연어 질의" in act_text,
+        act_text[:24].replace("\n", " "),
+    )
+    page.evaluate("() => localStorage.removeItem('gnsoft.activity')")
 
     # 상단 ? 사용법 모달 + 클로바(♧) 제거
     clover = page.evaluate(
@@ -60,15 +98,75 @@ with sync_playwright() as p:
     page.click(".help-next")
     slide2 = page.inner_text(".help-title")
     check("help: 사용법 모달 + 화살표 이동", slide1 != slide2, f"{slide1}→{slide2}")
+    # 실제 화면 캡쳐 + '이 화면으로 이동' 버튼이 있는 가이드(이미지 로드 대기)
+    shot_src = page.get_attribute("#help-modal .help-shot img", "src")
+    page.wait_for_function(
+        "() => { const i=document.querySelector('#help-modal .help-shot img'); "
+        "return i && i.naturalWidth > 0; }",
+        timeout=10000,
+    )
+    shot_w = page.evaluate(
+        "() => { const i=document.querySelector('#help-modal .help-shot img'); return i?i.naturalWidth:0; }"
+    )
+    check(
+        "help: 가이드 화면 캡쳐 + 이동 버튼",
+        bool(shot_src)
+        and "guide/" in shot_src
+        and shot_w > 0
+        and page.query_selector("#help-modal .help-go") is not None,
+        f"{shot_src} w={shot_w}",
+    )
     page.click("#help-modal .modal-close")
 
-    # 2) Query ─ 의도 라우팅 + 답변 렌더
+    # 2) Query ─ 질문 분류: 일반은 바로 답변, 데이터/이미지는 연계 안내
     page.goto(f"{BASE}/pages/query.html")
+    # 이미지 작업 질문(영역) → 이미지 분석·라벨링으로 연계
     page.fill(".input-wrap input", "포트홀 영역을 찾아줘")
     page.click(".input-wrap button")
     page.wait_for_selector(".message.assistant .message-actions a")
     href = page.get_attribute(".message.assistant:last-child .message-actions a", "href")
-    check("query: 답변 렌더 + 라벨링 링크", href == "labeling.html", f"href={href}")
+    check("query: 이미지 질문 → 라벨링 연계", href == "labeling.html", f"href={href}")
+
+    # 일반 지식 질문(뭐야?) → 라우팅 버튼 없이 바로 답변
+    page.fill(".input-wrap input", "포트홀이 뭐야?")
+    page.click(".input-wrap button")
+    page.wait_for_function(
+        "() => { const m=document.querySelectorAll('.message.assistant'); "
+        "const last=m[m.length-1]; return last && !last.querySelector('.typing') "
+        "&& last.querySelector('.message-body p'); }",
+        timeout=70000,  # 일반 답변은 Gemini 웹검색을 거쳐 지연될 수 있음
+    )
+    gen_actions = page.query_selector_all(".message.assistant:last-child .message-actions a")
+    check(
+        "query: 일반 질문은 바로 답변(연계 없음)",
+        len(gen_actions) == 0,
+        f"actions={len(gen_actions)}",
+    )
+
+    # 데이터 조회 질문(날짜·위치) → RAG 공공데이터 검색으로 연계 안내 + 버튼
+    page.fill(".input-wrap input", "2026.04.24 8시에 찍힌 포트홀 위치 알려줘")
+    page.click(".input-wrap button")
+    page.wait_for_function(
+        "() => { const a=document.querySelector('.message.assistant:last-child .message-actions a'); "
+        "return a && a.getAttribute('href').startsWith('rag.html?q='); }"
+    )
+    rag_href = page.get_attribute(".message.assistant:last-child .message-actions a", "href")
+    ans_txt = page.inner_text(".message.assistant:last-child .message-body")
+    check(
+        "query: 데이터 질문 → RAG 연계 안내",
+        rag_href.startswith("rag.html?q=") and "문서 지식 검색" in ans_txt,
+        rag_href[:40],
+    )
+
+    # 연계: RAG 페이지가 ?q= 질문을 색인 데이터에서 자동 검색(탐지로그 매칭)
+    page.goto(f"{BASE}/pages/rag.html?q=" + quote("2026.04.24 08시 포트홀 위치"))
+    page.wait_for_function(
+        "() => (document.querySelector('.source-list')?.innerText || '').includes('탐지로그')"
+    )
+    check(
+        "query→rag: ?q 자동 검색(탐지로그 매칭)",
+        "탐지로그" in page.inner_text(".source-list"),
+    )
 
     # 3) RAG ─ 질의 연관도 검색 + 질문별 답변 + 업로드/웹 문서
     page.goto(f"{BASE}/pages/rag.html")
@@ -123,7 +221,8 @@ with sync_playwright() as p:
     )
     check("rag: 웹 결과 선택 추가", web_items == 3, f"{web_items}건 표시")
 
-    # 업로드 문서가 검색 근거에 포함되는지
+    # 문서 선택은 '스테이징'만(아직 참고중인 파일에 안 들어감) → 문서 색인 눌러야 추가
+    files_pre = len(page.query_selector_all(".file-list li"))
     page.set_input_files(
         ".upload-input",
         files=[
@@ -134,7 +233,14 @@ with sync_playwright() as p:
             }
         ],
     )
-    page.wait_for_function("() => document.querySelector('.indexed').innerText.includes('색인')")
+    page.wait_for_selector(".staged-files:not([hidden])")
+    staged_not_indexed = len(page.query_selector_all(".file-list li")) == files_pre
+    check("rag: 선택만으론 미추가(스테이징)", staged_not_indexed)
+    page.click(".index-btn")
+    page.wait_for_function(
+        "(n) => document.querySelectorAll('.file-list li').length > n", arg=files_pre
+    )
+    check("rag: 문서 색인 시 추가됨", len(page.query_selector_all(".file-list li")) > files_pre)
     rag_query("특이키워드 자이로 지침")
     check(
         "rag: 업로드 문서가 근거에 표시",
@@ -142,11 +248,13 @@ with sync_playwright() as p:
         page.inner_text(".source-list .source:first-child b"),
     )
 
-    # 답변 복사 + 색인 초기화
-    page.click(".answer-actions button:has-text('복사')")
-    page.click(".index-actions .flat")
-    page.wait_for_function("() => document.querySelector('.indexed').innerText.includes('초기화')")
-    check("rag: 색인 초기화", "초기화" in page.inner_text(".indexed"), page.inner_text(".indexed"))
+    # 전체 참고 파일 초기화(샘플 포함 0개) → 샘플 토글로 복원
+    page.click(".reset-all")
+    page.wait_for_function("() => document.querySelectorAll('.file-list li').length === 0")
+    check("rag: 전체 초기화(샘플 포함 0개)", len(page.query_selector_all(".file-list li")) == 0)
+    page.click(".toggle-row .switch")  # 샘플 토글 ON → 복원
+    page.wait_for_function("() => document.querySelectorAll('.file-list li').length > 0")
+    check("rag: 샘플 토글로 복원", len(page.query_selector_all(".file-list li")) > 0)
 
     # 참고중인 파일 클릭 → 문서 내용 열람
     page.locator(".file-list li").filter(has_text="포트홀_보수_기준").first.click()
@@ -168,14 +276,28 @@ with sync_playwright() as p:
     )
     check("rag: 참고 파일 삭제", len(page.query_selector_all(".file-list li")) == files_n - 1)
 
+    # 추천 질문(.chips) 제거됨
+    check("rag: 추천 질문 제거", page.query_selector(".chips") is None)
+
     # 4) Labeling ─ 설명 분석 + 모달(그리기/AI탐지/중복방지/저장→미리보기 유지)
     page.goto(f"{BASE}/pages/labeling.html")
-    page.click(".label-panel .primary")
+    page.click(".label-panel .analyze-btn")
     page.wait_for_selector(".finding-list li")
     findings = page.query_selector_all(".finding-list li")
     check("labeling: 설명 분석 렌더", len(findings) >= 1, f"{len(findings)}건")
 
-    # 모달 열기(이미지 없음 → AI 자동탐지는 프리셋 MOCK)
+    # 사진 추가(다중 지원) → 활성 이미지로 표시(라벨링은 사진이 있어야 가능)
+    page.set_input_files(
+        ".image-input",
+        files=[{"name": "road1.png", "mimeType": "image/png", "buffer": make_png()}],
+    )
+    page.wait_for_selector(".road-preview.has-image .preview-img")
+    check("labeling: 사진 추가 표시", page.inner_text(".sample-name") == "road1.png")
+    check(
+        "labeling: 갤러리에 사진 1개", len(page.query_selector_all(".image-strip .strip-item")) == 1
+    )
+
+    # 모달 열기(이미지 있음 → AI 자동탐지는 YOLO, 모델 없으면 MOCK 박스)
     page.click(".open-label-modal")
     page.wait_for_selector("#label-modal:not([hidden])")
     page.wait_for_function(
@@ -184,26 +306,31 @@ with sync_playwright() as p:
     check("labeling: 모달 열림", page.is_visible(".label-modal"))
     check("labeling: 신뢰도 필터 제거됨", page.query_selector(".modal-conf") is None)
 
-    # AI 자동 탐지 → 박스 추가
+    # AI 자동 탐지: 에러 없이 동작 + 중복 방지(두 번 눌러도 개수 안 늘어남).
+    # (빈 테스트 이미지는 YOLO가 0개 탐지할 수 있으므로 개수 자체는 단정하지 않음)
     page.click(".modal-detect")
-    page.wait_for_function("() => document.querySelectorAll('.box-list li').length >= 1")
-    n1 = len(page.query_selector_all(".box-list li"))
-    # 같은 이미지로 다시 탐지 → 중복 추가 안 됨
+    page.wait_for_timeout(700)
+    d1 = len(page.query_selector_all(".box-list li"))
     page.click(".modal-detect")
-    page.wait_for_timeout(400)
-    n2 = len(page.query_selector_all(".box-list li"))
-    check("labeling: AI 자동 탐지", n1 >= 1, f"{n1}개")
-    check("labeling: 중복 박스 방지", n2 == n1, f"{n1}→{n2}")
+    page.wait_for_timeout(700)
+    d2 = len(page.query_selector_all(".box-list li"))
+    check("labeling: AI 자동 탐지 중복 방지", d2 == d1, f"{d1}→{d2}")
 
-    # 드래그로 박스 그리기(+1)
+    # 드래그로 박스 2개 그리기
     layer = page.locator(".canvas-boxes").bounding_box()
-    page.mouse.move(layer["x"] + 20, layer["y"] + 20)
-    page.mouse.down()
-    page.mouse.move(layer["x"] + 120, layer["y"] + 90, steps=6)
-    page.mouse.up()
-    page.wait_for_function(
-        "(n) => document.querySelectorAll('.box-list li').length === n + 1", arg=n2
-    )
+
+    def draw_box(x1, y1, x2, y2, before):
+        page.mouse.move(layer["x"] + x1, layer["y"] + y1)
+        page.mouse.down()
+        page.mouse.move(layer["x"] + x2, layer["y"] + y2, steps=6)
+        page.mouse.up()
+        page.wait_for_function(
+            "(n) => document.querySelectorAll('.box-list li').length === n + 1", arg=before
+        )
+
+    draw_box(20, 20, 120, 90, d2)
+    draw_box(150, 30, 240, 100, d2 + 1)
+    check("labeling: 드래그로 박스 그리기", len(page.query_selector_all(".box-list li")) == d2 + 2)
     drawn_total = len(page.query_selector_all(".box-list li"))
 
     # 개별 삭제(-1)
@@ -222,6 +349,15 @@ with sync_playwright() as p:
         "labeling: COCO 내보내기",
         di.value.suggested_filename.endswith(".coco.json"),
         di.value.suggested_filename,
+    )
+
+    # 라벨 박스가 그려진 이미지 다운로드(샘플도 도로 배경 위에 박스로 생성)
+    with page.expect_download() as di_img:
+        page.click(".modal-export-img")
+    check(
+        "labeling: 라벨 이미지 다운로드",
+        di_img.value.suggested_filename.endswith("_labeled.jpg"),
+        di_img.value.suggested_filename,
     )
 
     saved_count = len(page.query_selector_all(".box-list li"))
@@ -255,10 +391,11 @@ with sync_playwright() as p:
     page.wait_for_function(
         "() => { const b=document.querySelector('.canvas-boxes'); return b && b.getBoundingClientRect().width > 50; }"
     )
+    # 빈 영역(좌하단)에서 시작 — 복원된 기존 박스를 선택하지 않도록.
     lay2 = page.locator(".canvas-boxes").bounding_box()
-    page.mouse.move(lay2["x"] + 200, lay2["y"] + 30)
+    page.mouse.move(lay2["x"] + 15, lay2["y"] + lay2["height"] - 45)
     page.mouse.down()
-    page.mouse.move(lay2["x"] + 260, lay2["y"] + 80, steps=4)
+    page.mouse.move(lay2["x"] + 80, lay2["y"] + lay2["height"] - 10, steps=4)
     page.mouse.up()
     page.wait_for_function(
         "(n) => document.querySelectorAll('.box-list li').length === n + 1", arg=saved_count
@@ -270,63 +407,241 @@ with sync_playwright() as p:
     pbox2 = len(page.query_selector_all(".preview-boxes .pbox"))
     check("labeling: 저장 안 함 선택 시 미반영", pbox2 == saved_count, f"{pbox2}/{saved_count}")
 
-    # 이미지 교체(인라인)
+    # 다중 이미지: 사진 2장 더 추가 → 갤러리 3개, 활성은 마지막
     page.set_input_files(
         ".image-input",
-        files=[{"name": "my_road.png", "mimeType": "image/png", "buffer": make_png()}],
+        files=[
+            {"name": "road2.png", "mimeType": "image/png", "buffer": make_png()},
+            {"name": "road3.png", "mimeType": "image/png", "buffer": make_png()},
+        ],
     )
-    page.wait_for_selector(".road-preview.has-image .preview-img")
+    page.wait_for_function(
+        "() => document.querySelectorAll('.image-strip .strip-item').length === 3"
+    )
+    check("labeling: 다중 이미지 갤러리(3개)", page.inner_text(".sample-name") == "road3.png")
+
+    # 갤러리에서 첫 사진(라벨 저장돼 있음)으로 전환 → 그 사진의 라벨이 복원됨
+    page.click(".image-strip .strip-item[data-i='0']")
+    page.wait_for_function(
+        "(n) => document.querySelectorAll('.preview-boxes .pbox').length === n", arg=saved_count
+    )
     check(
-        "labeling: 이미지 교체 표시",
-        page.inner_text(".sample-name") == "my_road.png",
-        page.inner_text(".sample-name"),
+        "labeling: 이미지별 라벨 독립 유지(전환 복원)",
+        page.inner_text(".sample-name") == "road1.png"
+        and len(page.query_selector_all(".preview-boxes .pbox")) == saved_count,
     )
+
+    # 활성 사진 제거(✕) → 다른 사진으로 전환, 갤러리 2개
+    page.click(".image-strip .strip-item[data-i='0'] .strip-del")
+    page.wait_for_function(
+        "() => document.querySelectorAll('.image-strip .strip-item').length === 2"
+    )
+    check("labeling: 사진 제거", len(page.query_selector_all(".image-strip .strip-item")) == 2)
+
+    # 폴더 선택: 실제 디렉터리를 골랐을 때 폴더 안 이미지들만 추가(비-이미지는 제외).
+    before_n = len(page.query_selector_all(".image-strip .strip-item"))
+    tmp_dir = tempfile.mkdtemp(prefix="label_folder_")
+    for fn in ("folder_a.jpg", "folder_b.JPEG", "folder_c.png"):
+        with open(os.path.join(tmp_dir, fn), "wb") as fh:
+            fh.write(make_png())
+    with open(os.path.join(tmp_dir, "notes.txt"), "w", encoding="utf-8") as fh:
+        fh.write("not an image")
+    page.set_input_files(".folder-input", files=tmp_dir)
+    page.wait_for_function(
+        "(n) => document.querySelectorAll('.image-strip .strip-item').length === n",
+        arg=before_n + 3,
+    )
+    check(
+        "labeling: 폴더 선택으로 이미지 추가(비-이미지 제외)",
+        len(page.query_selector_all(".image-strip .strip-item")) == before_n + 3,
+        f"{before_n}→{before_n + 3}",
+    )
+
+    # 폴더 전체 AI 라벨링: 버튼 노출 → 모든 업로드 사진 일괄 탐지(빈 이미지라 0박스여도 정상 완료)
+    check("labeling: 전체 라벨링 버튼 노출", page.is_visible(".batch-label"))
+    page.click(".batch-label")
+    page.wait_for_function(
+        "() => { const b=document.querySelector('.batch-label');"
+        " return b && !b.disabled && b.textContent.includes('전체'); }",
+        timeout=30000,
+    )
+    acts = page.evaluate(
+        "JSON.parse(localStorage.getItem('gnsoft.activity')||'[]')"
+        ".filter(a=>a.type==='전체 AI 라벨링').length"
+    )
+    check("labeling: 전체 라벨링 활동 기록", acts >= 1, f"{acts}건")
+
+    # 모달에서 사진 네비게이션(폴더 단위 라벨링): 다음/이전으로 사진 전환
+    page.click(".image-strip .strip-item[data-i='0']")  # 첫 사진을 활성으로(다음 버튼 동작)
+    page.click(".open-label-modal")
+    page.wait_for_selector("#label-modal:not([hidden])")
+    page.wait_for_selector(".modal-nav:not([hidden])")
+    pos_before = page.inner_text(".modal-pos")
+    name_before = page.inner_text(".modal-imgname")
+    page.click(".modal-next")
+    page.wait_for_function(
+        "(p) => document.querySelector('.modal-pos').textContent !== p", arg=pos_before
+    )
+    check(
+        "labeling: 모달 다음 사진 전환",
+        page.inner_text(".modal-imgname") != name_before
+        and page.inner_text(".modal-pos") != pos_before,
+        f"{pos_before} → {page.inner_text('.modal-pos')}",
+    )
+    page.click(".modal-prev")
+    page.wait_for_function(
+        "(p) => document.querySelector('.modal-pos').textContent === p", arg=pos_before
+    )
+    check("labeling: 모달 이전 사진 전환", page.inner_text(".modal-pos") == pos_before)
+    page.click(".label-modal .modal-close")
+    page.wait_for_selector("#label-modal", state="hidden")
+
+    # AI 모델 칩: 라벨링 헤더에 모델 표시(설정과 바인딩) — 클릭 시 설정 열림
+    chip = ".model-chip[data-model='vision']"
+    check(
+        "labeling: 모델 칩 표시(gemini-2.5-flash)",
+        page.is_visible(chip) and "gemini-2.5-flash" in page.inner_text(chip),
+        page.inner_text(chip),
+    )
+    page.click(chip)
+    page.wait_for_selector("#settings-modal:not([hidden])")
+    check("labeling: 모델 칩 클릭 → 설정 열림", page.is_visible("#settings-modal"))
+    # 모델을 바꾸면 칩이 즉시 갱신(설정→화면 바인딩)
+    page.select_option("#settings-modal [name=engine]", "YOLO-World")
+    page.click(".modal-save-settings")
+    page.wait_for_selector("#settings-modal", state="hidden")
+    page.wait_for_function(
+        "(s) => /yolo-world/.test(document.querySelector(s).textContent)", arg=chip
+    )
+    check(
+        "labeling: 설정 변경 시 모델 칩 갱신",
+        "yolo-world" in page.inner_text(chip),
+        page.inner_text(chip),
+    )
+    # 모델을 Gemini로 되돌려 이후 단계 영향 없게
+    page.click(".gear")
+    page.wait_for_selector("#settings-modal:not([hidden])")
+    page.select_option("#settings-modal [name=engine]", "Gemini")
+    page.click(".modal-save-settings")
+    page.wait_for_selector("#settings-modal", state="hidden")
 
     # 설정(⚙) 모달
     page.click(".gear")
     page.wait_for_selector("#settings-modal:not([hidden])")
     check("settings: 모달 열림", page.is_visible("#settings-modal"))
-    page.fill("#settings-modal [name=defaultClass]", "균열")
+    page.fill("#settings-modal [name=name]", "테스트유저")
+    page.fill("#settings-modal [name=team]", "QA팀")
+    page.select_option("#settings-modal [name=theme]", "dark")  # 다크 모드 선택
     page.click(".modal-save-settings")
     page.wait_for_selector("#settings-modal", state="hidden")
-    saved = page.evaluate("() => JSON.parse(localStorage.getItem('gnsoft.settings')).defaultClass")
-    check("settings: 저장/영속", saved == "균열", f"defaultClass={saved}")
+    saved = page.evaluate("() => JSON.parse(localStorage.getItem('gnsoft.settings')).name")
+    check(
+        "settings: 이름/소속 저장 + 사이드바 반영",
+        saved == "테스트유저" and page.inner_text(".user-name") == "테스트유저",
+        f"{saved} / {page.inner_text('.user-name')}",
+    )
+    # 다크 모드 저장 → <html data-theme=dark> 즉시 적용 + 영속(설정 다시 열면 dark)
+    theme_applied = page.get_attribute("html", "data-theme")
+    page.click(".gear")
+    page.wait_for_selector("#settings-modal:not([hidden])")
+    theme_val = page.input_value("#settings-modal [name=theme]")
+    check(
+        "settings: 다크 모드 적용·영속",
+        theme_applied == "dark" and theme_val == "dark",
+        f"applied={theme_applied} saved={theme_val}",
+    )
+    # 다시 라이트로 되돌려 이후 단계 영향 없게
+    page.select_option("#settings-modal [name=theme]", "light")
+    page.click(".modal-save-settings")
+    page.wait_for_selector("#settings-modal", state="hidden")
 
-    # 5) Report ─ '보고서 생성'(웹 검색 기반) + 유형별 + 편집 가능
+    # 설정한 이름이 대시보드 인사말에도 반영되는지
+    page.goto(f"{BASE}/pages/dashboard.html")
+    page.wait_for_selector(".user-greet")
+    check(
+        "settings: 이름이 대시보드 인사말에 반영",
+        page.inner_text(".user-greet") == "테스트유저",
+        page.inner_text(".user-greet"),
+    )
+
+    # 5) Report ─ 내 웹 활동 기반 통계 보고서 + 시작/종료 날짜 + 편집 가능
     page.goto(f"{BASE}/pages/report.html")
-    # 첫 진입은 빠른 예시로 즉시 렌더(웹 지연 없음)
+    # 기본 진입 = 내 활동 분석 보고서(편집 가능 문서 즉시 렌더)
     page.wait_for_selector(".report-page section [contenteditable='true']")
     check(
-        "report: 편집 가능 문서 렌더",
+        "report: 편집 가능 활동 보고서 렌더",
         page.query_selector(".report-page h2[contenteditable]") is not None,
     )
 
-    # 정책 브리핑 + '보고서 생성'(웹 검색, 실패 시 폴백) — 내용 재생성
+    # 제목 편집 시(어두운 헤더) 글자가 흰색으로 유지돼 보여야 함
+    page.click(".report-page header h2")
+    title_color = page.evaluate(
+        "() => getComputedStyle(document.querySelector('.report-page header h2')).color"
+    )
+    check(
+        "report: 제목 편집 글자 보임(흰색 유지)", title_color == "rgb(255, 255, 255)", title_color
+    )
+
+    # 시작/종료 날짜 입력이 기본값(최근 30일~오늘)으로 채워져 있음
+    d_start = page.input_value(".date-start")
+    d_end = page.input_value(".date-end")
+    check(
+        "report: 시작/종료 날짜 입력 기본값",
+        bool(d_start) and bool(d_end) and d_start <= d_end,
+        f"{d_start} ~ {d_end}",
+    )
+
+    # 내 활동 로그를 주입(질의 2 + 이미지 분석 1)하고 '보고서 생성' → 활동 통계 집계
+    page.evaluate(
+        "() => { const now = Date.now(); localStorage.setItem('gnsoft.activity', "
+        "JSON.stringify([{ts:now,page:'query',type:'자연어 질의',label:'포트홀'},"
+        "{ts:now,page:'query',type:'자연어 질의',label:'균열'},"
+        "{ts:now,page:'labeling',type:'이미지 분석',label:'도로 파손/포트홀 찾기'}])); }"
+    )
     before = page.inner_text(".report-page")
-    page.click(".select-list button:nth-child(2)")
     page.click(".report-form .primary")
     page.wait_for_function(
-        "(t) => { const h=document.querySelector('.report-page header h2'); "
-        "return h && h.innerText.includes('정책 브리핑') "
-        "&& document.querySelector('.report-page').innerText !== t; }",
+        "(t) => { const r=document.querySelector('.report-page'); "
+        "return r && r.innerText !== t && r.innerText.includes('총 활동 3건'); }",
         arg=before,
         timeout=70000,
     )
-    secs = len(page.query_selector_all(".report-page section"))
-    check("report: 보고서 생성(웹 검색)", secs >= 3, f"sections={secs}")
+    rep = page.inner_text(".report-page")
+    check(
+        "report: 내 활동 기반 통계 보고서", "자연어 질의" in rep and "총 활동 3건" in rep, rep[:40]
+    )
 
-    # 검수 요약 → 내용이 달라짐
+    # 활동 유형별 통계 표 렌더(통계 차트 포함 ON 기본)
+    check("report: 활동 통계 표 렌더", page.query_selector(".report-page table") is not None)
+
+    # 보고서 유형 전환(활동 통계) → 제목에 반영
+    page.click(".select-list button:nth-child(2)")
     before2 = page.inner_text(".report-page")
-    page.click(".select-list button:nth-child(3)")
     page.click(".report-form .primary")
     page.wait_for_function(
         "(t) => { const h=document.querySelector('.report-page header h2'); "
-        "return h && h.innerText.includes('검수 요약') "
+        "return h && h.innerText.includes('활동 통계') "
         "&& document.querySelector('.report-page').innerText !== t; }",
         arg=before2,
         timeout=70000,
     )
-    check("report: 유형별 내용 변화", "검수 요약" in page.inner_text(".report-page header h2"))
+    check("report: 유형 전환 제목 반영", "활동 통계" in page.inner_text(".report-page header h2"))
+
+    # 과거 날짜 범위로 좁히면 활동 0건 → '없습니다' 안내
+    page.fill(".date-start", "2000-01-01")
+    page.fill(".date-end", "2000-01-31")
+    before3 = page.inner_text(".report-page")
+    page.click(".report-form .primary")
+    page.wait_for_function(
+        "(t) => { const r=document.querySelector('.report-page'); "
+        "return r && r.innerText !== t && r.innerText.includes('총 활동 0건'); }",
+        arg=before3,
+        timeout=70000,
+    )
+    check(
+        "report: 날짜 범위 필터(과거→0건)",
+        "총 활동 0건" in page.inner_text(".report-page"),
+    )
 
     # 본문 직접 수정(편집 가능)
     p = page.query_selector(".report-page section p")
@@ -334,22 +649,168 @@ with sync_playwright() as p:
     page.evaluate("(el)=>{el.textContent='수정된 본문 테스트';}", p)
     check("report: 본문 편집 가능", "수정된 본문 테스트" in page.inner_text(".report-page"))
 
-    # 이 페이지 내용만 참조하는 'AI에게 물어보기'(Gemini/폴백 모두 답변 표시)
-    page.fill(".page-ask-input", "핵심 권고가 뭐야?")
-    page.click(".page-ask-btn")
-    page.wait_for_selector(".page-ask-answer:not([hidden])", timeout=70000)
-    check("report: AI에게 물어보기", len(page.inner_text(".page-ask-answer").strip()) > 0)
+    # 섹션 휴지통 → 확인 모달 → 삭제(되돌릴 수 없음 안내)
+    sec_n = len(page.query_selector_all(".report-page section"))
+    first_sec = page.locator(".report-page section").first
+    first_sec.hover()
+    first_sec.locator(".sec-del").click()
+    page.wait_for_selector(".confirm-modal:not([hidden]) .confirm-delete")
+    check(
+        "report: 섹션 삭제 확인 모달",
+        page.is_visible(".confirm-modal")
+        and len(page.query_selector_all(".report-page section")) == sec_n,
+    )
+    page.click(".confirm-modal .confirm-delete")
+    page.wait_for_function(
+        "(n) => document.querySelectorAll('.report-page section').length === n - 1", arg=sec_n
+    )
+    check(
+        "report: 섹션 삭제(확인 후)",
+        len(page.query_selector_all(".report-page section")) == sec_n - 1,
+    )
+
+    # 사진 첨부는 staged(생성 전엔 본문 미반영) → '보고서 생성' 시 본문에 들어감
+    page.set_input_files(
+        ".report-image-input",
+        files=[{"name": "shot.png", "mimeType": "image/png", "buffer": make_png()}],
+    )
+    page.wait_for_selector(".report-thumbs .report-thumb img")
+    staged_only = page.query_selector(".report-page .report-attachments") is None
+    page.click(".report-form .primary")
+    page.wait_for_selector(".report-page .report-attachments img")
+    check(
+        "report: 사진은 생성 시에만 반영(staged)",
+        staged_only and page.query_selector(".report-page .report-attachments img") is not None,
+    )
+
+    # 내 작업 산출물(이미지+RAG) 주입 → 썸네일 클릭 시 상세 모달, '추가' → 생성 시 본문
+    px = (
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAA"
+        "C0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+    page.evaluate(
+        "(px) => localStorage.setItem('gnsoft.artifacts', JSON.stringify(["
+        "{ts:Date.now(),kind:'image',title:'라벨링 · road.png',caption:'라벨 2개 · pothole',image:px},"
+        "{ts:Date.now()-5000,kind:'rag',title:'RAG 검색 결과',question:'2026.04.24 포트홀 위치',"
+        "answer:'문지로 272 부근 1건(심각 상)',source:'도로파손_탐지로그_2026Q2.csv'}]))",
+        px,
+    )
+    page.reload()
+    page.wait_for_selector(".artifact-list .artifact-item")
+    # 이미지 자료 썸네일 클릭 → 상세 모달(사진 크게)
+    page.click(".artifact-list .artifact-item:has(.artifact-thumb img) .artifact-thumb")
+    page.wait_for_selector(".art-modal:not([hidden]) .art-detail")
+    check(
+        "report: 아티팩트 상세 모달(사진 크게)",
+        page.is_visible(".art-modal")
+        and page.query_selector(".art-modal .art-image img") is not None,
+    )
+    page.click(".art-modal .modal-cancel")
+    page.wait_for_selector(".art-modal", state="hidden")
+    # RAG 자료 추가 → 생성 시 본문 삽입
+    page.click(".artifact-list .artifact-item:has(.artifact-ic) .artifact-add")
+    page.wait_for_selector(".staged-note:not([hidden])")
+    page.click(".report-form .primary")
+    page.wait_for_selector(".report-page .report-attachments .report-finding")
+    check(
+        "report: 내 작업 자료(RAG 도출) 삽입",
+        "문지로 272" in page.inner_text(".report-page .report-attachments"),
+    )
+
+    # AI 대화 패널(우측 슬라이드) — 본문이 왼쪽으로 밀리고, 보고서 내용 근거로 응답
+    page.click(".ai-open")
+    page.wait_for_selector(".ai-panel.open")
+    check(
+        "report: AI 패널 열 때 본문 밀림",
+        page.evaluate("() => document.body.classList.contains('ai-pushed')"),
+    )
+    # 'AI와 대화하기'를 다시 누르면 닫힘(토글)
+    page.click(".ai-open")
+    page.wait_for_selector(".ai-panel", state="hidden")
+    check(
+        "report: AI 버튼 토글로 닫힘",
+        not page.is_visible(".ai-panel")
+        and not page.evaluate("() => document.body.classList.contains('ai-pushed')"),
+    )
+    page.click(".ai-open")  # 다시 열어 이후 테스트 진행
+    page.wait_for_selector(".ai-panel.open")
+    page.fill(".ai-chat-input input", "핵심 권고가 뭐야?")
+    page.click(".ai-send")
+    page.wait_for_function(
+        "() => { const b=document.querySelector('.ai-msg.assistant:last-child .ai-bubble'); "
+        "return b && !b.querySelector('.ai-typing') && b.innerText.trim().length>0; }",
+        timeout=70000,
+    )
+    check("report: AI 대화 패널", len(page.query_selector_all(".ai-msg.assistant")) >= 2)
+
+    # 화면과 무관한 일반 질문('포트홀이 뭐야?') → 자연어 질의로 연계 안내(라우팅 링크)
+    page.fill(".ai-chat-input input", "포트홀이 뭐야?")
+    page.click(".ai-send")
+    page.wait_for_selector(".ai-chat-log .ai-route")
+    route_href = page.get_attribute(".ai-chat-log .ai-route", "href")
+    check(
+        "report: 일반 질문은 자연어 질의로 연계",
+        route_href.startswith("query.html?q="),
+        route_href[:28],
+    )
+
+    # 대화 기록 영속 — 닫았다 다시 열어도 그대로
+    msgs_before = len(page.query_selector_all(".ai-msg"))
+    page.click(".ai-panel-close")
+    page.wait_for_selector(".ai-panel", state="hidden")
+    page.click(".ai-open")
+    page.wait_for_selector(".ai-panel.open")
+    check(
+        "report: 대화 기록 영속(닫았다 켜도 유지)",
+        len(page.query_selector_all(".ai-msg")) == msgs_before,
+        f"{msgs_before}건",
+    )
+
+    # '지우기' → 인사말만 남기고 비움(이때만 기록 변경)
+    page.click(".ai-panel-clear")
+    page.wait_for_function("() => document.querySelectorAll('.ai-msg').length === 1")
+    check("report: 대화 지우기", len(page.query_selector_all(".ai-msg")) == 1)
+    page.click(".ai-panel-close")
+
+    # RAG에서 ?q=질문 으로 넘어오면 그 주제로 보고서 생성(기능 연결)
+    page.goto(f"{BASE}/pages/report.html?q=" + "포트홀 보수".replace(" ", "%20"))
+    page.wait_for_selector(".report-page section [contenteditable='true']", timeout=70000)
+    check("report: RAG 질문 연결(?q)", len(page.query_selector_all(".report-page section")) >= 1)
 
     # 6) Data ─ 목록 + 필터 + 업로드(행추가) + ⋮메뉴 삭제
+    # 내 실제 작업물(아티팩트)이 표에 합쳐지므로, 먼저 비워 시드 데이터셋만 확인.
     page.goto(f"{BASE}/pages/data.html")
+    page.evaluate("() => localStorage.removeItem('gnsoft.artifacts')")
+    page.reload()
     page.wait_for_selector("tbody tr")
     rows = page.query_selector_all("tbody tr")
-    check("data: 데이터셋 5행 로드", len(rows) == 5, f"{len(rows)}행")
+    check("data: 시드 데이터셋 5행 로드", len(rows) == 5, f"{len(rows)}행")
+
+    # 내가 분석·라벨한 실제 이미지를 데이터로 합쳐 표 상단에 표시(mock 아님)
+    page.evaluate(
+        "() => { const n=Date.now(); localStorage.setItem('gnsoft.artifacts', JSON.stringify(["
+        "{ts:n,page:'labeling',kind:'label',title:'내가 라벨한 도로',"
+        "image:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='}])); }"
+    )
+    page.reload()
+    page.wait_for_selector("tbody tr[data-img]")
+    check(
+        "data: 내 실제 작업물 표에 병합",
+        "내가 라벨한 도로" in page.inner_text("tbody")
+        and len(page.query_selector_all("tbody tr")) == 6,
+    )
     page.fill(".search-upload input", "cctv")
     page.wait_for_timeout(200)
     visible = [r for r in page.query_selector_all("tbody tr") if r.is_visible()]
     check("data: 검색 필터 동작", len(visible) == 1, f"{len(visible)}행 표시")
     page.fill(".search-upload input", "")
+
+    # 행의 이름 부분을 클릭해도 체크 토글(체크박스 직접 안 눌러도)
+    page.click("tbody tr:first-child .name-cell")
+    checked1 = page.is_checked("tbody tr:first-child input[type='checkbox']")
+    page.click("tbody tr:first-child .name-cell")
+    checked2 = page.is_checked("tbody tr:first-child input[type='checkbox']")
+    check("data: 행 클릭으로 체크 토글", checked1 and not checked2, f"{checked1}→{checked2}")
 
     # 업로드: 파일 선택 → 표에 행 추가
     before_rows = len(page.query_selector_all("tbody tr"))
@@ -362,15 +823,91 @@ with sync_playwright() as p:
     )
     check("data: 업로드 행 추가", len(page.query_selector_all("tbody tr")) == before_rows + 1)
 
-    # ⋮ 메뉴 → 삭제
+    # 이미지 파일 업로드 → 그 행의 '미리보기'에 실제 업로드한 사진이 뜸(이름·행은 그대로)
+    page.set_input_files(
+        "input[type=file]",
+        files=[{"name": "road.png", "mimeType": "image/png", "buffer": make_png()}],
+    )
+    page.wait_for_selector("tbody tr:first-child[data-img]")
+    page.click("tbody tr:first-child .row-menu")
+    page.wait_for_selector(".row-pop:not([hidden])")
+    page.click(".row-pop button[data-act='preview']")
+    page.wait_for_selector(".modal-overlay:not([hidden]) .preview-frame")
+    psrc = page.get_attribute(".modal-overlay:not([hidden]) .preview-frame", "src")
+    check("data: 업로드 이미지 미리보기에 실제 사진", bool(psrc) and psrc.startswith("data:image"))
+    page.click(".modal-overlay:not([hidden]) .modal-close")
+
+    # 필터 칩 선택 시 또렷한 색(채운 파랑)으로 구분
+    page.click(".chips .pill:nth-child(2)")  # '원본 이미지'
+    chip_bg = page.evaluate(
+        "() => getComputedStyle(document.querySelector('.chips .pill.active')).backgroundColor"
+    )
+    check(
+        "data: 선택한 필터 칩 색 구분", chip_bg not in ("rgba(0, 0, 0, 0)", "transparent"), chip_bg
+    )
+    page.click(".chips .pill:first-child")  # 다시 '전체'로
+
+    # ⋮ 메뉴 → 삭제 → 확인 모달에서 한 번 더 묻기
     now_rows = len(page.query_selector_all("tbody tr"))
     page.click("tbody tr:first-child .row-menu")
     page.wait_for_selector(".row-pop:not([hidden])")
     page.click(".row-pop button[data-act='delete']")
+    # 바로 지우지 않고 확인 모달이 떠야 함
+    page.wait_for_selector(".confirm-modal:not([hidden]) .confirm-delete")
+    check(
+        "data: 삭제 시 확인 모달",
+        page.is_visible(".confirm-modal") and len(page.query_selector_all("tbody tr")) == now_rows,
+    )
+    # 취소하면 행 유지
+    page.click(".confirm-modal .modal-cancel")
+    page.wait_for_selector(".confirm-modal", state="hidden")
+    check("data: 삭제 취소 시 행 유지", len(page.query_selector_all("tbody tr")) == now_rows)
+    # 다시 삭제 → 확인 → 행 제거
+    page.click("tbody tr:first-child .row-menu")
+    page.wait_for_selector(".row-pop:not([hidden])")
+    page.click(".row-pop button[data-act='delete']")
+    page.wait_for_selector(".confirm-modal:not([hidden]) .confirm-delete")
+    page.click(".confirm-modal .confirm-delete")
     page.wait_for_function(
         "(n) => document.querySelectorAll('tbody tr').length === n - 1", arg=now_rows
     )
-    check("data: ⋮ 메뉴 삭제", len(page.query_selector_all("tbody tr")) == now_rows - 1)
+    check("data: ⋮ 메뉴 삭제(확인 후)", len(page.query_selector_all("tbody tr")) == now_rows - 1)
+
+    # 7) History ─ 기록 관리(실제 활동·작업 기록 나열 + 체크박스 영구 삭제, localStorage 연동)
+    page.goto(f"{BASE}/pages/dashboard.html")
+    page.evaluate(
+        "() => { const n=Date.now(); localStorage.setItem('gnsoft.activity', JSON.stringify(["
+        "{ts:n-1000,page:'query',type:'자연어 질의',label:'포트홀이 뭐야?'},"
+        "{ts:n-2000,page:'rag',type:'RAG 검색',label:'도로 파손 통계'}]));"
+        "localStorage.setItem('gnsoft.artifacts', JSON.stringify(["
+        "{ts:n-3000,page:'labeling',kind:'label',title:'라벨 결과',"
+        "image:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='}])); }"
+    )
+    page.reload()
+    page.wait_for_selector(".sidebar .history-open")
+    page.click(".sidebar .history-open")
+    page.wait_for_selector(".history-modal:not([hidden]) .hist-row")
+    hist_rows = page.query_selector_all(".history-list .hist-row")
+    check("history: 실제 기록 나열(활동·작업)", len(hist_rows) == 3, f"{len(hist_rows)}건")
+
+    # 사진 썸네일 클릭 → 라이트박스로 크게 보기
+    page.click(".history-list .hist-thumb")
+    page.wait_for_selector(".lightbox-overlay:not([hidden]) .lightbox-img")
+    check("history: 사진 클릭 시 확대", page.is_visible(".lightbox-overlay"))
+    page.click(".lightbox-overlay")  # 클릭하면 닫힘
+    page.wait_for_selector(".lightbox-overlay", state="hidden")
+
+    # 전체 선택 → 선택 삭제 → 확인 모달 → 영구 삭제(localStorage 반영)
+    page.check(".hist-select-all")
+    page.click(".hist-delete")
+    page.wait_for_selector(".confirm-overlay:not([hidden]) .confirm-ok")
+    page.click(".confirm-overlay .confirm-ok")
+    page.wait_for_selector(".history-list .hist-empty")
+    remain = page.evaluate(
+        "() => JSON.parse(localStorage.getItem('gnsoft.activity')||'[]').length "
+        "+ JSON.parse(localStorage.getItem('gnsoft.artifacts')||'[]').length"
+    )
+    check("history: 선택 항목 영구 삭제(연동)", remain == 0, f"남은 {remain}건")
 
     browser.close()
 

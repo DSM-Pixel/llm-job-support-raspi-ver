@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNSoft</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+    <script>try{var _a=localStorage.getItem("gnsoft.auth");if(!_a||_a==="null"){location.replace("login.html");}}catch(e){}</script>
+    <script>try{var _p=localStorage.getItem("gnsoft.currentProject");if(!_p||_p==="null"){location.replace("projects.html");}}catch(e){}</script>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <link rel="stylesheet" href="../assets/css/agent.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="logo" href="dashboard.html"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft</a>
+      <button class="project-switch" type="button" title="프로젝트 전환"><span class="ps-emoji">📁</span><span class="ps-name">프로젝트</span><span class="ps-swap">전환 ⇄</span></button>
+      <nav class="nav-group">
+        <p class="nav-label">홈</p>
+        <a class="nav-item" data-icon="⊞" href="dashboard.html">메인 대시보드</a>
+        <p class="nav-label">질문 · 검색</p>
+        <a class="nav-item" data-icon="☰" href="query.html">자연어 질의</a>
+        <a class="nav-item" data-icon="⌕" href="rag.html">문서 지식 검색</a>
+        <a class="nav-item" data-icon="◫" href="pubdata.html">공공데이터 통계</a>
+        <p class="nav-label">데이터 작업</p>
+        <a class="nav-item" data-icon="⌗" href="labeling.html">이미지 분석·라벨링</a>
+        <a class="nav-item" data-icon="▱" href="data.html">데이터 관리</a>
+        <p class="nav-label">자동화 · 보고서</p>
+        <a class="nav-item active" data-icon="✦" href="agent.html">업무 자동화 <span class="nav-chevron">›</span></a>
+        <a class="nav-item" data-icon="⇱" href="report.html">요약·보고서 생성</a>
+      </nav>
+      <button class="ai-open" type="button">✦ AI와 대화하기</button>
+      <button class="history-open" type="button" title="내 질의·검색·이미지 작업 기록을 보고 삭제">기록 관리</button>
+      <div class="user-box"><span class="avatar">도현</span><div><div class="user-name">박도현</div><div class="user-team">도로관리처 · 점검분석팀</div></div><span class="gear">⚙</span></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><h1>업무 자동화</h1><span class="live">LIVE</span><div class="top-actions"><span class="model-chip" data-model="llm">⚙ gemini-2.5-flash</span><span>?</span></div></header>
+
+      <section class="ag-layout">
+        <div class="ag-intro card">
+          <label class="ag-label"><span>✦</span>무엇을 처리할까요?</label>
+          <p class="ag-sub">목표를 자연어로 적으면 AI 에이전트가 <b>업무 절차</b>를 설계하고, 각 단계를 해당 기능으로 연결해 드립니다.</p>
+          <div class="ag-input-line">
+            <input class="ag-input" value="포트홀 신고가 접수됐는데 어떻게 처리하지?" placeholder="예: 이번 분기 도로 파손 현황을 보고서로 만들어줘">
+            <button class="btn primary ag-go">→ 절차 설계</button>
+          </div>
+          <div class="ag-chips">
+            <button class="ag-chip" type="button">포트홀 신고가 접수됐는데 어떻게 처리하지?</button>
+            <button class="ag-chip" type="button">이번 분기 도로 파손 현황을 보고서로 만들어줘</button>
+            <button class="ag-chip" type="button">가드레일 안전점검 절차 알려줘</button>
+            <button class="ag-chip" type="button">시설물 위험등급 데이터로 우선 보수 대상 뽑아줘</button>
+          </div>
+        </div>
+
+        <div class="ag-result" hidden>
+          <div class="ag-summary card">
+            <div class="ag-summary-head"><h3>✦ 에이전트 업무 계획 <span class="ag-badge" data-role="badge"></span></h3></div>
+            <p class="ag-summary-text" data-role="summary"></p>
+          </div>
+          <ol class="ag-steps" data-role="steps"></ol>
+          <div class="ag-foot">
+            <button class="btn primary ag-start" data-role="start" type="button">첫 단계부터 시작하기 →</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/agent.js"></script>
+</body>
+</html>

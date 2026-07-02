@@ -1,0 +1,187 @@
+/* 업무 자동화(AI 에이전트) 페이지 */
+.ag-layout {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ag-intro {
+  padding: 20px 22px;
+}
+.ag-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ag-label span {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 13px;
+}
+.ag-sub {
+  margin: 8px 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.ag-input-line {
+  display: flex;
+  gap: 10px;
+}
+.ag-input {
+  flex: 1;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+.ag-input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+.ag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.ag-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+.ag-chip:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+/* ── 배지 ── */
+.ag-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.ag-badge.live {
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green);
+}
+.ag-badge.mock {
+  background: color-mix(in srgb, var(--orange) 16%, transparent);
+  color: var(--orange);
+}
+
+/* ── 결과 ── */
+.ag-result {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ag-summary {
+  padding: 18px 22px;
+  border-left: 3px solid var(--blue);
+}
+.ag-summary-head h3 {
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.ag-summary-text {
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+/* ── 단계 카드 ── */
+.ag-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+.ag-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+}
+.ag-step-num {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+.ag-step-body {
+  flex: 1;
+  min-width: 0;
+}
+.ag-step-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ag-step-top b {
+  color: var(--text);
+  font-size: 15px;
+}
+.ag-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ag-tool-ic {
+  font-size: 12px;
+}
+.ag-why {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.ag-step-go {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.ag-step-go:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.ag-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}

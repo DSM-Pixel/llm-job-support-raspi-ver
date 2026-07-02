@@ -3,43 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>메인 대시보드</title>
+    <title>GNSoft</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+    <script>try{var _a=localStorage.getItem("gnsoft.auth");if(!_a||_a==="null"){location.replace("login.html");}}catch(e){}</script>
+    <script>try{var _p=localStorage.getItem("gnsoft.currentProject");if(!_p||_p==="null"){location.replace("projects.html");}}catch(e){}</script>
     <link rel="stylesheet" href="../assets/css/common.css" />
     <link rel="stylesheet" href="../assets/css/dashboard.css" />
   </head>
   <body>
     <div class="app">
       <aside class="sidebar">
-        <a class="logo" href="dashboard.html">GNSoft</a>
+        <a class="logo" href="dashboard.html"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft</a>
+        <button class="project-switch" type="button" title="프로젝트 전환"><span class="ps-emoji">📁</span><span class="ps-name">프로젝트</span><span class="ps-swap">전환 ⇄</span></button>
         <nav class="nav-group">
-          <p class="nav-label">AI 서비스</p>
-          <a class="nav-item active" data-icon="▦" href="dashboard.html"
-            >메인 대시보드 <span class="nav-chevron">›</span></a
-          >
-          <a
-            class="nav-item"
-            data-icon="▤"
-            href="query.html"
-            >자연어 질의</a
-          >
-          <a class="nav-item" data-icon="⌕" href="rag.html"
-            >RAG 공공데이터 검색</a
-          >
-          <a class="nav-item" data-icon="⌗" href="labeling.html"
-            >이미지 분석·라벨링</a
-          >
-          <a class="nav-item" data-icon="⇱" href="report.html"
-            >요약·보고서 생성</a
-          >
-          <a class="nav-item" data-icon="▱" href="data.html"
-            >데이터 관리</a
-          >
-        </nav>
+        <p class="nav-label">홈</p>
+        <a class="nav-item active" data-icon="⊞" href="dashboard.html">메인 대시보드 <span class="nav-chevron">›</span></a>
+        <p class="nav-label">질문 · 검색</p>
+        <a class="nav-item" data-icon="☰" href="query.html">자연어 질의</a>
+        <a class="nav-item" data-icon="⌕" href="rag.html">문서 지식 검색</a>
+        <a class="nav-item" data-icon="◫" href="pubdata.html">공공데이터 통계</a>
+        <p class="nav-label">데이터 작업</p>
+        <a class="nav-item" data-icon="⌗" href="labeling.html">이미지 분석·라벨링</a>
+        <a class="nav-item" data-icon="▱" href="data.html">데이터 관리</a>
+        <p class="nav-label">자동화 · 보고서</p>
+        <a class="nav-item" data-icon="✦" href="agent.html">업무 자동화</a>
+        <a class="nav-item" data-icon="⇱" href="report.html">요약·보고서 생성</a>
+      </nav>
+        <button class="ai-open" type="button">✦ AI와 대화하기</button>
+        <button class="history-open" type="button" title="내 질의·검색·이미지 작업 기록을 보고 삭제">기록 관리</button>
         <div class="user-box">
-          <span class="avatar">김연</span>
+          <span class="avatar">도현</span>
           <div>
-            <div class="user-name">김연우</div>
-            <div class="user-team">R&D · 청년 1팀</div>
+            <div class="user-name">박도현</div>
+            <div class="user-team">도로관리처 · 점검분석팀</div>
           </div>
           <span class="gear">⚙</span>
         </div>
@@ -56,9 +53,13 @@
           <div class="hero-row">
             <div>
               <p class="date">2026.6.22 · 월요일</p>
-              <h2>안녕하세요, 김연우님 — 오늘의 운영 현황입니다</h2>
+              <h2>안녕하세요, <span class="user-greet">박도현</span>님 — 무엇을 도와드릴까요?</h2>
             </div>
-            <button class="btn primary">＋ 새 질문</button>
+          </div>
+          <div class="hero-ask">
+            <input class="hero-ask-input" type="text"
+              placeholder="자연어로 질문하세요 — 질문에 맞는 기능(문서 검색·이미지 분석·통계)으로 알아서 연결합니다" />
+            <button class="btn primary hero-ask-go" type="button">→ 질문하기</button>
           </div>
 
           <section class="stat-grid">
@@ -69,13 +70,13 @@
               <small>청크 12,840</small>
             </article>
             <article class="card stat-card">
-              <span class="icon-box">◇</span><em>↗ +3.9K</em
+              <span class="icon-box">⬡</span><em>↗ +3.9K</em
               ><strong>12,840</strong>
               <p>라벨 데이터셋</p>
               <small>검수 100%</small>
             </article>
             <article class="card stat-card">
-              <span class="icon-box">◎</span><em>↗ +0.04</em
+              <span class="icon-box">◉</span><em>↗ +0.04</em
               ><strong>0.871</strong>
               <p>도로 파손 mAP@0.5</p>
               <small>YOLOe-L + SAM</small>
@@ -89,34 +90,19 @@
           </section>
 
           <section class="dashboard-grid">
-            <article class="card chart-card">
+            <article class="card agent-card">
               <div class="card-head">
-                <h3>주간 처리량</h3>
-                <span class="status green">최근 7일</span>
+                <h3>✦ 업무 자동화</h3>
+                <a class="agent-more" href="agent.html">자세히 →</a>
               </div>
-              <div class="chart-bars">
-                <div class="bar-item">
-                  <span style="height: 42%"></span><b>월</b>
-                </div>
-                <div class="bar-item">
-                  <span style="height: 64%"></span><b>화</b>
-                </div>
-                <div class="bar-item">
-                  <span style="height: 48%"></span><b>수</b>
-                </div>
-                <div class="bar-item">
-                  <span style="height: 76%"></span><b>목</b>
-                </div>
-                <div class="bar-item">
-                  <span style="height: 58%"></span><b>금</b>
-                </div>
-                <div class="bar-item">
-                  <span style="height: 70%"></span><b>토</b>
-                </div>
-                <div class="bar-item">
-                  <span style="height: 52%"></span><b>일</b>
-                </div>
+              <p class="agent-sub">목표를 적으면 AI가 업무 절차를 설계해 각 기능으로 연결합니다.</p>
+              <div class="agent-line">
+                <input class="agent-goal" placeholder="예: 포트홀 신고가 접수됐는데 어떻게 처리하지?" />
+                <button class="btn primary agent-go" type="button">절차 설계</button>
               </div>
+              <ol class="agent-steps">
+                <li class="agent-empty">목표를 입력하고 ‘절차 설계’를 누르면 단계가 여기 표시됩니다.</li>
+              </ol>
             </article>
 
             <article class="card quick-card">
@@ -124,7 +110,7 @@
               <div class="quick-grid">
                 <button>
                   <span class="quick-icon quick-search">⌕</span
-                  ><span>공공데이터 검색</span>
+                  ><span>문서 지식 검색</span>
                 </button>
                 <button>
                   <span class="quick-icon">⌗</span><span>이미지 라벨링</span>
@@ -133,7 +119,7 @@
                   <span class="quick-icon">⇱</span><span>보고서 생성</span>
                 </button>
                 <button>
-                  <span class="quick-icon">▤</span><span>자연어 질의</span>
+                  <span class="quick-icon">☰</span><span>자연어 질의</span>
                 </button>
               </div>
             </article>
@@ -141,7 +127,6 @@
             <article class="card model-card">
               <div class="card-head">
                 <h3>모델 상태</h3>
-                <a href="#">전체 보기</a>
               </div>
               <div class="model-row">
                 <span class="dot green"></span>
@@ -170,12 +155,15 @@
             </article>
 
             <article class="card activity-card">
-              <h3>최근 활동</h3>
+              <div class="card-head">
+                <h3>최근 활동</h3>
+                <button class="card-link history-link" type="button" title="이 프로젝트의 전체 기록 보기·삭제">전체 기록 →</button>
+              </div>
               <ul>
                 <li>
                   <span class="activity-icon">⌗</span
                   ><b>pothole_set_2025Q2 라벨링 검수 완료</b
-                  ><small>김연우 · 12분 전</small>
+                  ><small>박도현 · 12분 전</small>
                 </li>
                 <li>
                   <span class="activity-icon activity-search">⌕</span

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNSoft — 비밀번호 재설정</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <link rel="stylesheet" href="../assets/css/login.css">
+</head>
+<body>
+  <div class="lg-page">
+    <header class="lg-top">
+      <span class="lg-logo"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft AI 플랫폼</span>
+    </header>
+
+    <main class="lg-main">
+      <div class="lg-card">
+        <div class="lg-brand">
+          <img class="lg-brand-mark" src="../assets/img/logomark-transparent.png" alt="" />
+          <h1 class="lg-brand-name">비밀번호 재설정</h1>
+          <p class="lg-brand-sub">새로 사용할 비밀번호를 입력하세요</p>
+        </div>
+
+        <form class="lg-form" data-form="reset-confirm">
+          <div class="lg-alert" hidden></div>
+          <label class="field">새 비밀번호
+            <input type="password" name="password" placeholder="8자 이상" autocomplete="new-password" minlength="8" required />
+          </label>
+          <label class="field">새 비밀번호 확인
+            <input type="password" name="password2" placeholder="다시 입력" autocomplete="new-password" required />
+          </label>
+          <button class="btn primary lg-submit" type="submit">비밀번호 변경</button>
+          <p class="lg-hint"><a href="login.html">로그인으로 돌아가기</a></p>
+        </form>
+      </div>
+      <p class="lg-foot">지엔소프트(주) × 유클리드소프트 · 프로젝트형 일경험 데모 플랫폼</p>
+    </main>
+  </div>
+
+  <script src="../assets/js/reset.js"></script>
+</body>
+</html>

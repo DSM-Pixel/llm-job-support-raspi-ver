@@ -5,7 +5,7 @@
   height: 58px;
   padding: 0 26px;
   border-bottom: 1px solid #e5ebf4;
-  background: #fff;
+  background: var(--surface);
 }
 
 .mode-tabs button {
@@ -15,18 +15,18 @@
   border-radius: 8px;
   background: transparent;
   color: #66738b;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .mode-tabs button.active {
-  background: #eef4ff;
+  background: rgba(70, 96, 191, 0.10);
   color: var(--blue);
 }
 
 .mode-tabs span {
   margin-left: auto;
   color: #97a4ba;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .label-layout {
@@ -38,7 +38,7 @@
 .label-panel {
   padding: 20px;
   border-right: 1px solid #e1e7f0;
-  background: #fff;
+  background: var(--surface);
 }
 
 .road-preview {
@@ -47,6 +47,14 @@
   overflow: hidden;
   border-radius: 9px;
   background: linear-gradient(#1f2b42, #0c111c);
+  /* 클릭 = 큰 캔버스 열기(사진 없으면 추가) — 커서·호버로 어포던스 표시 */
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.road-preview:hover {
+  border-color: var(--blue);
 }
 
 .preview-img {
@@ -82,6 +90,92 @@
   background: rgba(245, 158, 11, 0.16);
 }
 
+.preview-boxes .pbox.blue {
+  border-color: var(--blue);
+  background: rgba(70, 96, 191, 0.16);
+}
+
+.preview-boxes .pbox.green {
+  border-color: var(--green);
+  background: rgba(26, 165, 102, 0.16);
+}
+
+/* ── 전체 객체 탐지 — 클래스 필터 패널 ── */
+.detect-filter {
+  margin: 10px 0 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--blue) 6%, transparent);
+}
+
+.detect-filter h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.detect-filter h4 small {
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-note {
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--orange) 12%, transparent);
+  color: var(--orange);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.filter-chip {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.filter-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.filter-chip span {
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--muted);
+  transition: all 0.12s;
+}
+
+.filter-chip span b {
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.filter-chip input:checked + span {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 14%, transparent);
+  color: var(--blue);
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .preview-boxes .pbox span {
   position: absolute;
   top: -15px;
@@ -91,7 +185,7 @@
   background: rgba(7, 11, 20, 0.8);
   color: #fff;
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -105,6 +199,11 @@
   display: flex;
   width: 100%;
   margin-top: 10px;
+}
+
+/* hidden 속성이 .btn.wide의 display:flex 보다 우선하도록 */
+.btn.wide[hidden] {
+  display: none;
 }
 
 /* ── 라벨링 모달 (큰 이미지 + 박스 그리기/편집) ───────────────── */
@@ -131,7 +230,7 @@
   width: min(360px, 86%);
   padding: 22px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 18px 40px rgba(8, 12, 22, 0.35);
   text-align: center;
 }
@@ -152,6 +251,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 0;
+  flex: 1; /* 모달(92vh)에서 헤더를 뺀 나머지를 전부 차지 */
   min-height: 0;
 }
 
@@ -159,7 +259,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px;
+  padding: 10px;
   background: #0c111c;
   overflow: auto;
 }
@@ -176,7 +276,8 @@
 .canvas-img {
   display: block;
   max-width: 100%;
-  max-height: 72vh;
+  /* 모달(92vh) - 헤더(~56px) - 캔버스 패딩(20px) 을 꽉 채워 여백 최소화 */
+  max-height: calc(92vh - 80px);
   width: auto;
   height: auto;
   border-radius: 6px;
@@ -235,7 +336,7 @@
   background: var(--blue);
   color: #fff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
   line-height: 1.5;
 }
@@ -253,8 +354,8 @@
   display: grid;
   gap: 6px;
   font-size: 12px;
-  font-weight: 800;
-  color: #475569;
+  font-weight: 700;
+  color: var(--muted);
 }
 
 .label-side .field input[type="text"],
@@ -301,12 +402,12 @@
   padding: 6px 8px;
   border: 1px solid var(--line-soft, #eef2f6);
   border-radius: 7px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .box-list li.selected {
   border-color: var(--blue);
-  background: #f3f7ff;
+  background: rgba(70, 96, 191, 0.07);
 }
 
 .box-list input {
@@ -322,7 +423,7 @@
 .box-list .conf {
   font-size: 11px;
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .box-list .del {
@@ -332,7 +433,7 @@
   border-radius: 6px;
   background: #fdeaea;
   color: var(--red);
-  font-weight: 900;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -344,8 +445,8 @@
 
 .btn.flat {
   border-color: transparent;
-  background: #eef1f6;
-  color: #475569;
+  background: rgba(99, 120, 160, 0.10);
+  color: var(--muted);
 }
 
 .result-hint {
@@ -378,17 +479,137 @@
 .sample {
   display: flex;
   justify-content: space-between;
-  margin: 8px 0 16px;
+  align-items: center;
+  margin: 8px 0 10px;
   color: #718097;
+}
+
+.image-count {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* 다중 이미지 추가 버튼 */
+.image-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* 이미지 갤러리(스트립) — 올린 사진들을 나열, 클릭 전환 */
+.image-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.image-strip:empty {
+  display: none;
+}
+
+.strip-item {
+  position: relative;
+  flex: none;
+  width: 78px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.strip-item.active {
+  border-color: var(--blue);
+}
+
+.strip-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 52px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: rgba(120, 140, 170, 0.12);
+}
+
+.strip-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.strip-ph {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.strip-name {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.25;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strip-count {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.strip-del {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.finding-empty {
+  color: var(--muted);
+  list-style: none;
 }
 
 .sample a {
   color: var(--blue);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .label-panel h3 {
   margin: 14px 0 10px;
+}
+
+/* 이미지 라벨링 영역과 분석 시나리오 사이 구분선 */
+.panel-sep {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 18px 0 4px;
 }
 
 .radio-list {
@@ -404,13 +625,13 @@
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  color: #334155;
-  font-weight: 900;
+  color: var(--text);
+  font-weight: 800;
 }
 
 .radio-list label.active {
   border-color: #85a6ff;
-  background: #eff5ff;
+  background: rgba(70, 96, 191, 0.08);
   color: var(--blue);
 }
 
@@ -432,7 +653,7 @@
   content: "✓";
   color: #fff;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
 }
 
@@ -483,7 +704,7 @@ textarea {
 
 .finding-list li {
   margin: 10px 0;
-  color: #334155;
+  color: var(--text);
   font-size: 14px;
 }
 
@@ -496,7 +717,7 @@ textarea {
   border-radius: 8px;
   color: #fff;
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .badge.red {
@@ -511,4 +732,31 @@ textarea {
   .label-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* 모달 내 사진 네비게이션 — 폴더 단위로 이전/다음 사진을 넘기며 라벨링 */
+.modal-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.modal-nav .modal-pos {
+  min-width: 48px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.modal-prev,
+.modal-next {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.modal-prev:disabled,
+.modal-next:disabled {
+  opacity: 0.4;
+  cursor: default;
 }

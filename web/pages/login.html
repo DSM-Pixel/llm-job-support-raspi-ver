@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNSoft — 로그인</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <link rel="stylesheet" href="../assets/css/login.css">
+</head>
+<body>
+  <div class="lg-page">
+    <header class="lg-top">
+      <span class="lg-logo"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft AI 플랫폼</span>
+    </header>
+
+    <main class="lg-main">
+      <div class="lg-card">
+        <!-- 브랜드: 로고 + 서비스명 -->
+        <div class="lg-brand">
+          <img class="lg-brand-mark" src="../assets/img/logomark-transparent.png" alt="" />
+          <h1 class="lg-brand-name">GNSoft AI 플랫폼</h1>
+          <p class="lg-brand-sub">로그인하고 프로젝트를 시작하세요</p>
+        </div>
+
+        <!-- 로그인 -->
+        <form class="lg-form" data-form="login">
+          <div class="lg-alert" hidden></div>
+          <label class="field">이메일
+            <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+          </label>
+          <label class="field">비밀번호
+            <input type="password" name="password" placeholder="비밀번호" autocomplete="current-password" required />
+          </label>
+          <button class="btn primary lg-submit" type="submit">로그인</button>
+          <p class="lg-hint">
+            <button class="lg-switch" data-view="reset" type="button">비밀번호 찾기</button>
+            <span class="lg-dot">·</span>
+            <button class="lg-switch" data-open="signup" type="button">회원가입</button>
+          </p>
+        </form>
+
+        <!-- 비밀번호 찾기 — 모달 없이 카드 안에서 로그인 폼과 전환 -->
+        <form class="lg-form" data-form="reset" hidden>
+          <div class="lg-alert" hidden></div>
+          <p class="lg-reset-desc">가입하신 이메일 주소를 입력하시면 비밀번호 재설정 링크를 보내드립니다.</p>
+          <label class="field">이메일
+            <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+          </label>
+          <button class="btn primary lg-submit" type="submit">재설정 링크 보내기</button>
+          <p class="lg-hint"><button class="lg-switch" data-view="login" type="button">← 로그인으로 돌아가기</button></p>
+        </form>
+      </div>
+      <p class="lg-foot">지엔소프트(주) × 유클리드소프트 · 프로젝트형 일경험 데모 플랫폼</p>
+    </main>
+  </div>
+
+  <!-- 회원가입 모달 -->
+  <div class="modal-overlay" id="signup-modal" hidden>
+    <div class="modal lg-signup-modal" role="dialog" aria-modal="true">
+      <header class="modal-head"><h3>회원가입</h3>
+        <button class="modal-close" type="button" aria-label="닫기">✕</button></header>
+      <div class="modal-body">
+        <form class="lg-form" data-form="signup">
+          <div class="lg-alert" hidden></div>
+          <div class="lg-grid">
+            <label class="field"><span class="field-cap">이름 <span class="req">*</span></span>
+              <input type="text" name="name" placeholder="홍길동" autocomplete="name" required />
+            </label>
+            <label class="field"><span class="field-cap">이메일 <span class="req">*</span></span>
+              <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+            </label>
+            <label class="field"><span class="field-cap">비밀번호 <span class="req">*</span></span>
+              <input type="password" name="password" placeholder="8자 이상" autocomplete="new-password" minlength="8" required />
+            </label>
+            <label class="field"><span class="field-cap">비밀번호 확인 <span class="req">*</span></span>
+              <input type="password" name="password2" placeholder="다시 입력" autocomplete="new-password" required />
+            </label>
+            <label class="field">회사·기관
+              <input type="text" name="company" placeholder="예: 지엔소프트(주)" autocomplete="organization" />
+            </label>
+            <label class="field">부서·직함
+              <input type="text" name="team" placeholder="예: 도로관리처 · 점검분석팀" />
+            </label>
+          </div>
+
+          <div class="lg-consent">
+            <label class="lg-check all">
+              <input type="checkbox" data-consent="all" />
+              <span><b>전체 동의</b> (선택 항목 포함)</span>
+            </label>
+            <hr />
+            <label class="lg-check">
+              <input type="checkbox" data-consent="terms" />
+              <span><em class="req-tag">[필수]</em> 서비스 이용약관 동의</span>
+              <button class="lg-view" data-doc="terms" type="button">보기</button>
+            </label>
+            <label class="lg-check">
+              <input type="checkbox" data-consent="privacy" />
+              <span><em class="req-tag">[필수]</em> 개인정보 수집·이용 동의</span>
+              <button class="lg-view" data-doc="privacy" type="button">보기</button>
+            </label>
+            <label class="lg-check">
+              <input type="checkbox" data-consent="marketing" />
+              <span><em class="opt-tag">[선택]</em> 서비스 소식·알림 수신 동의</span>
+            </label>
+          </div>
+
+          <button class="btn primary lg-submit" type="submit">동의하고 가입하기</button>
+          <p class="lg-hint">이미 계정이 있으신가요? <button class="lg-switch" data-close="signup" type="button">로그인</button></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 약관·개인정보 전문 모달 -->
+  <div class="modal-overlay" id="doc-modal" hidden>
+    <div class="modal lg-doc-modal" role="dialog" aria-modal="true">
+      <header class="modal-head"><h3 class="doc-title"></h3>
+        <button class="modal-close" type="button" aria-label="닫기">✕</button></header>
+      <div class="modal-body"><div class="doc-body"></div></div>
+      <div class="modal-foot">
+        <button class="btn primary doc-agree" type="button">동의하고 닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/js/login.js"></script>
+</body>
+</html>

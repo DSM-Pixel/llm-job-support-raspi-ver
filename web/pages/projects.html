@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNSoft — 프로젝트 선택</title>
+    <link rel="icon" type="image/png" href="../assets/img/logomark-dark.png" />
+    <script>try{var t=(JSON.parse(localStorage.getItem("gnsoft.settings")||"{}")||{}).theme;document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");}catch(e){}</script>
+    <script>try{var _a=localStorage.getItem("gnsoft.auth");if(!_a||_a==="null"){location.replace("login.html");}}catch(e){}</script>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <link rel="stylesheet" href="../assets/css/projects.css">
+</head>
+<body>
+  <div class="pj-landing">
+    <header class="pj-top">
+      <span class="pj-logo"><img class="logo-img" src="../assets/img/logomark-transparent.png" alt="" />GNSoft AI 플랫폼</span>
+      <div class="pj-top-right">
+        <div class="user-box">
+          <span class="avatar" title="내 프로필" role="button" tabindex="0">도현</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="pj-main">
+      <!-- 프로젝트 선택(노트북 목록) -->
+      <section class="pj-gallery" data-role="gallery">
+        <div class="pj-gallery-head">
+          <h2>프로젝트를 선택하세요</h2>
+          <p>작업은 프로젝트(노트북) 단위로 나뉩니다. 프로젝트를 열면 그 안에서 질의·검색·라벨링·보고서·기록이 따로 관리됩니다.</p>
+        </div>
+        <div class="pj-grid" data-role="grid"></div>
+      </section>
+
+      <!-- 상세(소스 + 검수) -->
+      <section class="pj-detail" data-role="detail" hidden>
+        <div class="pj-detail-bar">
+          <button class="pj-back" data-role="back" type="button">← 프로젝트 목록</button>
+          <button class="btn primary pj-enter" data-role="enter" type="button">이 프로젝트로 들어가기 →</button>
+        </div>
+        <div class="pj-detail-head">
+          <div class="pj-detail-title"><span class="pj-emoji" data-role="d-emoji"></span><h2 data-role="d-name"></h2></div>
+          <div class="pj-progress-wrap">
+            <span class="pj-progress-label" data-role="d-progress-label"></span>
+            <div class="pj-progress"><span data-role="d-progress-bar"></span></div>
+          </div>
+        </div>
+        <div class="pj-src-toolbar">
+          <h3>소스 · 검수</h3>
+          <button class="btn primary pj-add-src" data-role="add-src" type="button">+ 소스 추가</button>
+        </div>
+        <div class="pj-src-list" data-role="src-list"></div>
+      </section>
+    </main>
+  </div>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/projects.js"></script>
+</body>
+</html>

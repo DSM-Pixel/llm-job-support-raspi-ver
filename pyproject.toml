@@ -32,7 +32,8 @@ web = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "python-multipart>=0.0.9",  # 이미지 업로드(UploadFile)
-    "google-genai>=0.3.0",  # RAG 답변 생성(GEMINI_API_KEY 있을 때, 없으면 MOCK 폴백)
+    "google-genai>=0.3.0",  # RAG 답변·임베딩(GEMINI_API_KEY 있을 때, 없으면 MOCK/어휘 폴백)
+    "numpy>=1.26",  # 하이브리드 RAG 엔진(BM25+dense·RRF) 벡터 연산
 ]
 rag = [
     "chromadb>=0.5.0",
