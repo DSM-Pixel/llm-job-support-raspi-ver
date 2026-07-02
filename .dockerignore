@@ -1,0 +1,15 @@
+# 빌드 컨텍스트에서 제외 (용량/시크릿)
+.git
+.env
+*.env
+!.env.example
+**/__pycache__
+**/*.pyc
+*.log
+**/_gradio.log
+**/_samples
+**/sample_docs
+docs/*.pdf
+.claude/memory*.db
+.venv
+node_modules
