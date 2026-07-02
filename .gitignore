@@ -103,3 +103,6 @@ backend/storage/pubdata.db
 
 # 프로젝트(노트북)·검수 상태 저장소 — 로컬 데이터, 커밋 제외
 backend/storage/projects.db
+
+# 사용자 계정·세션(개인정보) — 절대 커밋 금지
+backend/storage/users.db

@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import projects, services, yolo_service
+from . import auth, projects, services, yolo_service
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
@@ -158,10 +158,62 @@ class ReviewIn(BaseModel):
     reviewer: str = ""
 
 
+class SignupIn(BaseModel):
+    email: str = ""
+    password: str = ""
+    name: str = ""
+    company: str = ""
+    team: str = ""
+    agree_terms: bool = False
+    agree_privacy: bool = False
+    agree_marketing: bool = False
+
+
+class LoginIn(BaseModel):
+    email: str = ""
+    password: str = ""
+
+
+class TokenIn(BaseModel):
+    token: str = ""
+
+
 # ── API 라우트 ───────────────────────────────────────────────────────
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok", "backend": services.BACKEND}
+
+
+# ── 인증(로그인·회원가입) ────────────────────────────────────────────
+@app.post("/api/auth/signup")
+def auth_signup(body: SignupIn) -> dict:
+    """회원가입 — 필수 동의(이용약관·개인정보 수집이용) 없으면 거부, 동의 일시 기록."""
+    return auth.signup(
+        body.email,
+        body.password,
+        body.name,
+        body.company,
+        body.team,
+        body.agree_terms,
+        body.agree_privacy,
+        body.agree_marketing,
+    )
+
+
+@app.post("/api/auth/login")
+def auth_login(body: LoginIn) -> dict:
+    return auth.login(body.email, body.password)
+
+
+@app.post("/api/auth/me")
+def auth_me(body: TokenIn) -> dict:
+    """세션 토큰 검증 — 유효하면 사용자 정보."""
+    return auth.me(body.token)
+
+
+@app.post("/api/auth/logout")
+def auth_logout(body: TokenIn) -> dict:
+    return auth.logout(body.token)
 
 
 @app.get("/api/dashboard")

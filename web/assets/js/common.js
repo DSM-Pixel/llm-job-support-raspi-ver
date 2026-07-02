@@ -269,12 +269,33 @@ const ABC = (() => {
             </label>
           </div>
         </div>
-        <div class="modal-foot">
+        <div class="modal-foot settings-foot">
+          <button class="btn modal-logout" type="button" title="로그아웃하고 로그인 화면으로">로그아웃</button>
+          <span class="foot-spacer"></span>
           <button class="btn modal-cancel" type="button">취소</button>
           <button class="btn primary modal-save-settings" type="button">저장</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
+
+    // 로그아웃 — 세션·현재 프로젝트를 비우고 로그인 화면으로.
+    overlay.querySelector(".modal-logout").addEventListener("click", async () => {
+      try {
+        const auth = JSON.parse(localStorage.getItem("gnsoft.auth") || "null");
+        if (auth?.token) {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: auth.token }),
+          }).catch(() => {});
+        }
+      } catch {
+        /* 무시 */
+      }
+      localStorage.removeItem("gnsoft.auth");
+      clearProject();
+      location.replace("login.html");
+    });
 
     const close = () => {
       overlay.hidden = true;
@@ -973,7 +994,7 @@ const ABC = (() => {
 
   // 작업 화면인지(프로젝트 필요) — 프로젝트 선택/랜딩 화면은 제외.
   const _page = () => (location.pathname.split("/").pop() || "").replace(".html", "");
-  const _needsProject = () => !["projects", "index", ""].includes(_page());
+  const _needsProject = () => !["projects", "login", "index", ""].includes(_page());
 
   document.addEventListener("DOMContentLoaded", () => {
     // 프로젝트 미선택 상태로 작업 화면에 오면 프로젝트 선택 화면으로 보낸다.

@@ -569,6 +569,26 @@ textarea {
   padding: 22px 26px;
 }
 
+/* 설정 모달 푸터 — 왼쪽 로그아웃, 오른쪽 취소/저장 */
+.settings-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-foot .foot-spacer {
+  flex: 1;
+}
+
+.modal-logout {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 40%, transparent);
+}
+
+.modal-logout:hover {
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+}
+
 /* 카드 우상단 등에서 쓰는 텍스트 링크(버튼/앵커 공용) */
 .card-link {
   border: none;
