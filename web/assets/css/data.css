@@ -65,6 +65,13 @@
   padding-bottom: 8px;
 }
 
+/* 프로젝트 소스·검수로 가는 연결 링크(표 위) */
+.data-project-link {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
 .data-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

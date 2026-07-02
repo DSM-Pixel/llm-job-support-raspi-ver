@@ -1,4 +1,9 @@
 document.addEventListener("DOMContentLoaded", async () => {
+  // '이 프로젝트의 소스·검수 관리' 링크에 현재 프로젝트 딥링크 연결.
+  const srcLink = document.querySelector('[data-role="src-review"]');
+  const curProj = ABC.getProject ? ABC.getProject() : null;
+  if (srcLink && curProj) srcLink.href = `projects.html?p=${encodeURIComponent(curProj.id)}`;
+
   const tbody = document.querySelector("tbody");
   const search = document.querySelector(".search-upload input");
   const uploadBtn = document.querySelector(".search-upload .primary");

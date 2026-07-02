@@ -212,4 +212,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   heroInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") heroAsk();
   });
+
+  // 최근 활동 '전체 기록 →' = 기록 관리 모달(같은 데이터의 전체 보기·삭제).
+  document.querySelector(".history-link")?.addEventListener("click", ABC.openHistory);
 });

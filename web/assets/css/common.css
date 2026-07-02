@@ -569,6 +569,21 @@ textarea {
   padding: 22px 26px;
 }
 
+/* 카드 우상단 등에서 쓰는 텍스트 링크(버튼/앵커 공용) */
+.card-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--blue);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.card-link:hover {
+  text-decoration: underline;
+}
+
 .card {
   border: 1px solid var(--line);
   border-radius: 8px;
