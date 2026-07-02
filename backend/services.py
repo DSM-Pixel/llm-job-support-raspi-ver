@@ -844,6 +844,98 @@ def labeling_detect(
     }
 
 
+# ── 전체 객체 탐지(도로 위 모든 객체) ────────────────────────────────
+# 클래스 키워드 → 표시 톤. 파손 계열은 경고색, 이동체는 파랑, 시설물은 초록.
+_OBJECT_TONES = [
+    (("포트홀",), "red"),
+    (("균열", "파손", "침하", "패임"), "orange"),
+    (("차량", "자동차", "승용차", "버스", "트럭", "오토바이", "자전거"), "blue"),
+    (("사람", "보행자", "인부", "작업자"), "red"),
+    (("표지판", "신호등", "가드레일", "맨홀", "차선", "연석", "가로등", "펜스", "콘"), "green"),
+]
+
+
+def _object_tone(label: str) -> str:
+    low = (label or "").lower()
+    for keywords, tone in _OBJECT_TONES:
+        if any(k in low for k in keywords):
+            return tone
+    return "gray"
+
+
+# 무키/실패 시 폴백 — 다양한 클래스의 예시 객체(필터 UI 시연용).
+_MOCK_OBJECTS = [
+    {"label": "포트홀", "box_2d": [610, 80, 880, 360], "confidence": 87},
+    {"label": "균열", "box_2d": [500, 470, 880, 530], "confidence": 74},
+    {"label": "차량", "box_2d": [120, 560, 420, 940], "confidence": 92},
+    {"label": "차량", "box_2d": [150, 60, 330, 300], "confidence": 88},
+    {"label": "표지판", "box_2d": [40, 700, 260, 800], "confidence": 81},
+    {"label": "맨홀", "box_2d": [700, 520, 820, 640], "confidence": 78},
+    {"label": "차선", "box_2d": [430, 300, 990, 380], "confidence": 84},
+]
+
+
+def detect_objects_vision(image_bytes: bytes, mime: str = "image/png") -> dict:
+    """이미지 속 '모든' 객체를 Gemini Vision으로 탐지(박스+클래스).
+
+    포트홀·균열 같은 파손뿐 아니라 차량·보행자·표지판·맨홀·차선 등 도로 위
+    모든 객체를 돌려준다. 프론트는 클래스별로 묶어 필터 후 선택만 라벨링한다.
+    키/오류 시 다중 클래스 MOCK 폴백. 좌표 규약은 box_2d 0~1000 [ymin,xmin,ymax,xmax].
+    """
+    key = _gemini_key() if image_bytes else None
+    objects: list[dict] | None = None
+    backend = "MOCK"
+    if key:
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=key, http_options={"timeout": 20000})
+            part = types.Part.from_bytes(data=image_bytes, mime_type=mime or "image/png")
+            prompt = (
+                "이 도로 이미지에 보이는 모든 객체를 탐지하라. 포트홀·균열 같은 노면 파손뿐 "
+                "아니라 차량, 보행자, 표지판, 신호등, 차선, 맨홀, 가드레일, 가로수, 건물 등 "
+                "화면에 보이는 모든 것을 포함한다. 같은 종류가 여러 개면 각각 따로. "
+                "반드시 아래 JSON만 출력(코드펜스·설명 금지):\n"
+                '{"objects":[{"label":"포트홀","box_2d":[ymin,xmin,ymax,xmax],"confidence":87}]}\n'
+                "box_2d 는 0~1000 정규화 정수. label 은 짧은 한국어 명사. "
+                "confidence 는 0~100 정수."
+            )
+            resp = _gemini_generate(client, model="gemini-2.5-flash", contents=[part, prompt])
+            data = _extract_json(resp.text or "")
+            if data and isinstance(data.get("objects"), list) and data["objects"]:
+                objects = data["objects"]
+                backend = "GEMINI"
+        except Exception:
+            pass
+    if objects is None:
+        objects = _MOCK_OBJECTS
+
+    labels: list[dict] = []
+    for o in objects[:40]:  # 과탐 방어
+        box = o.get("box_2d")
+        if not (isinstance(box, list) and len(box) == 4):
+            continue
+        try:
+            box = [max(0, min(1000, int(v))) for v in box]
+        except (TypeError, ValueError):
+            continue
+        name = str(o.get("label") or "객체").strip() or "객체"
+        conf = o.get("confidence")
+        conf = int(conf) if isinstance(conf, (int, float)) else None
+        labels.append(
+            {
+                "class_name": name,
+                "grade": "객체",
+                "tone": _object_tone(name),
+                "note": f"전체 객체 탐지{f' · 신뢰도 {conf}%' if conf is not None else ''}",
+                "box_2d": box,
+                "confidence": conf,
+            }
+        )
+    return {"backend": backend, "engine": "gemini-2.5-flash", "labels": labels}
+
+
 # 설명 분석(설명형) 프리셋별 프롬프트.
 _ANALYZE_PROMPTS = {
     "도로 파손/포트홀 찾기": "이 도로 이미지에서 포트홀·균열 등 노면 파손을 찾아 위치와 심각도를 한국어로 항목별로 설명해줘.",

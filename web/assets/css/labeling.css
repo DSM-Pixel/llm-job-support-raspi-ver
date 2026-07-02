@@ -82,6 +82,81 @@
   background: rgba(245, 158, 11, 0.16);
 }
 
+.preview-boxes .pbox.blue {
+  border-color: var(--blue);
+  background: rgba(70, 96, 191, 0.16);
+}
+
+.preview-boxes .pbox.green {
+  border-color: var(--green);
+  background: rgba(26, 165, 102, 0.16);
+}
+
+/* ── 전체 객체 탐지 — 클래스 필터 패널 ── */
+.detect-filter {
+  margin: 10px 0 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--blue) 6%, transparent);
+}
+
+.detect-filter h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.detect-filter h4 small {
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.filter-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.filter-chip span {
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--muted);
+  transition: all 0.12s;
+}
+
+.filter-chip span b {
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.filter-chip input:checked + span {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 14%, transparent);
+  color: var(--blue);
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .preview-boxes .pbox span {
   position: absolute;
   top: -15px;

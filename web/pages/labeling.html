@@ -98,8 +98,17 @@
             <input class="modal-class" value="포트홀" />
           </label>
           <div class="modal-actions">
-            <button class="btn primary modal-detect" type="button">✣ AI 자동 탐지</button>
+            <button class="btn primary modal-detect" type="button" title="도로 파손 특화 모델(YOLO)로 포트홀·균열을 탐지">✣ 파손 자동 탐지</button>
+            <button class="btn modal-detect-all" type="button" title="차량·보행자·표지판 등 이미지 속 모든 객체를 탐지해 원하는 것만 골라 라벨링">◎ 전체 객체 탐지</button>
             <button class="btn modal-clear" type="button">전체 지우기</button>
+          </div>
+          <div class="detect-filter" hidden>
+            <h4>탐지된 객체 <small>원하는 클래스만 체크해 추가</small></h4>
+            <div class="filter-chips"></div>
+            <div class="filter-actions">
+              <button class="btn flat filter-cancel" type="button">취소</button>
+              <button class="btn primary filter-apply" type="button">선택 객체만 라벨 추가</button>
+            </div>
           </div>
           <h4>박스 목록 <span class="box-total">0</span>개</h4>
           <ul class="box-list"></ul>

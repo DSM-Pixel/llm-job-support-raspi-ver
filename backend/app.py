@@ -255,6 +255,17 @@ async def labeling_analyze_image(
     )
 
 
+@app.post("/api/labeling/detect-objects")
+async def labeling_detect_objects(image: UploadFile | None = File(None)) -> dict:
+    """이미지 속 모든 객체 탐지(Gemini Vision) — 클래스 필터 라벨링용.
+
+    이미지가 없으면(샘플) 다중 클래스 MOCK 을 돌려줘 필터 UI를 시연할 수 있다.
+    """
+    data = await image.read() if image else b""
+    mime = (image.content_type if image else None) or "image/png"
+    return services.detect_objects_vision(data, mime)
+
+
 @app.get("/api/labeling/model")
 def labeling_model() -> dict:
     """탐지 모델 사용 가능 여부."""

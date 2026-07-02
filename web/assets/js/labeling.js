@@ -376,6 +376,86 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // ── 전체 객체 탐지 → 클래스 필터 → 선택한 것만 라벨 추가 ────────
+  // 파손뿐 아니라 차량·보행자·표지판 등 모든 객체를 탐지해 대기 상태로 두고,
+  // 클래스 칩(개수 표시)에서 체크한 클래스만 박스로 추가한다.
+  const filterPanel = modal.querySelector(".detect-filter");
+  const chipsEl = modal.querySelector(".filter-chips");
+  let pendingBoxes = []; // 적용 대기 중인 탐지 결과
+
+  const renderFilterChips = () => {
+    const counts = {};
+    pendingBoxes.forEach((b) => {
+      counts[b.label] = (counts[b.label] || 0) + 1;
+    });
+    chipsEl.innerHTML = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(
+        ([label, n]) =>
+          `<label class="filter-chip"><input type="checkbox" value="${ABC.escapeHtml(label)}" checked /><span>${ABC.escapeHtml(label)} <b>${n}</b></span></label>`,
+      )
+      .join("");
+  };
+
+  modal.querySelector(".modal-detect-all").addEventListener("click", async (event) => {
+    const done = ABC.setBusy(event.currentTarget, "탐지 중");
+    try {
+      let res;
+      if (imageFile) {
+        const fd = new FormData();
+        fd.append("image", imageFile);
+        res = await fetch("/api/labeling/detect-objects", { method: "POST", body: fd });
+      } else {
+        // 샘플(업로드 없음) → MOCK 객체로 필터 UI 시연.
+        res = await fetch("/api/labeling/detect-objects", { method: "POST" });
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const result = await res.json();
+      pendingBoxes = labelsToBoxes(result);
+      if (!pendingBoxes.length) {
+        filterPanel.hidden = true;
+        return ABC.toast("탐지된 객체가 없습니다");
+      }
+      renderFilterChips();
+      filterPanel.hidden = false;
+      ABC.toast(
+        result.backend === "GEMINI"
+          ? `객체 ${pendingBoxes.length}개 탐지 — 추가할 클래스를 고르세요`
+          : `예시 객체 ${pendingBoxes.length}개(MOCK) — 추가할 클래스를 고르세요`,
+      );
+    } catch {
+      ABC.toast("전체 객체 탐지에 실패했습니다");
+    } finally {
+      done();
+    }
+  });
+
+  modal.querySelector(".filter-cancel").addEventListener("click", () => {
+    pendingBoxes = [];
+    filterPanel.hidden = true;
+  });
+
+  modal.querySelector(".filter-apply").addEventListener("click", () => {
+    const picked = new Set([...chipsEl.querySelectorAll("input:checked")].map((cb) => cb.value));
+    if (!picked.size) return ABC.toast("추가할 클래스를 선택하세요");
+    let added = 0;
+    let dup = 0;
+    pendingBoxes.forEach((b) => {
+      if (!picked.has(b.label)) return;
+      if (addBox(b)) added += 1;
+      else dup += 1;
+    });
+    pendingBoxes = [];
+    filterPanel.hidden = true;
+    render();
+    ABC.logActivity("전체 객체 탐지", `${[...picked].join(", ")} · ${added}건`);
+    ABC.toast(
+      added
+        ? `선택 객체 ${added}건 라벨 추가${dup ? ` (중복 ${dup}건 제외)` : ""}`
+        : "이미 추가된 박스입니다(중복 제외)",
+    );
+  });
+
   // ── 내보내기 (프로토타입 labeling.py 와 동일 규약) ─────────────
   const imgSize = () => ({
     w: canvasImg.naturalWidth || 1000,
