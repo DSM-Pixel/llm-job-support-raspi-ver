@@ -71,6 +71,11 @@
   color: var(--green);
   font-style: normal;
   font-weight: 800;
+  font-size: 13px;
+}
+
+.stat-card em.down {
+  color: var(--muted);
 }
 
 .stat-card strong {

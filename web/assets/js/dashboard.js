@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const tick = () => {
       frame += 1;
       const next = target * Math.min(frame / 24, 1);
-      value.textContent = target < 10 ? next.toFixed(3) : Math.round(next).toLocaleString("ko-KR") + suffix;
+      value.textContent = Math.round(next).toLocaleString("ko-KR") + suffix;
       if (frame < 24) requestAnimationFrame(tick);
     };
     tick();
@@ -188,21 +188,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ① 색인 문서·청크 = RAG 파일(API)  ② 내 작업물 = 저장 아티팩트(localStorage)
   // ③ 오늘 처리 작업 = 오늘 활동 수     ④ 총 활동 = 누적 활동 수
   // (실측 불가한 mAP 대신 실제 집계 가능한 값으로 대체)
-  const statCard = (icon, value, label, sub) =>
-    `<article class="card stat-card"><span class="icon-box">${icon}</span><strong>${value}</strong><p>${ABC.escapeHtml(label)}</p><small>${ABC.escapeHtml(sub)}</small></article>`;
+  // 증감 배지 — delta>0이면 초록 상승(↗), 0이면 표시 안 함, 음수면 회색 하락.
+  const deltaBadge = (delta, unit = "") => {
+    if (!delta) return "";
+    const up = delta > 0;
+    return `<em class="${up ? "up" : "down"}">${up ? "↗" : "↘"} ${up ? "+" : ""}${delta}${unit}</em>`;
+  };
+  const statCard = (icon, value, label, sub, delta) =>
+    `<article class="card stat-card"><span class="icon-box">${icon}</span>${deltaBadge(delta)}` +
+    `<strong>${value}</strong><p>${ABC.escapeHtml(label)}</p><small>${ABC.escapeHtml(sub)}</small></article>`;
 
   const renderRealStats = async () => {
     const grid = document.querySelector(".stat-grid");
     if (!grid) return;
     const acts = ABC.getActivity ? ABC.getActivity() : [];
     const arts = ABC.getArtifacts ? ABC.getArtifacts() : [];
-    // 오늘 0시 이후 활동.
+    const now = Date.now();
     const dayStart = new Date();
     dayStart.setHours(0, 0, 0, 0);
-    const todayCnt = acts.filter((a) => a.ts >= dayStart.getTime()).length;
-    // 작업물: 라벨/분석 이미지 vs RAG 결과 구분.
-    const imgArts = arts.filter((a) => a.kind === "image").length;
+    const d0 = dayStart.getTime();
+    const yStart = d0 - 86400000; // 어제 0시
+    const weekAgo = now - 7 * 86400000;
+
+    const todayCnt = acts.filter((a) => a.ts >= d0).length;
+    const yesterdayCnt = acts.filter((a) => a.ts >= yStart && a.ts < d0).length;
+    const week = acts.filter((a) => a.ts >= weekAgo).length; // 최근 7일 활동
+    const imgArts = arts.filter((a) => a.kind === "image");
     const ragArts = arts.filter((a) => a.kind === "rag").length;
+    const imgWeek = imgArts.filter((a) => (a.ts || 0) >= weekAgo).length; // 최근 7일 새 작업물
 
     // RAG 색인 문서·청크(현재 프로젝트) — API.
     let files = 0;
@@ -218,9 +231,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     grid.innerHTML =
       statCard("▱", files.toLocaleString(), "색인 문서·소스", `청크 ${chunks.toLocaleString()}개`) +
-      statCard("⬡", imgArts.toLocaleString(), "라벨·분석 작업물", `RAG 결과 ${ragArts}건`) +
-      statCard("⌁", todayCnt.toLocaleString(), "오늘 처리 작업", "질의·검색·라벨 등") +
-      statCard("◷", acts.length.toLocaleString(), "총 활동 기록", "이 프로젝트 누적");
+      statCard("⬡", imgArts.length.toLocaleString(), "라벨·분석 작업물", `RAG 결과 ${ragArts}건`, imgWeek) +
+      statCard("⌁", todayCnt.toLocaleString(), "오늘 처리 작업", "어제 대비", todayCnt - yesterdayCnt) +
+      statCard("◷", acts.length.toLocaleString(), "총 활동 기록", "최근 7일", week);
     grid.querySelectorAll(".stat-card strong").forEach(countUp);
   };
   renderRealStats();
