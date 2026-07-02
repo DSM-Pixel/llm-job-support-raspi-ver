@@ -69,13 +69,13 @@
   gap: 14px;
 }
 
-.chart-card,
+.agent-card,
 .quick-card,
 .activity-card {
   padding: 18px;
 }
 
-.chart-card {
+.agent-card {
   min-height: 178px;
 }
 
@@ -84,70 +84,119 @@ h3 {
   font-size: 16px;
 }
 
-.chart-bars {
-  position: relative;
-  height: 132px;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  align-items: stretch;
-  gap: 18px;
-  padding: 18px 28px 0;
+/* ── 업무 자동화 위젯 ── */
+.agent-more {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
 }
 
-/* 배경 격자 — 막대가 빈 공간에 떠 보이지 않도록 가로 기준선을 깐다. */
-.chart-grid {
-  position: absolute;
-  top: 18px;
-  left: 22px;
-  right: 22px;
-  bottom: 22px;
-  background-image: repeating-linear-gradient(
-    to top,
-    var(--line) 0,
-    var(--line) 1px,
-    transparent 1px,
-    transparent 25%
-  );
-  border-bottom: 1px solid var(--line);
-  pointer-events: none;
+.agent-more:hover {
+  text-decoration: underline;
 }
 
-.bar-item {
-  position: relative;
-  z-index: 1;
+.agent-sub {
+  margin: 8px 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.agent-line {
+  display: flex;
+  gap: 8px;
+}
+
+.agent-goal {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+}
+
+.agent-goal:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.agent-go {
+  white-space: nowrap;
+}
+
+.agent-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.agent-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.agent-num {
+  flex: none;
   display: grid;
-  grid-template-rows: 1fr 22px;
-  justify-items: center;
-  align-items: end;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.agent-body {
+  flex: 1;
   min-width: 0;
 }
 
-.bar-item span {
-  position: relative;
+.agent-body b {
   display: block;
-  width: 30px;
-  border-radius: 6px 6px 0 0;
-  background: linear-gradient(180deg, var(--blue) 0%, #8b9fd6 100%);
-  box-shadow: 0 4px 10px rgba(70, 96, 191, 0.14);
+  color: var(--text);
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* 막대 위 수치 */
-.bar-val {
-  position: absolute;
-  top: -17px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 700;
+.agent-body small {
   color: var(--muted);
+  font-size: 11.5px;
 }
 
-.bar-item b {
-  color: #a0abc0;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
+.agent-run {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
+  white-space: nowrap;
+}
+
+.agent-run:hover {
+  text-decoration: underline;
+}
+
+.agent-steps .agent-empty {
+  border-style: dashed;
+  color: var(--muted);
+  font-size: 12.5px;
+  justify-content: center;
+  padding: 14px;
 }
 
 .quick-grid {

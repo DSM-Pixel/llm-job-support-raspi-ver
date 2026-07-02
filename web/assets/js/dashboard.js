@@ -6,18 +6,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     dateEl.textContent = `${today.getFullYear()}.${today.getMonth() + 1}.${today.getDate()} · ${weekday}`;
   }
 
-  // 주간 처리량 차트 HTML — 배경 격자 + 막대(높이=상대값) + 막대 위 수치.
-  // days: [{day:"월", count:Number}, ...] (월~금 5일)
-  const chartHtml = (days) => {
-    const max = Math.max(1, ...days.map((d) => d.count));
-    const bars = days
-      .map((d) => {
-        const h = d.count ? Math.max(8, Math.round((d.count / max) * 100)) : 2;
-        return `<div class="bar-item"><span style="height:${h}%" title="${d.count}건"><i class="bar-val">${d.count}</i></span><b>${d.day}</b></div>`;
-      })
-      .join("");
-    return `<div class="chart-grid" aria-hidden="true"></div>${bars}`;
+  // ── 업무 자동화 위젯 — 목표 → /api/agent/plan → 절차 미리보기 ──
+  // 각 단계는 해당 기능 화면으로 바로 이동(딥링크)할 수 있다.
+  const agentGoal = document.querySelector(".agent-goal");
+  const agentGo = document.querySelector(".agent-go");
+  const agentSteps = document.querySelector(".agent-steps");
+  const planAgent = async () => {
+    const goal = agentGoal.value.trim();
+    if (!goal) return ABC.toast("목표를 입력해주세요");
+    const done = ABC.setBusy(agentGo, "설계 중");
+    try {
+      const d = await ABC.api("/api/agent/plan", { goal });
+      agentSteps.innerHTML =
+        (d.steps || [])
+          .map(
+            (s) =>
+              `<li><span class="agent-num">${s.n}</span><div class="agent-body"><b>${ABC.escapeHtml(s.title)}</b><small>${ABC.escapeHtml(s.icon)} ${ABC.escapeHtml(s.tool_label)}</small></div><a class="agent-run" href="${ABC.escapeHtml(s.route)}">실행 →</a></li>`,
+          )
+          .join("") || '<li class="agent-empty">절차를 만들지 못했습니다. 다시 시도해주세요.</li>';
+      ABC.logActivity("업무 자동화", goal);
+    } catch {
+      /* api()가 toast */
+    } finally {
+      done();
+    }
   };
+  agentGo?.addEventListener("click", planAgent);
+  agentGoal?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") planAgent();
+  });
 
   const countUp = (value) => {
     const raw = value.textContent.replace(/,/g, "");
@@ -110,13 +127,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         .join("");
     }
 
-    const chart = document.querySelector(".chart-bars");
-    if (chart && data.weekly) {
-      chart.innerHTML = chartHtml(
-        data.weekly.map((w) => ({ day: w.day, count: w.count ?? w.value ?? 0 })),
-      );
-    }
-
     renderModels(data.models);
 
     const activity = document.querySelector(".activity-card ul");
@@ -139,7 +149,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }, 12000);
 
-  // ── 주간 처리량·최근 활동은 실제 사용 기록(localStorage)으로 ──────
+  // ── 최근 활동은 실제 사용 기록(localStorage)으로 ─────────────────
   // 통계 카드 수치(색인·라벨 등)는 MOCK 유지, 활동 기반 부분만 실데이터로 교체.
   const ACT_ICON = {
     "자연어 질의": "☰",
@@ -174,24 +184,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             return `<li><span class="activity-icon">${icon}</span><b>${ABC.escapeHtml(a.type + label)}</b><small>${ABC.escapeHtml(a.page || "")} · ${relTime(a.ts)}</small></li>`;
           })
           .join("");
-      }
-      // 주간 처리량 — 이번 주 월~금 일별 활동 건수(5일 고정).
-      const chart = document.querySelector(".chart-bars");
-      if (chart) {
-        const now = new Date();
-        const dow = (now.getDay() + 6) % 7; // 월=0 … 일=6
-        const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow);
-        const days = ["월", "화", "수", "목", "금"].map((lab, i) => {
-          const start = new Date(
-            monday.getFullYear(),
-            monday.getMonth(),
-            monday.getDate() + i,
-          ).getTime();
-          const end = start + 86400000;
-          const count = acts.filter((a) => a.ts >= start && a.ts < end).length;
-          return { day: lab, count };
-        });
-        chart.innerHTML = chartHtml(days);
       }
     }
   } catch {
