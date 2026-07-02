@@ -392,16 +392,32 @@ document.addEventListener("DOMContentLoaded", () => {
     const note = isMock
       ? '<p class="filter-note">⚠ 지금은 예시 데이터입니다(탐지 모델·AI 한도 없음) — 실제 사진 위치와 무관합니다.</p>'
       : "";
+    const rows = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(
+        ([label, n]) =>
+          `<label class="filter-row"><input type="checkbox" value="${ABC.escapeHtml(label)}" checked />` +
+          `<span class="filter-name">${ABC.escapeHtml(label)}</span>` +
+          `<span class="filter-count">${n}개</span></label>`,
+      )
+      .join("");
     chipsEl.innerHTML =
       note +
-      Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .map(
-          ([label, n]) =>
-            `<label class="filter-chip"><input type="checkbox" value="${ABC.escapeHtml(label)}" checked /><span>${ABC.escapeHtml(label)} <b>${n}</b></span></label>`,
-        )
-        .join("");
+      '<label class="filter-row filter-all"><input type="checkbox" class="filter-check-all" checked />' +
+      '<span class="filter-name">전체 선택</span></label>' +
+      rows;
   };
+
+  // 전체 선택 토글 (위임 — 필터 패널은 매번 다시 그려짐).
+  chipsEl.addEventListener("change", (e) => {
+    const boxes = () => [...chipsEl.querySelectorAll('input[type="checkbox"]:not(.filter-check-all)')];
+    if (e.target.classList.contains("filter-check-all")) {
+      boxes().forEach((cb) => (cb.checked = e.target.checked));
+    } else {
+      const all = chipsEl.querySelector(".filter-check-all");
+      if (all) all.checked = boxes().every((cb) => cb.checked);
+    }
+  });
 
   modal.querySelector(".modal-detect-all").addEventListener("click", async (event) => {
     const done = ABC.setBusy(event.currentTarget, "탐지 중");
@@ -440,7 +456,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   modal.querySelector(".filter-apply").addEventListener("click", () => {
-    const picked = new Set([...chipsEl.querySelectorAll("input:checked")].map((cb) => cb.value));
+    const picked = new Set(
+      [...chipsEl.querySelectorAll('input:checked:not(.filter-check-all)')].map((cb) => cb.value),
+    );
     if (!picked.size) return ABC.toast("추가할 클래스를 선택하세요");
     let added = 0;
     let dup = 0;
