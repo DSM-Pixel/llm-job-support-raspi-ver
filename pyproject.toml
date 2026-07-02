@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "지엔소프트 멀티모달 AI 프로젝트 (8주 일경험) — VLM/SAM/RAG/Agent 프로토타입 워크스페이스"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Proprietary" }
+license = { text = "AGPL-3.0-or-later" }
 authors = [{ name = "llm-job-support team" }]
 
 # 공용 의존성은 가볍게. 무거운 모델 라이브러리는 프로토타입 폴더별로 둔다.
