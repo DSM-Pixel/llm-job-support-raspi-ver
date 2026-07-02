@@ -10,6 +10,18 @@ html {
   overflow-y: scroll;
 }
 
+/* 키보드(Tab) 포커스 링 — 크롬 기본 흰/검 이중 테두리가 어두운 사이드바에서
+   '흰 박스'처럼 보여, 은은한 파란 링으로 교체한다(접근성 유지). */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(70, 96, 191, 0.55);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 :root {
   color-scheme: light; /* 네이티브 컨트롤(날짜 선택 아이콘·스크롤바)을 테마에 맞춤 */
   --blue: #4660bf; /* 네온 블루(#2563ff) 완화 — 차분한 로열블루 */
@@ -452,12 +464,25 @@ textarea {
   display: grid;
   width: 30px;
   height: 30px;
+  flex: none; /* 이름·소속이 길어도 짜부라져 타원이 되지 않게 */
   place-items: center;
   border-radius: 50%;
   background: #e8efff;
   color: #174ce6;
   font-size: 12px;
   font-weight: 800;
+}
+
+/* 프로필 텍스트가 길면 말줄임(아바타·⚙ 는 고정폭 유지) */
+.user-box > div {
+  min-width: 0;
+}
+
+.user-name,
+.user-team {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-name {
