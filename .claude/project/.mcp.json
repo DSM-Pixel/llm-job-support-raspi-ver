@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "mcpServers": {
+    "memory": {
+      "command": "python",
+      "args": [".claude/mcp/memory_server.py"],
+      "env": {
+        "MEMORY_DB_PATH": ".claude/memory.db"
+      }
+    }
+  }
+}

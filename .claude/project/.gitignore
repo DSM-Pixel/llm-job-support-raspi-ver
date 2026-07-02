@@ -1,0 +1,45 @@
+# --- 시크릿 / 환경 ---
+.env
+.env.*
+!.env.example
+*.key
+**/credentials.json
+**/service-account*.json
+
+# --- Claude 하네스 로컬 상태 (커밋 금지) ---
+.claude/memory.db
+.claude/settings.local.json
+.claude/agent-memory/*
+!.claude/agent-memory/.gitkeep
+
+# --- 런타임 상태 / 캐시 DB ---
+backend/storage/
+backend/.gemini_state.json
+*.sqlite
+*.sqlite3
+
+# --- 데이터 / 모델 (대용량) ---
+data/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.gguf
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.uv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# --- OS / 에디터 ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
