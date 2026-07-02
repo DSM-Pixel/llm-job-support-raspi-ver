@@ -275,8 +275,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
-  background: #0c111c;
+  padding: 6px;
+  /* 여백을 새까만 void 대신 패널 톤으로 — '큰 검은 배경'처럼 도드라지지 않게 */
+  background: var(--bg);
   overflow: auto;
 }
 
@@ -292,11 +293,13 @@
 .canvas-img {
   display: block;
   max-width: 100%;
-  /* 모달(92vh) - 헤더(~56px) - 캔버스 패딩(20px) 을 꽉 채워 여백 최소화 */
-  max-height: calc(92vh - 80px);
+  /* 모달(92vh) - 헤더(~56px) - 캔버스 패딩(12px) 를 꽉 채워 여백 최소화 */
+  max-height: calc(92vh - 62px);
   width: auto;
   height: auto;
   border-radius: 6px;
+  /* 옅은 배경에서도 이미지 경계가 보이게 */
+  box-shadow: 0 0 0 1px var(--line);
   user-select: none;
   -webkit-user-drag: none;
 }
