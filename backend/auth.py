@@ -184,6 +184,18 @@ def me(token: str) -> dict:
     return {"ok": True, "user": _user_payload(row)}
 
 
+def user_id(token: str) -> str | None:
+    """세션 토큰 → 사용자 id (유효/미만료일 때만). 활동 기록 귀속용 경량 조회."""
+    with _lock, _connect() as conn:
+        _init(conn)
+        s = conn.execute(
+            "SELECT user_id, expires FROM sessions WHERE token = ?", (token or "",)
+        ).fetchone()
+        if not s or s["expires"] < time.time():
+            return None
+        return s["user_id"]
+
+
 def logout(token: str) -> dict:
     with _lock, _connect() as conn:
         _init(conn)
@@ -235,7 +247,10 @@ def reset_password(token: str, new_password: str) -> dict:
             "SELECT user_id, expires FROM reset_tokens WHERE token = ?", (token or "",)
         ).fetchone()
         if not row or row["expires"] < now:
-            return {"ok": False, "error": "재설정 링크가 만료되었거나 올바르지 않습니다. 다시 요청해주세요."}
+            return {
+                "ok": False,
+                "error": "재설정 링크가 만료되었거나 올바르지 않습니다. 다시 요청해주세요.",
+            }
         uid = row["user_id"]
         conn.execute("UPDATE users SET pw = ? WHERE id = ?", (_hash_pw(new_password), uid))
         conn.execute("DELETE FROM reset_tokens WHERE token = ?", (token,))  # 1회용

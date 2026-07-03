@@ -87,16 +87,43 @@ const ABC = (() => {
   // ── 활동 로그 (보고서 통계용, localStorage 영속) ────────────────
   // 사용자가 웹에서 한 행동(질의·검색·이미지 분석·라벨 저장·업로드 등)을
   // {ts, page, type, label} 형태로 누적. 보고서가 이를 분석·통계 낸다.
+  // 서버로 조용히 이중 기록 — 대시보드 서버 통계·Redis 캐시의 원천.
+  // (로그인 토큰 없으면 생략, 실패는 무시. UI를 절대 막지 않는다.)
+  const _authToken = () => {
+    try {
+      return (JSON.parse(localStorage.getItem("gnsoft.auth") || "null") || {}).token || "";
+    } catch {
+      return "";
+    }
+  };
+  const _syncToServer = (path, payload) => {
+    const token = _authToken();
+    if (!token) return;
+    try {
+      fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, project: _pid(), ...payload }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      /* 무시 */
+    }
+  };
+
   const actKey = () => `gnsoft.activity.${_pid()}`;
   const logActivity = (type, label = "") => {
+    const ts = Date.now();
+    const page = (location.pathname.split("/").pop() || "").replace(".html", "");
+    const clean = String(label).slice(0, 200);
     try {
-      const page = (location.pathname.split("/").pop() || "").replace(".html", "");
       const list = JSON.parse(localStorage.getItem(actKey()) || "[]");
-      list.push({ ts: Date.now(), page, type, label: String(label).slice(0, 200) });
+      list.push({ ts, page, type, label: clean });
       localStorage.setItem(actKey(), JSON.stringify(list.slice(-300))); // 최근 300개 유지
     } catch {
       /* localStorage 불가 시 무시 */
     }
+    _syncToServer("/api/activity/log", { type, label: clean, page, ts });
   };
   const getActivity = () => {
     try {
@@ -142,6 +169,14 @@ const ABC = (() => {
   const saveArtifact = (art) => {
     const page = (location.pathname.split("/").pop() || "").replace(".html", "");
     const entry = { ts: Date.now(), page, ...art };
+    // 서버에는 통계용 메타만(이미지 썸네일 등 무거운 값 제외).
+    _syncToServer("/api/activity/artifact", {
+      id: art.id || "",
+      kind: art.kind || "",
+      title: art.title || art.name || "",
+      page,
+      ts: entry.ts,
+    });
     try {
       let list = JSON.parse(localStorage.getItem(artKey()) || "[]");
       // 같은 id(예: 같은 사진의 분석/라벨)는 최신 것으로 교체 — 원본+라벨 중복 방지.

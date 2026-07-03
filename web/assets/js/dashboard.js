@@ -198,6 +198,60 @@ document.addEventListener("DOMContentLoaded", async () => {
     `<article class="card stat-card"><span class="icon-box">${icon}</span>${deltaBadge(delta)}` +
     `<strong>${value}</strong><p>${ABC.escapeHtml(label)}</p><small>${ABC.escapeHtml(sub)}</small></article>`;
 
+  const _token = () => {
+    try {
+      return (JSON.parse(localStorage.getItem("gnsoft.auth") || "null") || {}).token || "";
+    } catch {
+      return "";
+    }
+  };
+  const _pid = () => (ABC.getProject && ABC.getProject() ? ABC.getProject().id : "") || "none";
+
+  // 기존 localStorage 기록을 서버로 1회 이관(프로젝트별) — 서버 통계 전환 시 데이터 유실 방지.
+  const syncOnce = async () => {
+    const token = _token();
+    if (!token) return;
+    const flag = `gnsoft.synced.${_pid()}`;
+    if (localStorage.getItem(flag)) return;
+    try {
+      await ABC.api("/api/activity/sync", {
+        token,
+        project: _pid(),
+        activities: ABC.getActivity ? ABC.getActivity() : [],
+        artifacts: (ABC.getArtifacts ? ABC.getArtifacts() : []).map((a) => ({
+          ts: a.ts,
+          id: a.id,
+          kind: a.kind,
+          title: a.title || a.name || "",
+          page: a.page,
+        })),
+      });
+      localStorage.setItem(flag, "1");
+    } catch {
+      /* 서버 미연결 시 다음 방문에 재시도 */
+    }
+  };
+
+  // 서버 통계(다기기 합산·Redis 캐시)를 우선 시도. 실패하면 아래 localStorage 폴백.
+  const renderServerStats = async () => {
+    const grid = document.querySelector(".stat-grid");
+    if (!grid || !_token()) return false;
+    let s;
+    try {
+      s = await ABC.api("/api/dashboard/stats", { token: _token(), project: _pid() });
+    } catch {
+      return false;
+    }
+    if (!s || !s.ok) return false;
+    grid.innerHTML =
+      statCard("▱", (s.files || 0).toLocaleString(), "색인 문서·소스", `청크 ${(s.chunks || 0).toLocaleString()}개`) +
+      statCard("⬡", (s.images || 0).toLocaleString(), "라벨·분석 작업물", `RAG 결과 ${s.rag_results || 0}건`, s.img_week || 0) +
+      statCard("⌁", (s.today || 0).toLocaleString(), "오늘 처리 작업", "어제 대비", (s.today || 0) - (s.yesterday || 0)) +
+      statCard("◷", (s.total || 0).toLocaleString(), "총 활동 기록", "최근 7일", s.week || 0);
+    grid.querySelectorAll(".stat-card strong").forEach(countUp);
+    return true;
+  };
+
   const renderRealStats = async () => {
     const grid = document.querySelector(".stat-grid");
     if (!grid) return;
@@ -236,7 +290,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       statCard("◷", acts.length.toLocaleString(), "총 활동 기록", "최근 7일", week);
     grid.querySelectorAll(".stat-card strong").forEach(countUp);
   };
-  renderRealStats();
+
+  // 1) 기존 기록 서버 이관 → 2) 서버 통계 우선 → 실패 시 localStorage 폴백.
+  (async () => {
+    await syncOnce();
+    const ok = await renderServerStats();
+    if (!ok) await renderRealStats();
+  })();
 
   const routes = ["rag.html", "labeling.html", "report.html", "query.html"];
   document.querySelectorAll(".quick-grid button").forEach((button, index) => {

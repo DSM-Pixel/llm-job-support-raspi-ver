@@ -106,3 +106,6 @@ backend/storage/projects.db
 
 # 사용자 계정·세션(개인정보) — 절대 커밋 금지
 backend/storage/users.db
+
+# 사용자별 활동·작업물 기록(대시보드 통계 원천) — 로컬 데이터, 커밋 제외
+backend/storage/activity.db

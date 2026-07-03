@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import auth, projects, services, yolo_service
+from . import activity, auth, cache, projects, services, yolo_service
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
@@ -187,6 +187,37 @@ class ResetPasswordIn(BaseModel):
     password: str = ""
 
 
+class ActivityLogIn(BaseModel):
+    token: str = ""
+    project: str = ""
+    type: str = ""
+    label: str = ""
+    page: str = ""
+    ts: float | None = None
+
+
+class ArtifactIn(BaseModel):
+    token: str = ""
+    project: str = ""
+    id: str = ""
+    kind: str = ""
+    title: str = ""
+    page: str = ""
+    ts: float | None = None
+
+
+class ActivitySyncIn(BaseModel):
+    token: str = ""
+    project: str = ""
+    activities: list[dict] = []
+    artifacts: list[dict] = []
+
+
+class DashStatsIn(BaseModel):
+    token: str = ""
+    project: str = ""
+
+
 # ── API 라우트 ───────────────────────────────────────────────────────
 @app.get("/api/health")
 def health() -> dict:
@@ -242,6 +273,86 @@ def dashboard() -> dict:
     # 통계 카드 수치는 데모(MOCK) 유지, 모델 상태는 실제 가용성(YOLO best.pt·Gemini 키)으로.
     data = services.dashboard_stats()
     data["models"] = services.real_model_status(yolo_service.model_available())
+    return data
+
+
+# ── 활동/작업물 서버 기록 + 대시보드 실통계(Redis 캐시) ────────────────
+def _stats_key(uid: str, project: str) -> str:
+    return f"dashstats:{uid}:{project}"
+
+
+@app.post("/api/activity/log")
+def activity_log(body: ActivityLogIn) -> dict:
+    """사용자 활동 1건을 서버에 기록(프론트 localStorage 와 이중 기록)."""
+    uid = auth.user_id(body.token)
+    if not uid:
+        return {"ok": False}
+    activity.log(uid, body.project, body.type, body.label, body.page, body.ts)
+    cache.delete(_stats_key(uid, body.project))  # 통계 캐시 무효화
+    return {"ok": True}
+
+
+@app.post("/api/activity/artifact")
+def activity_artifact(body: ArtifactIn) -> dict:
+    """작업 산출물(이미지 분석·라벨/RAG 결과) 메타를 서버에 upsert."""
+    uid = auth.user_id(body.token)
+    if not uid:
+        return {"ok": False}
+    activity.save_artifact(uid, body.project, body.id, body.kind, body.title, body.page, body.ts)
+    cache.delete(_stats_key(uid, body.project))
+    return {"ok": True}
+
+
+@app.post("/api/activity/sync")
+def activity_sync(body: ActivitySyncIn) -> dict:
+    """기존 localStorage 기록을 서버로 1회 이관(신규 서버 통계 전환용). 중복은 무시."""
+    uid = auth.user_id(body.token)
+    if not uid:
+        return {"ok": False}
+    for a in body.activities[:300]:
+        activity.log(
+            uid, body.project, a.get("type", ""), a.get("label", ""), a.get("page", ""), a.get("ts")
+        )
+    for a in body.artifacts[:50]:
+        activity.save_artifact(
+            uid,
+            body.project,
+            a.get("id", ""),
+            a.get("kind", ""),
+            a.get("title", ""),
+            a.get("page", ""),
+            a.get("ts"),
+        )
+    cache.delete(_stats_key(uid, body.project))
+    return {"ok": True}
+
+
+@app.post("/api/dashboard/stats")
+def dashboard_real_stats(body: DashStatsIn) -> dict:
+    """대시보드 통계 4종 — 서버 집계 + 60초 캐시(Redis 우선, 없으면 인메모리).
+
+    반환: files/chunks(RAG·프로젝트) + today/yesterday/week/total(활동) +
+    images/rag_results/img_week(작업물) + recent(최근 활동) + cache_backend.
+    """
+    uid = auth.user_id(body.token)
+    if not uid:
+        return {"ok": False}
+    key = _stats_key(uid, body.project)
+    hit = cache.get_json(key)
+    if hit is not None:
+        hit["cached"] = True
+        return hit
+
+    data = activity.stats(uid, body.project)
+    rag = services.rag_list_files(body.project)
+    files = rag.get("files", []) if isinstance(rag, dict) else []
+    data["files"] = len(files)
+    data["chunks"] = sum(f.get("chunks", 0) for f in files)
+    data["recent"] = activity.recent(uid, body.project, 6)
+    data["ok"] = True
+    data["cached"] = False
+    data["cache_backend"] = cache.backend_name()
+    cache.set_json(key, data, ttl=60)
     return data
 
 
