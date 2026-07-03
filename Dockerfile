@@ -29,6 +29,7 @@ RUN pip install \
     "pillow>=10.0.0" \
     "numpy>=1.26" \
     "rank-bm25>=0.2.2" \
+    "redis>=5.0" \
     && rm -rf /root/.cache/pip
 
 EXPOSE 80

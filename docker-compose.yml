@@ -9,6 +9,7 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
       PYTHONIOENCODING: "utf-8"
+      REDIS_URL: "redis://redis:6379/0"
     env_file:
       - .env
     volumes:
@@ -16,6 +17,8 @@ services:
       - ./backend:/app/backend
       - ./web:/app/web
       - ./data:/app/data
+    depends_on:
+      - redis
     restart: unless-stopped
     mem_limit: "512m"
     memswap_limit: "1g"
@@ -26,8 +29,29 @@ services:
       retries: 3
       start_period: 60s
 
+  redis:
+    image: redis:7-alpine
+    container_name: llm-job-support-redis
+    # 캐시 전용 — 영속 불필요. 메모리 상한 + LRU 로 폭주 방지.
+    command:
+      - "redis-server"
+      - "--save"
+      - ""
+      - "--appendonly"
+      - "no"
+      - "--maxmemory"
+      - "64mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
+    restart: unless-stopped
+    mem_limit: "128m"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
 networks:
   default:
     name: llm-job-support-net
     driver: bridge
-
